@@ -72,7 +72,7 @@ Canonical R_of_Z_rmorphism := AddRMorphism R_of_Z_is_multiplicative.
 Lemma RE : @ring_eq_ext R +%R *%R -%R eq.
 Proof. by split; do! move=> ? _ <-. Qed.
 
-Lemma RZ : ring_morph (R := R) 0 1 +%R *%R (fun x y => x - y) -%R eq
+Lemma RZ : ring_morph 0 1 +%R *%R (fun x y => x - y) -%R eq
                       0%Z 1%Z Zplus Zmult Zminus Z.opp Zeq_bool R_of_Z.
 Proof.
 by split=> //=;
@@ -96,7 +96,7 @@ Qed.
 
 Lemma RF (F : fieldType) :
   @field_theory
-    F 0 1 +%R *%R (fun x y => x - y) -%R (fun x y => x / y) (@GRing.inv F) eq.
+    F 0 1 +%R *%R (fun x y => x - y) -%R (fun x y => x / y) GRing.inv eq.
 Proof.
 by split => //= [||x /eqP];
   [exact: RR | apply/eqP; rewrite oner_eq0 | exact: mulVf].
@@ -113,8 +113,7 @@ Definition Fcorrect (F : fieldType) :=
     (F2AF (Eqsth F) (RE F) (RF F)) (RZ F) (PN F)
     (triv_div_th (Eqsth F) (RE F) (Rth_ARth (Eqsth F) (RE F) (RR F)) (RZ F)).
 
-Elpi Command ring.
-Elpi Accumulate lp:{{
+Elpi Db ring.db lp:{{
 
 % [eucldiv N D M R] N = D * M + R
 pred eucldiv o:int, i:int, o:int, i:int.
@@ -129,107 +128,177 @@ positive-constant N {{ lib:num.pos.xO lp:T }} :-
 positive-constant N {{ lib:num.pos.xI lp:T }} :-
   eucldiv N 2 M 1, positive-constant M T.
 
+pred n-constant o:int, o:term.
+n-constant N _ :- not (var N), N < 0, !, fail.
+n-constant 0 {{ lib:num.N.N0 }} :- !.
+n-constant N {{ lib:num.N.Npos lp:T }} :- !, positive-constant N T.
+
+pred nat-constant o:int, o:term.
+nat-constant N _ :- not (var N), N < 0, !, fail.
+nat-constant 0  {{ lib:num.nat.O }} :- !.
+nat-constant SN {{ lib:num.nat.S lp:M }} :-
+  0 < SN, N is SN - 1, nat-constant N M.
+
+pred list-constant o:term, o:list term, o:term.
+list-constant T [] {{ @nil lp:T }} :- !.
+list-constant T [X|XS] {{ @cons lp:T lp:X lp:XS' }} :- list-constant T XS XS'.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-pred mem o:term, o:term, o:int.
-mem {{ lp:X :: _     }} X 0 :- !.
-mem {{ _    :: lp:XS }} X M :- !, mem XS X N, M is N + 1.
+pred mem o:list term, o:term, o:int.
+mem [X|_] X 0 :- !.
+mem [_|XS] X M :- !, mem XS X N, M is N + 1.
 
-pred close o:term.
-close {{ nil }} :- !.
-close {{ _ :: lp:XS }} :- close XS.
+pred close o:list term.
+close [] :- !.
+close [_|XS] :- close XS.
 
-pred quote i:term, i:term, o:term, o:term.
-quote ComRing T {{ @PEO Z }} _ :-
+% [quote Ring Input Output Varmap]
+pred quote i:term, i:term, o:term, o:list term.
+quote Ring T {{ @PEO Z }} _ :-
   T = {{ @GRing.zero _ }},
-  coq.unify-eq T {{ @GRing.zero (GRing.ComRing.zmodType lp:ComRing) }} ok,
+  coq.unify-eq T {{ @GRing.zero (GRing.Ring.zmodType lp:Ring) }} ok,
   !.
-quote ComRing T {{ @PEadd Z lp:R1 lp:R2 }} L :-
+quote Ring T {{ @PEadd Z lp:R1 lp:R2 }} L :-
   T = {{ @GRing.add lp:Zmodule lp:T1 lp:T2 }},
   coq.unify-eq {{ @GRing.add lp:Zmodule }}
-               {{ @GRing.add (GRing.ComRing.zmodType lp:ComRing) }} ok, !,
-  quote ComRing T1 R1 L,
-  quote ComRing T2 R2 L.
-quote ComRing T {{ @PEopp Z lp:R1 }} L :-
+               {{ @GRing.add (GRing.Ring.zmodType lp:Ring) }} ok, !,
+  quote Ring T1 R1 L,
+  quote Ring T2 R2 L.
+quote Ring T {{ @PEopp Z lp:R1 }} L :-
   T = {{ @GRing.opp lp:Zmodule lp:T1 }},
   coq.unify-eq {{ @GRing.opp lp:Zmodule }}
-               {{ @GRing.opp (GRing.ComRing.zmodType lp:ComRing) }} ok, !,
-  quote ComRing T1 R1 L.
+               {{ @GRing.opp (GRing.Ring.zmodType lp:Ring) }} ok, !,
+  quote Ring T1 R1 L.
 % FIXME: [PEeval] is parameterized by a ring morphism [phi : Z -> R] rather than
 %        a constant multiplication [GRing.natmul]. So, this does not work.
 %
-% quote ComRing T {{ @PEmul Z lp:R1 (@PEc Z (Z.of_nat lp:N)) }} :-
+% quote Ring T {{ @PEmul Z lp:R1 (@PEc Z (Z.of_nat lp:N)) }} :-
 %   T = {{ @GRing.natmul lp:Zmodule lp:T1 lp:N }},
-%   coq.unify-eq Zmodule {{ GRing.ComRing.zmodType lp:ComRing }} ok, !,
-%   quote ComRing T1 R1 L.
-quote ComRing T {{ @PEc Z (Z.of_nat lp:N) }} _ :-
-  T = {{ @GRing.natmul lp:Zmodule (@GRing.one lp:Ring) lp:N }},
-  coq.unify-eq Zmodule {{ @GRing.ComRing.zmodType lp:ComRing }} ok,
-  coq.unify-eq {{ @GRing.one lp:Ring }}
-               {{ @GRing.one (GRing.ComRing.ringType lp:ComRing) }} ok,
+%   coq.unify-eq Zmodule {{ GRing.Ring.zmodType lp:Ring }} ok, !,
+%   quote Ring T1 R1 L.
+quote Ring T {{ @PEc Z (Z.of_nat lp:N) }} _ :-
+  T = {{ @GRing.natmul lp:Zmodule (@GRing.one lp:Ring') lp:N }},
+  coq.unify-eq Zmodule {{ @GRing.Ring.zmodType lp:Ring }} ok,
+  coq.unify-eq {{ @GRing.one lp:Ring' }} {{ @GRing.one lp:Ring }} ok,
   !.
-quote ComRing T {{ @PEI Z }} _ :-
+quote Ring T {{ @PEc Z (Z_of_int lp:Z) }} _ :-
+  T = {{ @intmul lp:Zmodule (@GRing.one lp:Ring') lp:Z }},
+  coq.unify-eq Zmodule {{ @GRing.Ring.zmodType lp:Ring }} ok,
+  coq.unify-eq {{ @GRing.one lp:Ring' }} {{ @GRing.one lp:Ring }} ok,
+  !.
+quote Ring T {{ @PEI Z }} _ :-
   T = {{ @GRing.one _ }},
-  coq.unify-eq T {{ @GRing.one (GRing.ComRing.ringType lp:ComRing) }} ok,
+  coq.unify-eq T {{ @GRing.one lp:Ring }} ok,
   !.
-quote ComRing T {{ @PEmul Z lp:R1 lp:R2 }} L :-
-  T = {{ @GRing.mul lp:Ring lp:T1 lp:T2 }},
-  coq.unify-eq {{ @GRing.mul lp:Ring }}
-               {{ @GRing.mul (GRing.ComRing.ringType lp:ComRing) }} ok, !,
-  quote ComRing T1 R1 L,
-  quote ComRing T2 R2 L.
-% TODO: converse ring
-quote ComRing T {{ @PEpow Z lp:R1 (N.of_nat lp:N) }} L :-
-  T = {{ @GRing.exp lp:Ring lp:T1 lp:N }},
-  coq.unify-eq {{ @GRing.exp lp:Ring }}
-               {{ @GRing.exp (GRing.ComRing.ringType lp:ComRing) }} ok, !,
-  quote ComRing T1 R1 L.
+quote Ring T {{ @PEmul Z lp:R1 lp:R2 }} L :-
+  T = {{ @GRing.mul lp:Ring' lp:T1 lp:T2 }},
+  coq.unify-eq {{ @GRing.mul lp:Ring' }} {{ @GRing.mul lp:Ring }} ok, !,
+  quote Ring T1 R1 L,
+  quote Ring T2 R2 L.
+% NB: There are several ways to express exponentiation: [x ^+ n], [x ^ Posz n],
+% and [x ^ n%:R]. The last one is inconvertible with others if [n] is not a
+% constant.
+quote Ring T {{ @PEpow Z lp:R1 (N.of_nat lp:N) }} L :-
+  T = {{ @GRing.exp lp:Ring' lp:T1 lp:N }},
+  coq.unify-eq {{ @GRing.exp lp:Ring' }} {{ @GRing.exp lp:Ring }} ok, !,
+  quote Ring T1 R1 L.
+quote Ring T {{ @PEpow Z lp:R1 (N.of_nat lp:N) }} L :-
+  T = {{ @exprz lp:UnitRing lp:T1 lp:Z }},
+  coq.unify-eq {{ @GRing.exp (GRing.UnitRing.ringType lp:UnitRing) }}
+               {{ @GRing.exp lp:Ring }} ok,
+  coq.unify-eq {{ lp:Z }} {{ Posz lp:N }} ok, !,
+  quote Ring T1 R1 L.
 quote _ T {{ @PEX Z lp:Pos }} L :- !,
   mem L T N, positive-constant {calc (N + 1)} Pos.
+% TODO: converse ring
+
+}}.
+
+Elpi Command ring_reify.
+Elpi Accumulate Db ring.db.
+Elpi Accumulate lp:{{
+
+main [trm Ring, trm Input] :- std.do! [
+  InputTy = {{ GRing.Ring.sort lp:Ring }},
+  std.assert-ok! (coq.elaborate-skeleton Input InputTy Input') "bad input term",
+  std.time (quote Ring Input' Output VarMap) Time,
+  list-constant InputTy VarMap VarMapTerm,
+  std.assert-ok! (coq.typecheck Output _) "bad output term",
+  std.assert-ok! (coq.typecheck VarMapTerm _) "bad varmap",
+  @ppwidth! 300 => coq.say { coq.term->string Output },
+  @ppwidth! 300 => coq.say { coq.term->string VarMapTerm },
+  coq.say "Reification:" Time "sec."
+].
 
 }}.
 Elpi Typecheck.
 
-Check int_comRing.
+Elpi Tactic ring.
+Elpi Accumulate Db ring.db.
+Elpi Accumulate lp:{{
 
-Section S.
+pred quote-arg i:term, i:argument, o:term, o:term, o:term, o:list term.
+quote-arg Ring (trm Proof) Proof R1 R2 L :- std.do! [
+  std.assert-ok!
+    (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
+    "bad input term",
+  quote Ring T1 R1 L, quote Ring T2 R2 L
+].
+
+pred interp-proofs i:list term, o:term.
+interp-proofs [] {{ I }} :- !.
+interp-proofs [P] P :- !.
+interp-proofs [P|PS] {{ conj lp:P lp:IS }} :- !, interp-proofs PS IS.
+
+solve Args [(goal Ctx _ P _ as G)] GS :-
+  Ctx => std.do! [
+    std.assert-ok! (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }}) "bad goal",
+    std.assert-ok! (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }}) "bad goal",
+    std.assert-ok! (coq.unify-eq Ty {{ GRing.ComRing.sort lp:ComRing }})
+                   "bad goal",
+    std.time
+      (std.unzip { std.map Args (arg\ res\ sigma Proof PE1 PE2\
+                     quote-arg Ring arg Proof PE1 R2 VarMap,
+                     res = pr {{ @pair _ _ lp:PE1 lp:R2 }} Proof) } Lpe Proofs,
+       quote Ring T1 PE1 VarMap,
+       quote Ring T2 PE2 VarMap) ReifTime,
+    list-constant Ty VarMap VarMapTerm,
+    list-constant _ Lpe LpeTerm,
+    interp-proofs Proofs Proofs',
+    std.time (refine {{ @Rcorrect lp:ComRing 0 lp:VarMapTerm lp:LpeTerm
+                                  lp:PE1 lp:PE2 lp:Proofs' erefl }} G GS)
+             ReflTime,
+    coq.say "Reification:" ReifTime "sec.",
+    coq.say "Reflection:" ReflTime "sec."
+  ].
+
+}}.
+Elpi Typecheck.
+
+Section SmallExample.
+
 Variable (x y z x1 x2 x3 x4 x5: int).
 
-Elpi Query lp:{{
+Elpi ring_reify (int_Ring) (10%:R + x + y).
+Elpi ring_reify (int_Ring) (10%:R + x1 + x2 + x3 + x4 + x5).
 
-  quote {{ int_comRing }} {{ (10%:R + x + y)%R }} R L. 
-
-}}.
-
-Elpi Query lp:{{
-
-  quote {{ int_comRing }} {{ (10%:R + x1 + x2 + x3 + x4 + x5)%R }} _ _. 
-
-}}.
-
-
-End S.
-
+End SmallExample.
 
 Section BiggerExample.
 
 Variables (x1 x2 x3 y1 y2 y3 : int).
 
-Definition f1 (x1 x2 x3 y1 y2 y3 : int) :=
+Definition f1 :=
   x1^3*x2 - x1*x2^3 - x1^3*x3 + x2^3*x3 + x1*x3^3 - x2*x3^3 - x2*y1^
   2 + x3*y1^2 + x1*y2^2 - x3*y2^2 - x1*y3^2 + x2*y3^2.
 
-  (* This one is instantaneous, almost *)
-  Elpi Query lp:{{
+Elpi ring_reify
+  (int_Ring)
+  (x1^3*x2 - x1*x2^3 - x1^3*x3 + x2^3*x3 + x1*x3^3 - x2*x3^3 - x2*y1^
+  2 + x3*y1^2 + x1*y2^2 - x3*y2^2 - x1*y3^2 + x2*y3^2).
 
-  quote {{ int_comRing }} {{ (x1^3*x2 - x1*x2^3 - x1^3*x3 + x2^3*x3 + x1*x3^3 - x2*x3^3 - x2*y1^
-  2 + x3*y1^2 + x1*y2^2 - x3*y2^2 - x1*y3^2 + x2*y3^2)%R }} _ _. 
-
-}}.
-
-
-
-Definition f2 (x1 x2 x3 y1 y2 y3 : int) := 2%:R*x1^6%:R*x2^3 -
+Definition f2 := 2%:R*x1^6%:R*x2^3 -
   6%:R*x1^4%:R*x2^5 + 6%:R*x1^2*x2^7 - 2%:R*x2^9 - 6%:R*x1^6%:R*x2^ 2%:R*x3 +
   6%:R*x1^5*x2^3*x3 + 12%:R*x1^4%:R*x2^4%:R*x3 - 12%:R*x1^3*x2^5*x3 -
   6%:R*x1^2*x2^6%:R*x3 + 6%:R*x1*x2^7%:R*x3 + 6%:R*x1^6%:R*x2*x3^2 -
@@ -325,11 +394,9 @@ Definition f2 (x1 x2 x3 y1 y2 y3 : int) := 2%:R*x1^6%:R*x2^3 -
   6%:R*y1^2*y2*y3^3 - 6%:R*y1*y2^2*y3^3 + 2%:R*y2^3*y3^3 - x1^3*y3^4 +
   3%:R*x1^2*x2*y3^4 - 3%:R*x1*x2^2*y3^4 + x2^3*y3^4.
 
-
-  (* This one takes about 12s on my machine*)
-  Elpi Query lp:{{
-
-  quote {{ int_comRing }} {{ ( 2%:R*x1^6%:R*x2^3 -
+Elpi ring_reify
+  (int_Ring)
+  (2%:R*x1^6%:R*x2^3 -
   6%:R*x1^4%:R*x2^5 + 6%:R*x1^2*x2^7 - 2%:R*x2^9 - 6%:R*x1^6%:R*x2^ 2%:R*x3 +
   6%:R*x1^5*x2^3*x3 + 12%:R*x1^4%:R*x2^4%:R*x3 - 12%:R*x1^3*x2^5*x3 -
   6%:R*x1^2*x2^6%:R*x3 + 6%:R*x1*x2^7%:R*x3 + 6%:R*x1^6%:R*x2*x3^2 -
@@ -423,12 +490,10 @@ Definition f2 (x1 x2 x3 y1 y2 y3 : int) := 2%:R*x1^6%:R*x2^3 -
   6%:R*x1*x2^2*y1*y3^3 + 4%:R*x2^3*y1*y3^3 - 2%:R*y1^3*y3^3 -
   6%:R*x1^2*x2*y2*y3^3 + 12%:R*x1*x2^2*y2*y3^3 - 6%:R*x2^3*y2*y3^3 +
   6%:R*y1^2*y2*y3^3 - 6%:R*y1*y2^2*y3^3 + 2%:R*y2^3*y3^3 - x1^3*y3^4 +
-  3%:R*x1^2*x2*y3^4 - 3%:R*x1*x2^2*y3^4 + x2^3*y3^4 )%R }} _ _. 
-
-}}.
+  3%:R*x1^2*x2*y3^4 - 3%:R*x1*x2^2*y3^4 + x2^3*y3^4).
 
 
-Definition f3 (x1 x2 x3 y1 y2 y3 : int) := 2%:R*x1^9%:R*x2^4 -
+Definition f3 := 2%:R*x1^9%:R*x2^4 -
  8%:R*x1^7%:R*x2^6 + 12%:R*x1^5*x2^8 - 8%:R*x1^3*x2^10 + 2%:R*x1*x2^12 -
  8%:R*x1^9%:R*x2^3*x3 + 6%:R*x1^ 8%:R*x2^4%:R*x3 + 24%:R*x1^7%:R*x2^5*x3 -
 16%:R*x1^6%:R*x2^6%:R*x3 - 24%:R*x1^5*x2^7%:R*x3 + 12%:R*x1^4%:R*x2^ 8%:R*x3 +
@@ -873,11 +938,9 @@ Definition f3 (x1 x2 x3 y1 y2 y3 : int) := 2%:R*x1^9%:R*x2^4 -
 2%:R*x1*y2^3*y3^5 + 2%:R*x2*y2^3*y3^5 + x1^4%:R*y3^6 - 4%:R*x1^3*x2*y3^6 +
 6%:R*x1^2*x2^2*y3^6 - 4%:R*x1*x2^3*y3^6 + x2^4%:R*y3^6.
 
-(* This one takes much longer (I unterrupted the procedure after 15 minutes of computation 
-   on my machine)*)
-Elpi Query lp:{{
-
-  quote {{ int_comRing }} {{ ( 2%:R*x1^9%:R*x2^4 -
+Elpi ring_reify
+  (int_Ring)
+  (2%:R*x1^9%:R*x2^4 -
   8%:R*x1^7%:R*x2^6 + 12%:R*x1^5*x2^8 - 8%:R*x1^3*x2^10 + 2%:R*x1*x2^12 -
   8%:R*x1^9%:R*x2^3*x3 + 6%:R*x1^ 8%:R*x2^4%:R*x3 + 24%:R*x1^7%:R*x2^5*x3 -
  16%:R*x1^6%:R*x2^6%:R*x3 - 24%:R*x1^5*x2^7%:R*x3 + 12%:R*x1^4%:R*x2^ 8%:R*x3 +
@@ -1320,18 +1383,12 @@ Elpi Query lp:{{
  18%:R*x1*x2^3*y2*y3^5 - 6%:R*x2^4%:R*y2*y3^5 - 6%:R*x1*y1^2*y2*y3^5 +
  6%:R*x2*y1^2*y2*y3^5 + 6%:R*x1*y1*y2^2*y3^5 - 6%:R*x2*y1*y2^2*y3^5 -
  2%:R*x1*y2^3*y3^5 + 2%:R*x2*y2^3*y3^5 + x1^4%:R*y3^6 - 4%:R*x1^3*x2*y3^6 +
- 6%:R*x1^2*x2^2*y3^6 - 4%:R*x1*x2^3*y3^6 + x2^4%:R*y3^6 )%R }} _ _. 
+ 6%:R*x1^2*x2^2*y3^6 - 4%:R*x1*x2^3*y3^6 + x2^4%:R*y3^6).
 
-}}.
-
-
-Lemma sander (x1 x2 x3 y1 y2 y3 : int) :
-  (f1 x1 x2 x3 y1 y2 y3) * (f2 x1 x2 x3 y1 y2 y3) = f3 x1 x2 x3 y1 y2 y3.
+Lemma sander : f1 * f2 = f3.
 Proof.
-  unfold f1, f2, f3.
-  (* objective : have ring solve this goal.*)
-  (* On the analogue problem stated in Z, ring succeeds in less than 5s on 
-     the same machine as the one used for the previous tests. *)
-Admitted.
+unfold f1, f2, f3.
+Time elpi ring.
+Qed.
 
-  End BiggerExample.
+End BiggerExample.
