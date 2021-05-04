@@ -1,7 +1,7 @@
 From Coq Require Import ZArith ZifyClasses Ring Ring_polynom Field_theory.
 From elpi Require Import elpi.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
-From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
+From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint rat.
 From mathcomp Require Import zify.
 
 Set Implicit Arguments.
@@ -1392,3 +1392,19 @@ Time elpi ring.
 Qed.
 
 End BiggerExample.
+
+
+Section RationalsExample.
+
+Lemma test_Z_constants : 20%:R * 3%:R = 60%:R :> int.
+Time elpi ring.
+(* Finished transaction in 0.032 secs (0.032u,0.s) (successful)*)
+Qed.
+
+(* We need a locking feature to prevent unwanted computations. *)
+Lemma test_rat_constants : 20%:R * 3%:R = 60%:R :> rat.
+Time elpi ring.
+(* Finished transaction in 4.05 secs (3.976u,0.075s) (successful) *)
+Qed.
+
+End RationalsExample.
