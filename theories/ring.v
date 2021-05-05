@@ -238,13 +238,14 @@ Elpi Tactic ring.
 Elpi Accumulate Db ring.db.
 Elpi Accumulate lp:{{
 
-pred quote-arg i:term, i:argument, o:term, o:term, o:term, o:list term.
-quote-arg Ring (trm Proof) Proof R1 R2 L :- std.do! [
-  std.assert-ok!
-    (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
-    "bad input term",
-  quote Ring T1 R1 L, quote Ring T2 R2 L
-].
+pred quote-arg i:term, o:list term, i:argument, o:pair term term.
+quote-arg Ring VarMap (trm Proof) (pr {{ @pair _ _ lp:PE1 lp:PE2 }} Proof) :-
+  std.do! [
+    std.assert-ok!
+      (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
+      "bad input term",
+    quote Ring T1 PE1 VarMap, quote Ring T2 PE2 VarMap
+  ].
 
 pred interp-proofs i:list term, o:term.
 interp-proofs [] {{ I }} :- !.
@@ -257,18 +258,14 @@ solve Args [(goal Ctx _ P _ as G)] GS :-
     std.assert-ok! (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }}) "bad goal",
     std.assert-ok! (coq.unify-eq Ty {{ GRing.ComRing.sort lp:ComRing }})
                    "bad goal",
-    std.time
-      (std.unzip { std.map Args (arg\ res\ sigma Proof PE1 PE2\
-                     quote-arg Ring arg Proof PE1 R2 VarMap,
-                     res = pr {{ @pair _ _ lp:PE1 lp:R2 }} Proof) } Lpe Proofs,
-       quote Ring T1 PE1 VarMap,
-       quote Ring T2 PE2 VarMap) ReifTime,
-    list-constant Ty VarMap VarMapTerm,
-    list-constant _ Lpe LpeTerm,
-    interp-proofs Proofs Proofs',
-    std.time (refine {{ @Rcorrect lp:ComRing 0 lp:VarMapTerm lp:LpeTerm
-                                  lp:PE1 lp:PE2 lp:Proofs' erefl }} G GS)
-             ReflTime,
+    std.time (std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
+              quote Ring T1 PE1 VarMap,
+              quote Ring T2 PE2 VarMap) ReifTime,
+    list-constant Ty VarMap VarMap',
+    list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
+    interp-proofs LpeProofs LpeProofs',
+    std.time (refine {{ @Rcorrect lp:ComRing 0 lp:VarMap' lp:Lpe'
+                          lp:PE1 lp:PE2 lp:LpeProofs' erefl }} G GS) ReflTime,
     coq.say "Reification:" ReifTime "sec.",
     coq.say "Reflection:" ReflTime "sec."
   ].
@@ -491,7 +488,6 @@ Elpi ring_reify
   6%:R*x1^2*x2*y2*y3^3 + 12%:R*x1*x2^2*y2*y3^3 - 6%:R*x2^3*y2*y3^3 +
   6%:R*y1^2*y2*y3^3 - 6%:R*y1*y2^2*y3^3 + 2%:R*y2^3*y3^3 - x1^3*y3^4 +
   3%:R*x1^2*x2*y3^4 - 3%:R*x1*x2^2*y3^4 + x2^3*y3^4).
-
 
 Definition f3 := 2%:R*x1^9%:R*x2^4 -
  8%:R*x1^7%:R*x2^6 + 12%:R*x1^5*x2^8 - 8%:R*x1^3*x2^10 + 2%:R*x1*x2^12 -
@@ -1401,10 +1397,12 @@ Time elpi ring.
 (* Finished transaction in 0.032 secs (0.032u,0.s) (successful)*)
 Qed.
 
+Strategy -1 [R_of_Z Z.of_nat int_of_Z intmul].
+
 (* We need a locking feature to prevent unwanted computations. *)
 Lemma test_rat_constants : 20%:R * 3%:R = 60%:R :> rat.
 Time elpi ring.
 (* Finished transaction in 4.05 secs (3.976u,0.075s) (successful) *)
-Qed.
+Time Qed.
 
 End RationalsExample.
