@@ -259,17 +259,19 @@ solve Args [(goal Ctx _ P _ as G)] GS :-
     std.time (std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
               quote Ring T1 PE1 VarMap,
               quote Ring T2 PE2 VarMap) ReifTime,
+    coq.say "Reification:" ReifTime "sec.",
     list-constant Ty VarMap VarMap',
     list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
     interp-proofs LpeProofs LpeProofs',
-    std.time (refine {{ @Rcorrect lp:ComRing 0 lp:VarMap' lp:Lpe'
-                          lp:PE1 lp:PE2 lp:LpeProofs' erefl }} G GS) ReflTime,
-    coq.say "Reification:" ReifTime "sec.",
+    std.time (coq.ltac1.call "ring_reflection"
+                [{{ @Rcorrect lp:ComRing 0 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}] G GS) ReflTime,
     coq.say "Reflection:" ReflTime "sec."
   ].
 
 }}.
 Elpi Typecheck.
+
+Local Ltac ring_reflection T := apply T; exact<: (@erefl bool true).
 
 Section SmallExample.
 
