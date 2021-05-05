@@ -155,20 +155,19 @@ close [_|XS] :- close XS.
 
 % [quote Ring Input Output Varmap]
 pred quote i:term, i:term, o:term, o:list term.
-quote Ring T {{ @PEO Z }} _ :-
-  T = {{ @GRing.zero _ }},
-  coq.unify-eq T {{ @GRing.zero (GRing.Ring.zmodType lp:Ring) }} ok,
+quote Ring {{ @GRing.zero lp:Ring' }} {{ @PEO Z }} _ :-
+  coq.unify-eq {{ @GRing.zero lp:Ring' }} {{ @GRing.zero (GRing.Ring.zmodType lp:Ring) }} ok,
   !.
-quote Ring T {{ @PEadd Z lp:R1 lp:R2 }} L :-
-  T = {{ @GRing.add lp:Zmodule lp:T1 lp:T2 }},
+quote Ring {{ @GRing.add lp:Zmodule lp:T1 lp:T2 }} {{ @PEadd Z lp:R1 lp:R2 }} L :-
   coq.unify-eq {{ @GRing.add lp:Zmodule }}
-               {{ @GRing.add (GRing.Ring.zmodType lp:Ring) }} ok, !,
+               {{ @GRing.add (GRing.Ring.zmodType lp:Ring) }} ok,
+  !,
   quote Ring T1 R1 L,
   quote Ring T2 R2 L.
-quote Ring T {{ @PEopp Z lp:R1 }} L :-
-  T = {{ @GRing.opp lp:Zmodule lp:T1 }},
+quote Ring {{ @GRing.opp lp:Zmodule lp:T1 }} {{ @PEopp Z lp:R1 }} L :-
   coq.unify-eq {{ @GRing.opp lp:Zmodule }}
-               {{ @GRing.opp (GRing.Ring.zmodType lp:Ring) }} ok, !,
+               {{ @GRing.opp (GRing.Ring.zmodType lp:Ring) }} ok,
+  !,
   quote Ring T1 R1 L.
 % FIXME: [PEeval] is parameterized by a ring morphism [phi : Z -> R] rather than
 %        a constant multiplication [GRing.natmul]. So, this does not work.
@@ -177,40 +176,39 @@ quote Ring T {{ @PEopp Z lp:R1 }} L :-
 %   T = {{ @GRing.natmul lp:Zmodule lp:T1 lp:N }},
 %   coq.unify-eq Zmodule {{ GRing.Ring.zmodType lp:Ring }} ok, !,
 %   quote Ring T1 R1 L.
-quote Ring T {{ @PEc Z (Z.of_nat lp:N) }} _ :-
-  T = {{ @GRing.natmul lp:Zmodule (@GRing.one lp:Ring') lp:N }},
+quote Ring {{ @GRing.natmul lp:Zmodule (@GRing.one lp:Ring') lp:N }} {{ @PEc Z (Z.of_nat lp:N) }} _ :-
   coq.unify-eq Zmodule {{ @GRing.Ring.zmodType lp:Ring }} ok,
   coq.unify-eq {{ @GRing.one lp:Ring' }} {{ @GRing.one lp:Ring }} ok,
   !.
-quote Ring T {{ @PEc Z (Z_of_int lp:Z) }} _ :-
-  T = {{ @intmul lp:Zmodule (@GRing.one lp:Ring') lp:Z }},
+quote Ring {{ @intmul lp:Zmodule (@GRing.one lp:Ring') lp:Z }} {{ @PEc Z (Z_of_int lp:Z) }} _ :-
   coq.unify-eq Zmodule {{ @GRing.Ring.zmodType lp:Ring }} ok,
   coq.unify-eq {{ @GRing.one lp:Ring' }} {{ @GRing.one lp:Ring }} ok,
   !.
-quote Ring T {{ @PEI Z }} _ :-
-  T = {{ @GRing.one _ }},
-  coq.unify-eq T {{ @GRing.one lp:Ring }} ok,
+quote Ring {{ @GRing.one lp:Ring' }} {{ @PEI Z }} _ :-
+  coq.unify-eq {{ @GRing.one lp:Ring' }} {{ @GRing.one lp:Ring }} ok,
   !.
-quote Ring T {{ @PEmul Z lp:R1 lp:R2 }} L :-
-  T = {{ @GRing.mul lp:Ring' lp:T1 lp:T2 }},
-  coq.unify-eq {{ @GRing.mul lp:Ring' }} {{ @GRing.mul lp:Ring }} ok, !,
+quote Ring {{ @GRing.mul lp:Ring' lp:T1 lp:T2 }} {{ @PEmul Z lp:R1 lp:R2 }} L :-
+  coq.unify-eq {{ @GRing.mul lp:Ring' }} {{ @GRing.mul lp:Ring }} ok,
+  !,
   quote Ring T1 R1 L,
   quote Ring T2 R2 L.
 % NB: There are several ways to express exponentiation: [x ^+ n], [x ^ Posz n],
 % and [x ^ n%:R]. The last one is inconvertible with others if [n] is not a
 % constant.
-quote Ring T {{ @PEpow Z lp:R1 (N.of_nat lp:N) }} L :-
-  T = {{ @GRing.exp lp:Ring' lp:T1 lp:N }},
-  coq.unify-eq {{ @GRing.exp lp:Ring' }} {{ @GRing.exp lp:Ring }} ok, !,
+quote Ring {{ @GRing.exp lp:Ring' lp:T1 lp:N }} {{ @PEpow Z lp:R1 (N.of_nat lp:N) }} L :-
+  coq.unify-eq {{ @GRing.exp lp:Ring' }} {{ @GRing.exp lp:Ring }} ok,
+  !,
   quote Ring T1 R1 L.
-quote Ring T {{ @PEpow Z lp:R1 (N.of_nat lp:N) }} L :-
-  T = {{ @exprz lp:UnitRing lp:T1 lp:Z }},
+quote Ring {{ @exprz lp:UnitRing lp:T1 lp:Z }} {{ @PEpow Z lp:R1 (N.of_nat lp:N) }} L :-
   coq.unify-eq {{ @GRing.exp (GRing.UnitRing.ringType lp:UnitRing) }}
                {{ @GRing.exp lp:Ring }} ok,
-  coq.unify-eq {{ lp:Z }} {{ Posz lp:N }} ok, !,
+  coq.unify-eq {{ lp:Z }} {{ Posz lp:N }} ok,
+  !,
   quote Ring T1 R1 L.
-quote _ T {{ @PEX Z lp:Pos }} L :- !,
-  mem L T N, positive-constant {calc (N + 1)} Pos.
+quote _ T {{ @PEX Z lp:Pos }} L :-
+  mem L T N, positive-constant {calc (N + 1)} Pos, !.
+
+quote _ T _ _ :- coq.error "Unknown" {coq.term->string T}.
 % TODO: converse ring
 
 }}.
