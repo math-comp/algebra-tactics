@@ -37,6 +37,9 @@ Add Zify UnOp Op_Z_of_int.
 Lemma Z_of_intK : cancel Z_of_int int_of_Z.
 Proof. by move=> ?; lia. Qed.
 
+(* The following proofs are based on ones in elliptic-curves-ssr:             *)
+(* https://github.com/strub/elliptic-curves-ssr/blob/631af893e591466207929714c45b5f7476d579d0/common/ssrring.v *)
+
 Lemma Z_eqP : Equality.axiom Z.eqb.
 Proof. by move=> x y; apply: (iffP idP); lia. Qed.
 
