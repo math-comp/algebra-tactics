@@ -23,7 +23,7 @@ instances of Mathematical Components.
 - Compatible Coq versions: 8.13 or later
 - Additional dependencies:
   - [MathComp](https://math-comp.github.io) 1.12.0 or later
-  - [Mczify](https://github.com/math-comp-zify) 1.0.0 or later
+  - [Mczify](https://github.com/math-comp/mczify) 1.0.0 or later
   - [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.9.7 or later
 - Coq namespace: `mathcomp.algebra_tactics`
 - Related publication(s): none

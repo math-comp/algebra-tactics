@@ -49,7 +49,7 @@ dependencies:
     name: coq-mathcomp-zify
     version: '{(>= "1.0.0") | (= "dev")}'
   description: |-
-    [Mczify](https://github.com/math-comp-zify) 1.0.0 or later
+    [Mczify](https://github.com/math-comp/mczify) 1.0.0 or later
 - opam:
     name: coq-elpi
     version: '{(>= "1.9.7") | (= "dev")}'
