@@ -10,9 +10,10 @@ Import GRing.Theory.
 
 Local Open Scope ring_scope.
 
-Goal forall x : rat, x != 0 -> (1 - 1 / x) * x - x + 1 = 0.
-Proof.
-move=> x x_neq0.
-elpi field.
-exact/eqP.
-Qed.
+(* Examples in the Coq Reference Manual *)
+
+Goal forall (F : fieldType) (x : F), x != 0 -> (1 - 1 / x) * x - x + 1 = 0.
+Proof. by move=> F x x_neq0; elpi field; exact/eqP. Qed.
+
+Goal forall (F : fieldType) (x y : F), y != 0 -> y = x -> x / y = 1.
+Proof. by move=> F x y y_neq0 eq_yx; elpi field (eq_yx); exact/eqP. Qed.

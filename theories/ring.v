@@ -294,7 +294,8 @@ Elpi Accumulate Db ring.db.
 Elpi Accumulate lp:{{
 
 pred quote-arg i:term, o:list term, i:argument, o:pair term term.
-quote-arg Ring VarMap (trm Proof) (pr {{ @pair _ _ lp:PE1 lp:PE2 }} Proof) :-
+quote-arg Ring VarMap (trm Proof)
+          (pr {{ @pair (PExpr Z) (PExpr Z) lp:PE1 lp:PE2 }} Proof) :-
   std.do! [
     std.assert-ok!
       (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
@@ -322,7 +323,7 @@ solve Args [(goal Ctx _ P _ as G)] GS :-
     list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
     interp-proofs LpeProofs LpeProofs',
     std.time (coq.ltac1.call "ring_reflection"
-                [{{ @Rcorrect lp:ComRing 0 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}] G GS) ReflTime,
+                [{{ @Rcorrect lp:ComRing 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}] G GS) ReflTime,
     coq.say "Reflection:" ReflTime "sec."
   ].
 
@@ -336,7 +337,8 @@ Elpi Accumulate Db ring.db.
 Elpi Accumulate lp:{{
 
 pred quote-arg i:term, o:list term, i:argument, o:pair term term.
-quote-arg Ring VarMap (trm Proof) (pr {{ @pair _ _ lp:PE1 lp:PE2 }} Proof) :-
+quote-arg Ring VarMap (trm Proof)
+          (pr {{ @pair (PExpr Z) (PExpr Z) lp:PE1 lp:PE2 }} Proof) :-
   std.do! [
     std.assert-ok!
       (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
@@ -363,7 +365,7 @@ solve Args [(goal Ctx _ P _ as G)] GS :-
     list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
     interp-proofs LpeProofs LpeProofs',
     std.time (coq.ltac1.call "field_reflection"
-                [{{ @Fcorrect lp:Field 0 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}] G GS) ReflTime,
+                [{{ @Fcorrect lp:Field 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}] G GS) ReflTime,
     coq.say "Reflection:" ReflTime "sec."
   ].
 

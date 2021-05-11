@@ -10,6 +10,17 @@ Import GRing.Theory.
 
 Local Open Scope ring_scope.
 
+(* Examples in the Coq Reference Manual *)
+
+Goal forall (R : comRingType) (a b c : R),
+    (a + b + c) ^+ 2 =
+    a * a + b ^+ 2 + c * c + 2%:~R * a * b + 2%:~R * a * c + 2%:~R * b * c.
+Proof. by move=> R a b c; elpi ring. Qed.
+
+Goal forall (R : comRingType) (a b : R),
+    2%:~R * a * b = 30%:~R -> (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 30%:~R.
+Proof. move=> R a b H; elpi ring (H). Qed.
+
 Section BiggerExample.
 
 Variables (x1 x2 x3 y1 y2 y3 : int).
