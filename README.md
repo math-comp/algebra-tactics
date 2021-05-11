@@ -12,8 +12,8 @@ Follow the instructions on https://github.com/coq-community/templates to regener
 
 
 
-This library provides an experimental `ring` tactic for `comRingType`
-instances of Mathematical Components.
+This library provides experimental `ring` and `field` tactics for
+`comRingType` and `fieldType` instances of Mathematical Components.
 
 ## Meta
 

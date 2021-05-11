@@ -6,11 +6,11 @@ organization: math-comp
 action: true
 
 synopsis: >-
-  Experimental reflexive tactics for ring expressions
+  Experimental reflexive tactics for ring and field expressions
 
 description: |-
-  This library provides an experimental `ring` tactic for `comRingType`
-  instances of Mathematical Components.
+  This library provides experimental `ring` and `field` tactics for
+  `comRingType` and `fieldType` instances of Mathematical Components.
 
 authors:
 - name: Kazuhiko Sakaguchi

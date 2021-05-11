@@ -10,10 +10,10 @@ dev-repo: "git+https://github.com/math-comp/algebra-tactics.git"
 bug-reports: "https://github.com/math-comp/algebra-tactics/issues"
 license: "CECILL-B"
 
-synopsis: "Experimental reflexive tactics for ring expressions"
+synopsis: "Experimental reflexive tactics for ring and field expressions"
 description: """
-This library provides an experimental `ring` tactic for `comRingType`
-instances of Mathematical Components."""
+This library provides experimental `ring` and `field` tactics for
+`comRingType` and `fieldType` instances of Mathematical Components."""
 
 build: [make "-j%{jobs}%" ]
 install: [make "install"]

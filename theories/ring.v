@@ -60,17 +60,17 @@ Section Ring.
 
 Variable (R : ringType).
 
-Definition R_of_Z (n : Z) : R := (int_of_Z n)%:~R.
+Let R_of_Z (n : Z) : R := (int_of_Z n)%:~R.
 
 Lemma R_of_Z_is_additive : additive R_of_Z.
 Proof. by move=> x y; rewrite -mulrzBr /+%R /-%R /=; congr intmul; lia. Qed.
 
-Canonical R_of_Z_additive := Additive R_of_Z_is_additive.
+Local Canonical R_of_Z_additive := Additive R_of_Z_is_additive.
 
 Lemma R_of_Z_is_multiplicative : multiplicative R_of_Z.
 Proof. by split=> //= x y; rewrite -intrM /*%R /=; congr intmul; lia. Qed.
 
-Canonical R_of_Z_rmorphism := AddRMorphism R_of_Z_is_multiplicative.
+Local Canonical R_of_Z_rmorphism := AddRMorphism R_of_Z_is_multiplicative.
 
 Lemma RE : @ring_eq_ext R +%R *%R -%R eq.
 Proof. by split; do! move=> ? _ <-. Qed.
@@ -156,63 +156,117 @@ pred close o:list term.
 close [] :- !.
 close [_|XS] :- close XS.
 
-% [quote Ring Input Output Varmap]
-pred quote i:term, i:term, o:term, o:list term.
-quote Ring {{ @GRing.zero lp:Ring' }} {{ @PEO Z }} _ :-
-  coq.unify-eq {{ @GRing.zero lp:Ring' }} {{ @GRing.zero (GRing.Ring.zmodType lp:Ring) }} ok,
+% [ring.quote Ring Input Output Varmap]
+pred ring.quote i:term, i:term, o:term, o:list term.
+ring.quote Ring {{ @GRing.zero lp:Zmodule }} {{ @PEO Z }} _ :-
+  coq.unify-eq {{ @GRing.zero lp:Zmodule }}
+               {{ @GRing.zero (GRing.Ring.zmodType lp:Ring) }} ok,
   !.
-quote Ring {{ @GRing.add lp:Zmodule lp:T1 lp:T2 }} {{ @PEadd Z lp:R1 lp:R2 }} L :-
+ring.quote Ring {{ @GRing.add lp:Zmodule lp:T1 lp:T2 }} {{ @PEadd Z lp:R1 lp:R2 }} L :-
   coq.unify-eq {{ @GRing.add lp:Zmodule }}
                {{ @GRing.add (GRing.Ring.zmodType lp:Ring) }} ok,
   !,
-  quote Ring T1 R1 L,
-  quote Ring T2 R2 L.
-quote Ring {{ @GRing.opp lp:Zmodule lp:T1 }} {{ @PEopp Z lp:R1 }} L :-
+  ring.quote Ring T1 R1 L,
+  ring.quote Ring T2 R2 L.
+ring.quote Ring {{ @GRing.opp lp:Zmodule lp:T1 }} {{ @PEopp Z lp:R1 }} L :-
   coq.unify-eq {{ @GRing.opp lp:Zmodule }}
                {{ @GRing.opp (GRing.Ring.zmodType lp:Ring) }} ok,
   !,
-  quote Ring T1 R1 L.
+  ring.quote Ring T1 R1 L.
 % FIXME: [PEeval] is parameterized by a ring morphism [phi : Z -> R] rather than
 %        a constant multiplication [GRing.natmul]. So, this does not work.
-%
-% quote Ring T {{ @PEmul Z lp:R1 (@PEc Z (Z.of_nat lp:N)) }} :-
-%   T = {{ @GRing.natmul lp:Zmodule lp:T1 lp:N }},
-%   coq.unify-eq Zmodule {{ GRing.Ring.zmodType lp:Ring }} ok, !,
-%   quote Ring T1 R1 L.
-quote Ring {{ @GRing.natmul lp:Zmodule (@GRing.one lp:Ring') lp:N }} {{ @PEc Z (Z.of_nat lp:N) }} _ :-
+% ring.quote Ring {{ @GRing.natmul lp:Zmodule lp:T1 lp:N }} {{ @PEmul Z lp:R1 (@PEc Z (Z.of_nat lp:N)) }} L :-
+%   coq.unify-eq Zmodule {{ GRing.Ring.zmodType lp:Ring }} ok,
+%   !,
+%   ring.quote Ring T1 R1 L.
+ring.quote Ring {{ @GRing.natmul lp:Zmodule (@GRing.one lp:Ring') lp:N }} {{ @PEc Z (Z.of_nat lp:N) }} _ :-
   coq.unify-eq Zmodule {{ @GRing.Ring.zmodType lp:Ring }} ok,
   coq.unify-eq {{ @GRing.one lp:Ring' }} {{ @GRing.one lp:Ring }} ok,
   !.
-quote Ring {{ @intmul lp:Zmodule (@GRing.one lp:Ring') lp:Z }} {{ @PEc Z (Z_of_int lp:Z) }} _ :-
+ring.quote Ring {{ @intmul lp:Zmodule (@GRing.one lp:Ring') lp:Z }} {{ @PEc Z (Z_of_int lp:Z) }} _ :-
   coq.unify-eq Zmodule {{ @GRing.Ring.zmodType lp:Ring }} ok,
   coq.unify-eq {{ @GRing.one lp:Ring' }} {{ @GRing.one lp:Ring }} ok,
   !.
-quote Ring {{ @GRing.one lp:Ring' }} {{ @PEI Z }} _ :-
+ring.quote Ring {{ @GRing.one lp:Ring' }} {{ @PEI Z }} _ :-
   coq.unify-eq {{ @GRing.one lp:Ring' }} {{ @GRing.one lp:Ring }} ok,
   !.
-quote Ring {{ @GRing.mul lp:Ring' lp:T1 lp:T2 }} {{ @PEmul Z lp:R1 lp:R2 }} L :-
+ring.quote Ring {{ @GRing.mul lp:Ring' lp:T1 lp:T2 }} {{ @PEmul Z lp:R1 lp:R2 }} L :-
   coq.unify-eq {{ @GRing.mul lp:Ring' }} {{ @GRing.mul lp:Ring }} ok,
   !,
-  quote Ring T1 R1 L,
-  quote Ring T2 R2 L.
+  ring.quote Ring T1 R1 L,
+  ring.quote Ring T2 R2 L.
 % NB: There are several ways to express exponentiation: [x ^+ n], [x ^ Posz n],
 % and [x ^ n%:R]. The last one is inconvertible with others if [n] is not a
 % constant.
-quote Ring {{ @GRing.exp lp:Ring' lp:T1 lp:N }} {{ @PEpow Z lp:R1 (N.of_nat lp:N) }} L :-
-  coq.unify-eq {{ @GRing.exp lp:Ring' }} {{ @GRing.exp lp:Ring }} ok,
+ring.quote Ring {{ @GRing.exp lp:Ring' lp:T1 lp:N }} {{ @PEpow Z lp:R1 (N.of_nat lp:N) }} L :-
+  coq.unify-eq Ring' Ring ok,
   !,
-  quote Ring T1 R1 L.
-quote Ring {{ @exprz lp:UnitRing lp:T1 lp:Z }} {{ @PEpow Z lp:R1 (N.of_nat lp:N) }} L :-
-  coq.unify-eq {{ @GRing.exp (GRing.UnitRing.ringType lp:UnitRing) }}
-               {{ @GRing.exp lp:Ring }} ok,
-  coq.unify-eq {{ lp:Z }} {{ Posz lp:N }} ok,
+  ring.quote Ring T1 R1 L.
+ring.quote Ring {{ @exprz lp:UnitRing lp:T1 lp:Z }} {{ @PEpow Z lp:R1 (N.of_nat lp:N) }} L :-
+  coq.unify-eq {{ GRing.UnitRing.ringType lp:UnitRing }} Ring ok,
+  coq.unify-eq Z {{ Posz lp:N }} ok,
   !,
-  quote Ring T1 R1 L.
-quote _ T {{ @PEX Z lp:Pos }} L :-
+  ring.quote Ring T1 R1 L.
+ring.quote _ T {{ @PEX Z lp:Pos }} L :-
+  mem L T N, positive-constant {calc (N + 1)} Pos, !.
+ring.quote _ T _ _ :- coq.error "Unknown" {coq.term->string T}.
+% TODO: converse ring
+
+% [field.quote Field Input Output Varmap]
+pred field.quote i:term, i:term, o:term, o:list term.
+field.quote Field {{ @GRing.zero lp:Zmodule }} {{ @FEO Z }} _ :-
+  coq.unify-eq {{ @GRing.zero lp:Zmodule }}
+               {{ @GRing.zero (GRing.Field.zmodType lp:Field) }} ok,
+  !.
+field.quote Field {{ @GRing.add lp:Zmodule lp:T1 lp:T2 }} {{ @FEadd Z lp:R1 lp:R2 }} L :-
+  coq.unify-eq {{ @GRing.add lp:Zmodule }}
+               {{ @GRing.add (GRing.Field.zmodType lp:Field) }} ok,
+  !,
+  field.quote Field T1 R1 L,
+  field.quote Field T2 R2 L.
+field.quote Field {{ @GRing.opp lp:Zmodule lp:T1 }} {{ @FEopp Z lp:R1 }} L :-
+  coq.unify-eq {{ @GRing.opp lp:Zmodule }}
+               {{ @GRing.opp (GRing.Field.zmodType lp:Field) }} ok,
+  !,
+  field.quote Field T1 R1 L.
+field.quote Field {{ @GRing.natmul lp:Zmodule (@GRing.one lp:Ring) lp:N }} {{ @FEc Z (Z.of_nat lp:N) }} _ :-
+  coq.unify-eq Zmodule {{ @GRing.Field.zmodType lp:Field }} ok,
+  coq.unify-eq {{ @GRing.one lp:Ring }}
+               {{ @GRing.one (GRing.Field.ringType lp:Field) }} ok,
+  !.
+field.quote Field {{ @intmul lp:Zmodule (@GRing.one lp:Ring) lp:Z }} {{ @FEc Z (Z_of_int lp:Z) }} _ :-
+  coq.unify-eq Zmodule {{ @GRing.Field.zmodType lp:Field }} ok,
+  coq.unify-eq {{ @GRing.one lp:Ring }}
+               {{ @GRing.one (GRing.Field.ringType lp:Field) }} ok,
+  !.
+field.quote Field {{ @GRing.one lp:Ring }} {{ @FEI Z }} _ :-
+  coq.unify-eq {{ @GRing.one lp:Ring }}
+               {{ @GRing.one (GRing.Field.ringType lp:Field) }} ok,
+  !.
+field.quote Field {{ @GRing.mul lp:Ring lp:T1 lp:T2 }} {{ @FEmul Z lp:R1 lp:R2 }} L :-
+  coq.unify-eq {{ @GRing.mul lp:Ring }}
+               {{ @GRing.mul (GRing.Field.ringType lp:Field) }} ok,
+  !,
+  field.quote Field T1 R1 L,
+  field.quote Field T2 R2 L.
+field.quote Field {{ @GRing.exp lp:Ring lp:T1 lp:N }} {{ @FEpow Z lp:R1 (N.of_nat lp:N) }} L :-
+  coq.unify-eq Ring {{ GRing.Field.ringType lp:Field }} ok,
+  !,
+  field.quote Field T1 R1 L.
+field.quote Field {{ @exprz lp:UnitRing lp:T1 lp:Z }} {{ @FEpow Z lp:R1 (N.of_nat lp:N) }} L :-
+  coq.unify-eq UnitRing {{ GRing.Field.unitRingType lp:Field }} ok,
+  coq.unify-eq Z {{ Posz lp:N }} ok,
+  !,
+  field.quote Field T1 R1 L.
+field.quote Field {{ @GRing.inv lp:UnitRing lp:T1 }} {{ @FEinv Z lp:R1 }} L :-
+  coq.unify-eq {{ @GRing.inv lp:UnitRing }}
+               {{ @GRing.inv (GRing.Field.unitRingType lp:Field) }} ok,
+  !,
+  field.quote Field T1 R1 L.
+field.quote _ T {{ @FEX Z lp:Pos }} L :-
   mem L T N, positive-constant {calc (N + 1)} Pos, !.
 
-quote _ T _ _ :- coq.error "Unknown" {coq.term->string T}.
-% TODO: converse ring
+field.quote _ T _ _ :- coq.error "Unknown" {coq.term->string T}.
 
 }}.
 
@@ -223,7 +277,7 @@ Elpi Accumulate lp:{{
 main [trm Ring, trm Input] :- std.do! [
   InputTy = {{ GRing.Ring.sort lp:Ring }},
   std.assert-ok! (coq.elaborate-skeleton Input InputTy Input') "bad input term",
-  std.time (quote Ring Input' Output VarMap) Time,
+  std.time (ring.quote Ring Input' Output VarMap) Time,
   list-constant InputTy VarMap VarMapTerm,
   std.assert-ok! (coq.typecheck Output _) "bad output term",
   std.assert-ok! (coq.typecheck VarMapTerm _) "bad varmap",
@@ -245,7 +299,8 @@ quote-arg Ring VarMap (trm Proof) (pr {{ @pair _ _ lp:PE1 lp:PE2 }} Proof) :-
     std.assert-ok!
       (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
       "bad input term",
-    quote Ring T1 PE1 VarMap, quote Ring T2 PE2 VarMap
+    ring.quote Ring T1 PE1 VarMap,
+    ring.quote Ring T2 PE2 VarMap
   ].
 
 pred interp-proofs i:list term, o:term.
@@ -260,8 +315,8 @@ solve Args [(goal Ctx _ P _ as G)] GS :-
     std.assert-ok! (coq.unify-eq Ty {{ GRing.ComRing.sort lp:ComRing }})
                    "bad goal",
     std.time (std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
-              quote Ring T1 PE1 VarMap,
-              quote Ring T2 PE2 VarMap) ReifTime,
+              ring.quote Ring T1 PE1 VarMap,
+              ring.quote Ring T2 PE2 VarMap) ReifTime,
     coq.say "Reification:" ReifTime "sec.",
     list-constant Ty VarMap VarMap',
     list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
@@ -274,4 +329,47 @@ solve Args [(goal Ctx _ P _ as G)] GS :-
 }}.
 Elpi Typecheck.
 
-Ltac ring_reflection T := apply T; exact<: (@erefl bool true).
+Ltac ring_reflection T := apply T; [vm_compute; reflexivity].
+
+Elpi Tactic field.
+Elpi Accumulate Db ring.db.
+Elpi Accumulate lp:{{
+
+pred quote-arg i:term, o:list term, i:argument, o:pair term term.
+quote-arg Ring VarMap (trm Proof) (pr {{ @pair _ _ lp:PE1 lp:PE2 }} Proof) :-
+  std.do! [
+    std.assert-ok!
+      (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
+      "bad input term",
+    ring.quote Ring T1 PE1 VarMap,
+    ring.quote Ring T2 PE2 VarMap
+  ].
+
+pred interp-proofs i:list term, o:term.
+interp-proofs [] {{ I }} :- !.
+interp-proofs [P] P :- !.
+interp-proofs [P|PS] {{ conj lp:P lp:IS }} :- !, interp-proofs PS IS.
+
+solve Args [(goal Ctx _ P _ as G)] GS :-
+  Ctx => std.do! [
+    std.assert-ok! (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }}) "bad goal",
+    std.assert-ok! (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }}) "bad goal",
+    std.assert-ok! (coq.unify-eq Ty {{ GRing.Field.sort lp:Field }}) "bad goal",
+    std.time (std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
+              field.quote Field T1 PE1 VarMap,
+              field.quote Field T2 PE2 VarMap) ReifTime,
+    coq.say "Reification:" ReifTime "sec.",
+    list-constant Ty VarMap VarMap',
+    list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
+    interp-proofs LpeProofs LpeProofs',
+    std.time (coq.ltac1.call "field_reflection"
+                [{{ @Fcorrect lp:Field 0 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}] G GS) ReflTime,
+    coq.say "Reflection:" ReflTime "sec."
+  ].
+
+}}.
+Elpi Typecheck.
+
+Ltac field_reflection T :=
+  apply: T; [reflexivity | reflexivity | reflexivity |
+             vm_compute; reflexivity | simpl].

@@ -575,7 +575,7 @@ Time elpi ring.
 (* Finished transaction in 0.032 secs (0.032u,0.s) (successful)*)
 Qed.
 
-Local Strategy -1 [R_of_Z BinInt.Z.of_nat int_of_Z intmul].
+Local Strategy -1 [BinInt.Z.of_nat int_of_Z intmul].
 
 (* We need a locking feature to prevent unwanted computations. *)
 Lemma test_rat_constants : 20%:R * 3%:R = 60%:R :> rat.
