@@ -309,6 +309,14 @@ interp-proofs [] {{ I }} :- !.
 interp-proofs [P] P :- !.
 interp-proofs [P|PS] {{ conj lp:P lp:IS }} :- !, interp-proofs PS IS.
 
+pred ring_reflection i:term, i:term, i:term, i:term, i:term, i:term, i:goal, o:list goal.
+ring_reflection ComRing VarMap' Lpe' PE1 PE2 LpeProofs' G GS :-
+  coq.ltac1.call "ring_reflection" [
+    {{ @Rcorrect lp:ComRing 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}
+  ] G GS, !.
+ring_reflection _ _ _ _ _ _ _ _ :-
+  coq.error "Not a valid ring equation.".
+
 solve Args [(goal Ctx _ P _ as G)] GS :-
   Ctx => std.do! [
     std.assert-ok! (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }}) "bad goal",
@@ -322,9 +330,8 @@ solve Args [(goal Ctx _ P _ as G)] GS :-
     list-constant Ty VarMap VarMap',
     list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
     interp-proofs LpeProofs LpeProofs',
-    std.time (coq.ltac1.call "ring_reflection"
-                [{{ @Rcorrect lp:ComRing 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}] G GS) ReflTime,
-    coq.say "Reflection:" ReflTime "sec."
+    std.time (ring_reflection ComRing VarMap' Lpe' PE1 PE2 LpeProofs' G GS) ReflTime,
+    coq.say "Reflection:" ReflTime "sec.",
   ].
 
 }}.
@@ -352,6 +359,14 @@ interp-proofs [] {{ I }} :- !.
 interp-proofs [P] P :- !.
 interp-proofs [P|PS] {{ conj lp:P lp:IS }} :- !, interp-proofs PS IS.
 
+pred field_reflection i:term, i:term, i:term, i:term, i:term, i:term, i:goal, o:list goal.
+field_reflection Field VarMap' Lpe' PE1 PE2 LpeProofs' G GS :-
+  coq.ltac1.call "field_reflection" [
+    {{ @Fcorrect lp:Field 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}
+  ] G GS, !.
+field_reflection _ _ _ _ _ _ _ _ :-
+  coq.error "Not a valid field equation.".
+
 solve Args [(goal Ctx _ P _ as G)] GS :-
   Ctx => std.do! [
     std.assert-ok! (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }}) "bad goal",
@@ -364,8 +379,7 @@ solve Args [(goal Ctx _ P _ as G)] GS :-
     list-constant Ty VarMap VarMap',
     list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
     interp-proofs LpeProofs LpeProofs',
-    std.time (coq.ltac1.call "field_reflection"
-                [{{ @Fcorrect lp:Field 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}] G GS) ReflTime,
+    std.time (field_reflection Field VarMap' Lpe' PE1 PE2 LpeProofs' G GS) ReflTime,
     coq.say "Reflection:" ReflTime "sec."
   ].
 

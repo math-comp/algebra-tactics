@@ -110,6 +110,15 @@ Lemma test_vars :
 
 End MoreVariables.
 
+(* A failure to test the error message *)
+
+Goal forall (R : comRingType) (a : R), a + a = a.
+Proof.
+move=> R a.
+Fail elpi ring. (* prints Not a valid ring equation. *)
+Fail elpi ring || idtac. (* bug: fixed in coq-elpi > 1.9.7 *)
+Abort.
+
 Section BiggerExample.
 
 Variables (x1 x2 x3 y1 y2 y3 : int).
