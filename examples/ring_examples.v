@@ -116,7 +116,7 @@ Goal forall (R : comRingType) (a : R), a + a = a.
 Proof.
 move=> R a.
 Fail elpi ring. (* prints Not a valid ring equation. *)
-Fail elpi ring || idtac. (* bug: fixed in coq-elpi > 1.9.7 *)
+elpi ring || idtac. (* elpi-tactic failure can be caught by Ltac. *)
 Abort.
 
 Section BiggerExample.

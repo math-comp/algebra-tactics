@@ -297,9 +297,9 @@ pred quote-arg i:term, o:list term, i:argument, o:pair term term.
 quote-arg Ring VarMap (trm Proof)
           (pr {{ @pair (PExpr Z) (PExpr Z) lp:PE1 lp:PE2 }} Proof) :-
   std.do! [
-    std.assert-ok!
+    @ltacfail! 0 => std.assert-ok!
       (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
-      "bad input term",
+      "An argument is not a proof of equation of the expected type",
     ring.quote Ring T1 PE1 VarMap,
     ring.quote Ring T2 PE2 VarMap
   ].
@@ -315,14 +315,19 @@ ring_reflection ComRing VarMap' Lpe' PE1 PE2 LpeProofs' G GS :-
     {{ @Rcorrect lp:ComRing 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}
   ] G GS, !.
 ring_reflection _ _ _ _ _ _ _ _ :-
-  coq.error "Not a valid ring equation.".
+  coq.ltac1.fail 0 "Not a valid ring equation".
 
 solve Args [(goal Ctx _ P _ as G)] GS :-
   Ctx => std.do! [
-    std.assert-ok! (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }}) "bad goal",
-    std.assert-ok! (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }}) "bad goal",
-    std.assert-ok! (coq.unify-eq Ty {{ GRing.ComRing.sort lp:ComRing }})
-                   "bad goal",
+    @ltacfail! 0 => std.assert-ok!
+      (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
+      "The goal is not an equation",
+    @ltacfail! 0 => std.assert-ok!
+      (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }})
+      "Cannot find a declared ringType",
+    @ltacfail! 0 => std.assert-ok!
+      (coq.unify-eq Ty {{ GRing.ComRing.sort lp:ComRing }})
+      "Cannot find a declared comRingType",
     std.time (std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
               ring.quote Ring T1 PE1 VarMap,
               ring.quote Ring T2 PE2 VarMap) ReifTime,
@@ -347,9 +352,9 @@ pred quote-arg i:term, o:list term, i:argument, o:pair term term.
 quote-arg Ring VarMap (trm Proof)
           (pr {{ @pair (PExpr Z) (PExpr Z) lp:PE1 lp:PE2 }} Proof) :-
   std.do! [
-    std.assert-ok!
+    @ltacfail! 0 => std.assert-ok!
       (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
-      "bad input term",
+      "An argument is not a proof of equation of the expected type",
     ring.quote Ring T1 PE1 VarMap,
     ring.quote Ring T2 PE2 VarMap
   ].
@@ -365,13 +370,19 @@ field_reflection Field VarMap' Lpe' PE1 PE2 LpeProofs' G GS :-
     {{ @Fcorrect lp:Field 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}
   ] G GS, !.
 field_reflection _ _ _ _ _ _ _ _ :-
-  coq.error "Not a valid field equation.".
+  coq.ltac1.fail 0 "Not a valid field equation".
 
 solve Args [(goal Ctx _ P _ as G)] GS :-
   Ctx => std.do! [
-    std.assert-ok! (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }}) "bad goal",
-    std.assert-ok! (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }}) "bad goal",
-    std.assert-ok! (coq.unify-eq Ty {{ GRing.Field.sort lp:Field }}) "bad goal",
+    @ltacfail! 0 => std.assert-ok!
+      (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
+      "The goal is not an equation",
+    @ltacfail! 0 => std.assert-ok!
+      (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }})
+      "Cannot find a declared ringType",
+    @ltacfail! 0 => std.assert-ok!
+      (coq.unify-eq Ty {{ GRing.Field.sort lp:Field }})
+      "Cannot find a declared fieldType",
     std.time (std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
               field.quote Field T1 PE1 VarMap,
               field.quote Field T2 PE2 VarMap) ReifTime,
