@@ -1,5 +1,5 @@
-# This file was generated from `meta.yml`, please do not edit manually.
-# Follow the instructions on https://github.com/coq-community/templates to regenerate.
+# This file was generated from `meta.yml` using the coq-community templates and
+# then patched to support the test-suite. Be careful when regenerate it.
 name: Docker CI
 
 on:
@@ -28,6 +28,14 @@ jobs:
         with:
           opam_file: 'coq-mathcomp-algebra-tactics.opam'
           custom_image: ${{ matrix.image }}
+          after_script: |
+            startGroup "Run tests"
+              sudo chown -R coq:coq .
+              make test-suite
+            endGroup
+      - name: Revert permissions
+        if: ${{ always() }}
+        run: sudo chown -R 1001:116 .
 
 # See also:
 # https://github.com/coq-community/docker-coq-action#readme
