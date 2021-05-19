@@ -10,16 +10,105 @@ Import GRing.Theory.
 
 Local Open Scope ring_scope.
 
-(* Examples in the Coq Reference Manual *)
+Section AbstractCommutativeRing.
 
-Goal forall (R : comRingType) (a b c : R),
+Variables (R : comRingType) (a b c : R).
+
+(* Examples from the Coq Reference Manual, but for an instance of mathcomp's
+(abstract) commutative ring. *)
+
+
+(* Using the _%:R embedding from nat to R*)
+Goal 
+    (a + b + c) ^+ 2 =
+    a * a + b ^+ 2 + c * c + 2%:R * a * b + 2%:R * a * c + 2%:R * b * c.
+Proof. elpi ring. Qed.
+
+(* Using the _%:~R embedding from int to R : 2 is coerced to (Posz 2) : int*)
+Goal 
     (a + b + c) ^+ 2 =
     a * a + b ^+ 2 + c * c + 2%:~R * a * b + 2%:~R * a * c + 2%:~R * b * c.
-Proof. by move=> R a b c; elpi ring. Qed.
+Proof. elpi ring. Qed.
 
-Goal forall (R : comRingType) (a b : R),
+(* With an identity hypothesis *)
+(* Using the _%:R embedding from nat to R*)
+Goal 
+    2%:R * a * b = 30%:R -> (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 30%:R.
+Proof. move=> H; elpi ring (H). Qed.
+
+(* With an identity hypothesis *)
+(* Using the _%:R embedding from int to R*)
+Goal 
     2%:~R * a * b = 30%:~R -> (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 30%:~R.
-Proof. move=> R a b H; elpi ring (H). Qed.
+Proof. move=> H; elpi ring (H). Qed.
+
+(* With numeral constants*)
+Goal 20%:R * 3%:R = 60%:R :> R.
+Proof. elpi ring. Qed.
+
+Goal 20%:~R * 3%:~R = 60%:~R :> R.
+Proof. elpi ring. Qed.
+
+Goal 200%:~R * 30%:~R = 6000%:~R :> R.
+Proof. elpi ring. Qed.
+
+
+Goal 2%:~R * 10%:~R ^+ 2 * 3%:~R * 10%:~R ^+ 2 = 6%:~R * 10%:~R ^+ 4:> R.
+Proof. elpi ring. Qed.
+
+
+End AbstractCommutativeRing.
+
+
+
+Section NumeralExamples.
+
+Lemma abstract_constants (R : comRingType): 200%:R * 30%:R = 6000%:R :> R.
+Time elpi ring. (* 0.259 secs*)
+Qed.
+
+Lemma int_constants : 200%:R * 30%:R = 6000%:R :> int.
+Time elpi ring. (* 0.08 secs*)
+Qed.
+
+(* (* Diverging example *)
+Lemma rat_constants : 200%:R * 30%:R = 6000%:R :> rat.
+ Time elpi ring. 
+Qed. *)
+
+(* Let's try a smaller one, still way too inefficient *)
+Lemma rat_constants_smaller : 20%:R * 3%:R = 60%:R :> rat.
+ Time elpi ring. (* 2.156 secs *) 
+Qed.
+
+(* We need a locking feature to prevent unwanted computations. *)
+
+(* Here is a temporary and partial fix. *)
+Local Strategy -1 [BinInt.Z.of_nat int_of_Z intmul].
+
+Lemma rat_constants_smaller_after_fix : 20%:R * 3%:R = 60%:R :> rat.
+ Time elpi ring. (*  0.045 secs *) 
+Time Qed. (* 0.003 secs *)
+
+(* But the larger example is still unaccessible 
+Lemma rat_constants : 200%:R * 30%:R = 6000%:R :> rat.
+ Time elpi ring. 
+Qed. 
+*)
+
+End NumeralExamples.
+
+Section MoreVariables.
+
+Variables (q w e r t y u i o p a s d f g h j k l 
+: int).
+
+Lemma test_vars : 
+    q * w * e * r * t * y * u * i * o * p * a * s * d * f * g * h * j * k * l
+ =  l * w * e * r * t * y * u * i * o * p * a * s * d * f * g * h * j * k * q.
+  Proof. Time elpi ring. Qed. (* 0.018 secs *)
+
+End MoreVariables.
 
 Section BiggerExample.
 
@@ -570,28 +659,11 @@ Definition f3 := 2%:R*x1^9%:R*x2^4 -
 2%:R*x1*y2^3*y3^5 + 2%:R*x2*y2^3*y3^5 + x1^4%:R*y3^6 - 4%:R*x1^3*x2*y3^6 +
 6%:R*x1^2*x2^2*y3^6 - 4%:R*x1*x2^3*y3^6 + x2^4%:R*y3^6.
 
-Lemma sander : f1 * f2 = f3.
+Lemma from_sander : f1 * f2 = f3.
 Proof.
-unfold f1, f2, f3.
-Time elpi ring.
-Qed.
+rewrite /f1 /f2 /f3.
+Time elpi ring. (* 2.077 secs*)
+Time Qed. (* 0.755 secs *)
 
 End BiggerExample.
 
-
-Section RationalsExample.
-
-Lemma test_Z_constants : 20%:R * 3%:R = 60%:R :> int.
-Time elpi ring.
-(* Finished transaction in 0.032 secs (0.032u,0.s) (successful)*)
-Qed.
-
-Local Strategy -1 [BinInt.Z.of_nat int_of_Z intmul].
-
-(* We need a locking feature to prevent unwanted computations. *)
-Lemma test_rat_constants : 20%:R * 3%:R = 60%:R :> rat.
-Time elpi ring.
-(* Finished transaction in 4.05 secs (3.976u,0.075s) (successful) *)
-Time Qed.
-
-End RationalsExample.
