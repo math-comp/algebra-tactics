@@ -309,16 +309,15 @@ interp-proofs [] {{ I }} :- !.
 interp-proofs [P] P :- !.
 interp-proofs [P|PS] {{ conj lp:P lp:IS }} :- !, interp-proofs PS IS.
 
-pred ring_reflection i:term, i:term, i:term, i:term, i:term, i:term, i:goal, o:list goal.
+pred ring_reflection i:term, i:term, i:term, i:term, i:term, i:term, i:goal, o:list sealed-goal.
 ring_reflection ComRing VarMap' Lpe' PE1 PE2 LpeProofs' G GS :-
-  coq.ltac1.call "ring_reflection" [
-    {{ @Rcorrect lp:ComRing 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}
-  ] G GS, !.
+  coq.ltac.call "ring_reflection"
+    [ trm {{ @Rcorrect lp:ComRing 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }} ]
+    G GS.
 ring_reflection _ _ _ _ _ _ _ _ :-
-  coq.ltac1.fail 0 "Not a valid ring equation".
+  coq.ltac.fail 0 "Not a valid ring equation".
 
-solve Args [(goal Ctx _ P _ as G)] GS :-
-  Ctx => std.do! [
+solve (goal _ _ P _ Args as G) GS :- std.do! [
     @ltacfail! 0 => std.assert-ok!
       (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
       "The goal is not an equation",
@@ -344,6 +343,8 @@ Elpi Typecheck.
 
 Ltac ring_reflection T := apply T; [vm_compute; reflexivity].
 
+Tactic Notation "ring" constr_list(L) := elpi ring ltac_term_list:(L).
+
 Elpi Tactic field.
 Elpi Accumulate Db ring.db.
 Elpi Accumulate lp:{{
@@ -364,16 +365,15 @@ interp-proofs [] {{ I }} :- !.
 interp-proofs [P] P :- !.
 interp-proofs [P|PS] {{ conj lp:P lp:IS }} :- !, interp-proofs PS IS.
 
-pred field_reflection i:term, i:term, i:term, i:term, i:term, i:term, i:goal, o:list goal.
+pred field_reflection i:term, i:term, i:term, i:term, i:term, i:term, i:goal, o:list sealed-goal.
 field_reflection Field VarMap' Lpe' PE1 PE2 LpeProofs' G GS :-
-  coq.ltac1.call "field_reflection" [
-    {{ @Fcorrect lp:Field 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }}
-  ] G GS, !.
+  coq.ltac.call "field_reflection"
+    [ trm {{ @Fcorrect lp:Field 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }} ]
+    G GS.
 field_reflection _ _ _ _ _ _ _ _ :-
-  coq.ltac1.fail 0 "Not a valid field equation".
+  coq.ltac.fail 0 "Not a valid field equation".
 
-solve Args [(goal Ctx _ P _ as G)] GS :-
-  Ctx => std.do! [
+solve (goal _ _ P _ Args as G) GS :- std.do! [
     @ltacfail! 0 => std.assert-ok!
       (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
       "The goal is not an equation",
@@ -400,3 +400,5 @@ Elpi Typecheck.
 Ltac field_reflection T :=
   apply: T; [reflexivity | reflexivity | reflexivity |
              vm_compute; reflexivity | simpl].
+
+Tactic Notation "field" constr_list(L) := elpi field ltac_term_list:(L).
