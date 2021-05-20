@@ -71,10 +71,12 @@ Lemma int_constants : 200%:R * 30%:R = 6000%:R :> int.
 Time ring. (* 0.08 secs*)
 Qed.
 
-(* (* Diverging example *)
+(* Diverging example *)
 Lemma rat_constants : 200%:R * 30%:R = 6000%:R :> rat.
- Time elpi ring. 
-Qed. *)
+have [x H] : exists x, x = 6000%:R :> rat by eauto.
+rewrite -H.
+ Time ring H. (* 1.772 secs *)
+Qed.
 
 (* Let's try a smaller one, still way too inefficient *)
 Lemma rat_constants_smaller : 20%:R * 3%:R = 60%:R :> rat.
