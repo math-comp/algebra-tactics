@@ -34,13 +34,13 @@ Proof. ring. Qed.
 (* Using the _%:R embedding from nat to R*)
 Goal 
     2%:R * a * b = 30%:R -> (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 30%:R.
-Proof. move=> H; ring (H). Qed.
+Proof. move=> H; ring: H. Qed.
 
 (* With an identity hypothesis *)
 (* Using the _%:R embedding from int to R*)
 Goal 
     2%:~R * a * b = 30%:~R -> (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 30%:~R.
-Proof. move=> H; ring (H). Qed.
+Proof. move=> H; ring: H. Qed.
 
 (* With numeral constants*)
 Goal 20%:R * 3%:R = 60%:R :> R.
@@ -75,7 +75,7 @@ Qed.
 Lemma rat_constants : 200%:R * 30%:R = 6000%:R :> rat.
 have [x H] : exists x, x = 6000%:R :> rat by eauto.
 rewrite -H.
- Time ring H. (* 1.772 secs *)
+ Time ring: H. (* 1.772 secs *)
 Qed.
 
 (* Let's try a smaller one, still way too inefficient *)

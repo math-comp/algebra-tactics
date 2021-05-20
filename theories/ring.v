@@ -343,7 +343,8 @@ Elpi Typecheck.
 
 Ltac ring_reflection T := apply T; [vm_compute; reflexivity].
 
-Tactic Notation "ring" constr_list(L) := elpi ring ltac_term_list:(L).
+Tactic Notation "ring" := elpi ring.
+Tactic Notation "ring" ":" ne_constr_list(L) := elpi ring ltac_term_list:(L).
 
 Elpi Tactic field.
 Elpi Accumulate Db ring.db.
@@ -401,4 +402,5 @@ Ltac field_reflection T :=
   apply: T; [reflexivity | reflexivity | reflexivity |
              vm_compute; reflexivity | simpl].
 
-Tactic Notation "field" constr_list(L) := elpi field ltac_term_list:(L).
+Tactic Notation "field" := elpi field.
+Tactic Notation "field" ":" ne_constr_list(L) := elpi field ltac_term_list:(L).
