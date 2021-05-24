@@ -349,6 +349,7 @@ ring (goal _ _ P _ Args as G) GS :- std.do! [
     list-constant Ty VarMap VarMap',
     list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
     interp-proofs LpeProofs LpeProofs',
+    std.assert-ok! (coq.typecheck LpeProofs' _) "illtyped equations",
     std.time (ring_reflection ComRing VarMap' Lpe' PE1 PE2 LpeProofs' G GS) ReflTime,
     coq.say "Reflection:" ReflTime "sec.",
   ].
@@ -425,6 +426,7 @@ field (goal _ _ P _ Args as G) GS :- std.do! [
     list-constant Ty VarMap VarMap',
     list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
     interp-proofs LpeProofs LpeProofs',
+    std.assert-ok! (coq.typecheck LpeProofs' _) "illtyped equations",
     std.time (field_reflection Field VarMap' Lpe' PE1 PE2 LpeProofs' G GS) ReflTime,
     coq.say "Reflection:" ReflTime "sec."
   ].
