@@ -48,9 +48,9 @@ dependencies:
     [Mczify](https://github.com/math-comp/mczify) 1.0.0 or later
 - opam:
     name: coq-elpi
-    version: '{(>= "1.10.0") | (= "dev")}'
+    version: '{(>= "1.10.1") | (= "dev")}'
   description: |-
-    [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.10.0 or later
+    [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.10.1 or later
 
 namespace: mathcomp.algebra_tactics
 ---
