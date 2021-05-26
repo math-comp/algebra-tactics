@@ -1,1 +1,2 @@
 -R theories mathcomp.algebra_tactics
+-arg -w -arg +elpi.typecheck

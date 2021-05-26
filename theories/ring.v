@@ -293,6 +293,20 @@ Elpi Tactic ring.
 Elpi Accumulate Db ring.db.
 Elpi Accumulate lp:{{
 
+pred append-last-hyp-to-args i:sealed-goal, o:sealed-goal.
+append-last-hyp-to-args (nabla G) (nabla G1) :-
+  pi x\ append-last-hyp-to-args (G x) (G1 x).
+append-last-hyp-to-args (seal (goal Ctx RE Ty E Args))
+                        (seal (goal Ctx RE Ty E Args1)) :-
+  Ctx = [decl X _ _|_],
+  std.append Args [trm X] Args1.
+
+pred with-top-hyp i:goal, o:list sealed-goal.
+with-top-hyp (goal _ _ (prod N Src _) _ A as G) [G3] :- !,
+  refine (fun N Src _) G [G1],
+  coq.ltac.set-goal-arguments A G G1 G2,
+  append-last-hyp-to-args G2 G3.
+
 pred quote-arg i:term, o:list term, i:argument, o:pair term term.
 quote-arg Ring VarMap (trm Proof)
           (pr {{ @pair (PExpr Z) (PExpr Z) lp:PE1 lp:PE2 }} Proof) :-
@@ -317,7 +331,8 @@ ring_reflection ComRing VarMap' Lpe' PE1 PE2 LpeProofs' G GS :-
 ring_reflection _ _ _ _ _ _ _ _ :-
   coq.ltac.fail 0 "Not a valid ring equation".
 
-solve (goal _ _ P _ Args as G) GS :- std.do! [
+pred ring i:goal, o:list sealed-goal.
+ring (goal _ _ P _ Args as G) GS :- std.do! [
     @ltacfail! 0 => std.assert-ok!
       (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
       "The goal is not an equation",
@@ -334,9 +349,14 @@ solve (goal _ _ P _ Args as G) GS :- std.do! [
     list-constant Ty VarMap VarMap',
     list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
     interp-proofs LpeProofs LpeProofs',
+    std.assert-ok! (coq.typecheck LpeProofs' _) "illtyped equations",
     std.time (ring_reflection ComRing VarMap' Lpe' PE1 PE2 LpeProofs' G GS) ReflTime,
     coq.say "Reflection:" ReflTime "sec.",
   ].
+
+shorten coq.ltac.{ open, repeat, all,  thenl }.
+
+msolve GL SubGL :- all (thenl [repeat (open with-top-hyp), open ring]) GL SubGL.
 
 }}.
 Elpi Typecheck.
@@ -349,6 +369,20 @@ Tactic Notation "ring" ":" ne_constr_list(L) := elpi ring ltac_term_list:(L).
 Elpi Tactic field.
 Elpi Accumulate Db ring.db.
 Elpi Accumulate lp:{{
+
+pred append-last-hyp-to-args i:sealed-goal, o:sealed-goal.
+append-last-hyp-to-args (nabla G) (nabla G1) :-
+  pi x\ append-last-hyp-to-args (G x) (G1 x).
+append-last-hyp-to-args (seal (goal Ctx RE Ty E Args))
+                        (seal (goal Ctx RE Ty E Args1)) :-
+  Ctx = [decl X _ _|_],
+  std.append Args [trm X] Args1.
+
+pred with-top-hyp i:goal, o:list sealed-goal.
+with-top-hyp (goal _ _ (prod N Src _) _ A as G) [G3] :- !,
+  refine (fun N Src _) G [G1],
+  coq.ltac.set-goal-arguments A G G1 G2,
+  append-last-hyp-to-args G2 G3.
 
 pred quote-arg i:term, o:list term, i:argument, o:pair term term.
 quote-arg Ring VarMap (trm Proof)
@@ -374,7 +408,8 @@ field_reflection Field VarMap' Lpe' PE1 PE2 LpeProofs' G GS :-
 field_reflection _ _ _ _ _ _ _ _ :-
   coq.ltac.fail 0 "Not a valid field equation".
 
-solve (goal _ _ P _ Args as G) GS :- std.do! [
+pred field i:goal, o:list sealed-goal.
+field (goal _ _ P _ Args as G) GS :- std.do! [
     @ltacfail! 0 => std.assert-ok!
       (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
       "The goal is not an equation",
@@ -391,9 +426,14 @@ solve (goal _ _ P _ Args as G) GS :- std.do! [
     list-constant Ty VarMap VarMap',
     list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
     interp-proofs LpeProofs LpeProofs',
+    std.assert-ok! (coq.typecheck LpeProofs' _) "illtyped equations",
     std.time (field_reflection Field VarMap' Lpe' PE1 PE2 LpeProofs' G GS) ReflTime,
     coq.say "Reflection:" ReflTime "sec."
   ].
+
+shorten coq.ltac.{ open, repeat, all,  thenl }.
+
+msolve GL SubGL :- all (thenl [repeat (open with-top-hyp), open field]) GL SubGL.
 
 }}.
 Elpi Typecheck.
