@@ -1,0 +1,80 @@
+pred append-last-hyp-to-args i:sealed-goal, o:sealed-goal.
+append-last-hyp-to-args (nabla G) (nabla G1) :-
+  pi x\ append-last-hyp-to-args (G x) (G1 x).
+append-last-hyp-to-args (seal (goal Ctx RE Ty E Args))
+                        (seal (goal Ctx RE Ty E Args1)) :-
+  Ctx = [decl X _ _|_],
+  std.append Args [trm X] Args1.
+
+pred with-top-hyp i:goal, o:list sealed-goal.
+with-top-hyp (goal _ _ (prod N Src _) _ A as G) [G3] :- !,
+  refine (fun N Src _) G [G1],
+  coq.ltac.set-goal-arguments A G G1 G2,
+  append-last-hyp-to-args G2 G3.
+
+pred quote-arg i:term, o:list term, i:argument, o:pair term term.
+quote-arg Ring VarMap (trm Proof)
+          (pr {{ @pair (PExpr Z) (PExpr Z) lp:PE1 lp:PE2 }} Proof') :-
+  std.do! [
+    @ltacfail! 0 => std.assert-ok!
+      (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
+      "An argument is not a proof of equation of the expected type",
+    IdRingMorph = {{ @GRing.idfun_rmorphism lp:Ring }},
+    ring.quote Ring none Ring (x\ x) IdRingMorph T1 RE1 PE1 VarMap,
+    ring.quote Ring none Ring (x\ x) IdRingMorph T2 RE2 PE2 VarMap,
+    RMcorrect1 = {{ @RMEeval_correct lp:Ring lp:Ring lp:IdRingMorph lp:RE1 }},
+    RMcorrect2 = {{ @RMEeval_correct lp:Ring lp:Ring lp:IdRingMorph lp:RE2 }},
+    Proof' = {{ lib:ring.etrans (lib:ring.esym lp:RMcorrect1)
+                                (lib:ring.etrans lp:Proof lp:RMcorrect2) }}
+  ].
+
+pred list->conj i:list term, o:term.
+list->conj [] {{ I }} :- !.
+list->conj [P] P :- !.
+list->conj [P|PS] {{ conj lp:P lp:IS }} :- !, list->conj PS IS.
+
+pred field-reflection i:term, i:term, i:term, i:term, i:term, i:term, i:term,
+                      i:term, i:term, i:goal, o:list sealed-goal.
+field-reflection Ring Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS :-
+  IdRingMorph = {{ @GRing.idfun_rmorphism lp:Ring }},
+  FMcorrect1 = {{ @FMEeval_correct lp:Ring lp:Field lp:IdRingMorph lp:RE1 }},
+  FMcorrect2 = {{ @FMEeval_correct lp:Ring lp:Field lp:IdRingMorph lp:RE2 }},
+  Fcorrect = {{ @Fcorrect lp:Field 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }},
+  coq.ltac.call "field_reflection"
+    [ trm FMcorrect1, trm FMcorrect2, trm Fcorrect ] G GS.
+field-reflection _ _ _ _ _ _ _ _ _ _ _ :-
+  coq.ltac.fail 0 "Not a valid ring equation".
+
+pred field i:goal, o:list sealed-goal.
+field (goal _ _ P _ Args as G) GS :- std.do! [
+    @ltacfail! 0 => std.assert-ok!
+      (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
+      "The goal is not an equation",
+    @ltacfail! 0 => std.assert-ok!
+      (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }})
+      "Cannot find a declared ringType",
+    @ltacfail! 0 => std.assert-ok!
+      (coq.unify-eq Ty {{ GRing.Field.sort lp:Field }})
+      "Cannot find a declared fieldType",
+    std.time (
+      std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
+      IdRingMorph = {{ @GRing.idfun_rmorphism lp:Ring }},
+      field-mode =>
+        ring.quote Ring (some Field) Ring (x\ x) IdRingMorph T1 RE1 PE1 VarMap,
+      field-mode =>
+        ring.quote Ring (some Field) Ring (x\ x) IdRingMorph T2 RE2 PE2 VarMap
+    ) ReifTime,
+    coq.say "Reification:" ReifTime "sec.",
+    list-constant Ty VarMap VarMap',
+    list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
+    list->conj LpeProofs LpeProofs',
+    std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
+    std.time (
+      field-reflection Ring Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS
+    ) ReflTime,
+    coq.say "Reflection:" ReflTime "sec.",
+  ].
+
+shorten coq.ltac.{ open, repeat, all, thenl }.
+
+msolve GL SubGL :- all (thenl [repeat (open with-top-hyp), open field]) GL SubGL.

@@ -14,35 +14,35 @@ Section AbstractCommutativeRing.
 
 Variables (R : comRingType) (a b c : R).
 
-(* Examples from the Coq Reference Manual, but for an instance of mathcomp's
-(abstract) commutative ring. *)
+(* Examples from the Coq Reference Manual, but for an instance of MathComp's
+   (abstract) commutative ring. *)
 
 
-(* Using the _%:R embedding from nat to R*)
+(* Using the _%:R embedding from nat to R *)
 Goal 
     (a + b + c) ^+ 2 =
     a * a + b ^+ 2 + c * c + 2%:R * a * b + 2%:R * a * c + 2%:R * b * c.
 Proof. ring. Qed.
 
-(* Using the _%:~R embedding from int to R : 2 is coerced to (Posz 2) : int*)
+(* Using the _%:~R embedding from int to R : 2 is coerced to (Posz 2) : int *)
 Goal 
     (a + b + c) ^+ 2 =
     a * a + b ^+ 2 + c * c + 2%:~R * a * b + 2%:~R * a * c + 2%:~R * b * c.
 Proof. ring. Qed.
 
 (* With an identity hypothesis *)
-(* Using the _%:R embedding from nat to R*)
+(* Using the _%:R embedding from nat to R *)
 Goal 
     2%:R * a * b = 30%:R -> (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 30%:R.
 Proof. move=> H; ring: H. Qed.
 
 (* With an identity hypothesis *)
-(* Using the _%:R embedding from int to R*)
+(* Using the _%:~R embedding from int to R *)
 Goal 
     2%:~R * a * b = 30%:~R -> (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 30%:~R.
 Proof. move=> H; ring: H. Qed.
 
-(* With numeral constants*)
+(* With numeral constants *)
 Goal 20%:R * 3%:R = 60%:R :> R.
 Proof. ring. Qed.
 
@@ -56,47 +56,38 @@ Proof. ring. Qed.
 Goal 2%:~R * 10%:~R ^+ 2 * 3%:~R * 10%:~R ^+ 2 = 6%:~R * 10%:~R ^+ 4:> R.
 Proof. ring. Qed.
 
-
 End AbstractCommutativeRing.
 
+Section RingMorphism.
 
+Variables (R : ringType) (R' : comRingType) (f : {rmorphism R -> R'}) (a b : R).
+
+Goal f ((a + b) ^+ 2) = f a ^+ 2 + f b ^+ 2 + 2%:R * f a * f b.
+Proof. ring. Qed.
+
+End RingMorphism.
 
 Section NumeralExamples.
 
 Lemma abstract_constants (R : comRingType): 200%:R * 30%:R = 6000%:R :> R.
-Time ring. (* 0.259 secs*)
+Proof.
+Time ring. (* 0.186 secs *)
 Qed.
 
 Lemma int_constants : 200%:R * 30%:R = 6000%:R :> int.
-Time ring. (* 0.08 secs*)
+Proof.
+Time ring. (* 0.343 secs *)
 Qed.
 
-(* Diverging example *)
-Lemma rat_constants : 200%:R * 30%:R = 6000%:R :> rat.
-have [x H] : exists x, x = 6000%:R :> rat by eauto.
-rewrite -H.
- Time ring: H. (* 1.772 secs *)
+Lemma rat_constants : 20%:R * 3%:R = 60%:R :> rat.
+Proof.
+Time ring. (* 0.018 secs *)
 Qed.
 
-(* Let's try a smaller one, still way too inefficient *)
-Lemma rat_constants_smaller : 20%:R * 3%:R = 60%:R :> rat.
- Time ring. (* 2.156 secs *) 
+Lemma rat_constants_larger : 200%:R * 30%:R = 6000%:R :> rat.
+Proof.
+Time ring. (* 0.208 secs *)
 Qed.
-
-(* We need a locking feature to prevent unwanted computations. *)
-
-(* Here is a temporary and partial fix. *)
-Local Strategy -1 [BinInt.Z.of_nat int_of_Z intmul].
-
-Lemma rat_constants_smaller_after_fix : 20%:R * 3%:R = 60%:R :> rat.
- Time ring. (*  0.045 secs *) 
-Time Qed. (* 0.003 secs *)
-
-(* But the larger example is still unaccessible 
-Lemma rat_constants : 200%:R * 30%:R = 6000%:R :> rat.
- Time ring. 
-Qed. 
-*)
 
 End NumeralExamples.
 
@@ -108,7 +99,7 @@ Variables (q w e r t y u i o p a s d f g h j k l
 Lemma test_vars : 
     q * w * e * r * t * y * u * i * o * p * a * s * d * f * g * h * j * k * l
  =  l * w * e * r * t * y * u * i * o * p * a * s * d * f * g * h * j * k * q.
-  Proof. Time ring. Qed. (* 0.018 secs *)
+  Proof. Time ring. Qed. (* 0.049 secs *)
 
 End MoreVariables.
 
@@ -673,8 +664,7 @@ Definition f3 := 2%:R*x1^9%:R*x2^4 -
 Lemma from_sander : f1 * f2 = f3.
 Proof.
 rewrite /f1 /f2 /f3.
-Time ring. (* 2.077 secs*)
-Time Qed. (* 0.755 secs *)
+Time ring. (* 5.394 secs *)
+Time Qed. (* 2.121 secs *)
 
 End BiggerExample.
-
