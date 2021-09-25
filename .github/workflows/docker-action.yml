@@ -19,6 +19,8 @@ jobs:
         image:
           - 'mathcomp/mathcomp:1.12.0-coq-8.13'
           - 'mathcomp/mathcomp-dev:coq-8.13'
+          - 'mathcomp/mathcomp-dev:coq-8.14'
+          - 'mathcomp/mathcomp-dev:coq-dev'
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
