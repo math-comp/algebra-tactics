@@ -2,7 +2,7 @@ From Coq Require Import ZArith ZifyClasses Ring Ring_polynom Field_theory.
 From elpi Require Export elpi.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint rat.
-From mathcomp Require Import zify.
+From mathcomp Require Import zify ssrZ.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -12,88 +12,32 @@ Import GRing.Theory.
 
 Local Open Scope ring_scope.
 
-Definition int_of_Z (n : Z) : int :=
-  match n with
-  | Z0 => Posz 0
-  | Zpos p => Posz (Pos.to_nat p)
-  | Zneg p => Negz (Pos.to_nat p).-1
-  end.
-
-Definition Z_of_int (n : int) : Z :=
-  match n with
-  | Posz n => Z.of_nat n
-  | Negz n' => Z.opp (Z.of_nat (n' + 1))
-  end.
-
-Lemma int_of_ZK : cancel int_of_Z Z_of_int.
-Proof. by case=> //= p; lia. Qed.
-
-Instance Op_int_of_Z : UnOp int_of_Z := { TUOp := id; TUOpInj := int_of_ZK }.
-Add Zify UnOp Op_int_of_Z.
-
-Instance Op_Z_of_int : UnOp Z_of_int := { TUOp := id; TUOpInj := fun => erefl }.
-Add Zify UnOp Op_Z_of_int.
-
-Lemma Z_of_intK : cancel Z_of_int int_of_Z.
-Proof. by move=> ?; lia. Qed.
-
 (* The following proofs are based on ones in elliptic-curves-ssr:             *)
 (* https://github.com/strub/elliptic-curves-ssr/blob/631af893e591466207929714c45b5f7476d579d0/common/ssrring.v *)
 
-Lemma Z_eqP : Equality.axiom Z.eqb.
-Proof. by move=> x y; apply: (iffP idP); lia. Qed.
-
-Canonical Z_eqType := EqType Z (EqMixin Z_eqP).
-Canonical Z_choiceType := ChoiceType Z (CanChoiceMixin int_of_ZK).
-Canonical Z_countType := CountType Z (CanCountMixin int_of_ZK).
-
-Definition Z_zmodMixin :=
-  ZmodMixin Zplus_assoc Zplus_comm Zplus_0_l Zplus_opp_l.
-Canonical Z_zmodType := ZmodType Z Z_zmodMixin.
-
-Definition Z_ringMixin :=
-  RingMixin
-    Zmult_assoc Zmult_1_l Zmult_1_r Zmult_plus_distr_l Zmult_plus_distr_r isT.
-Canonical Z_ringType := RingType Z Z_ringMixin.
-
-Module Import AuxLemmas.
+Module Import Internals.
 
 Implicit Types (R : ringType) (F : fieldType).
 
-Section Ring.
-
-Variable (R : ringType).
-
-Let R_of_Z (n : Z) : R := (int_of_Z n)%:~R.
-
-Lemma R_of_Z_is_additive : additive R_of_Z.
-Proof. by move=> x y; rewrite -mulrzBr /+%R /-%R /=; congr intmul; lia. Qed.
-
-Local Canonical R_of_Z_additive := Additive R_of_Z_is_additive.
-
-Lemma R_of_Z_is_multiplicative : multiplicative R_of_Z.
-Proof. by split=> //= x y; rewrite -intrM /*%R /=; congr intmul; lia. Qed.
-
-Local Canonical R_of_Z_rmorphism := AddRMorphism R_of_Z_is_multiplicative.
-
-Lemma RE : @ring_eq_ext R +%R *%R -%R eq.
+Lemma RE R : @ring_eq_ext R +%R *%R -%R eq.
 Proof. by split; do! move=> ? _ <-. Qed.
 
-Lemma RZ : ring_morph 0 1 +%R *%R (fun x y => x - y) -%R eq
-                      0%Z 1%Z Zplus Zmult Zminus Z.opp Zeq_bool R_of_Z.
+Lemma RZ R : ring_morph 0 1 +%R *%R (fun x y : R => x - y) -%R eq
+                        0%Z 1%Z Z.add Z.mul Z.sub Z.opp Z.eqb
+                        (fun n => (int_of_Z n)%:~R).
 Proof.
-by split=> //=;
-  [ exact: rmorphD | exact: rmorphB | exact: rmorphM | exact: raddfN
-  | by move=> x y /Zeq_bool_eq -> ].
+split=> //= [x y | x y | x y | x | x y /Z.eqb_eq -> //].
+- by rewrite !rmorphD.
+- by rewrite !rmorphB.
+- by rewrite !rmorphM.
+- by rewrite !rmorphN.
 Qed.
 
-Lemma PN : @power_theory R 1 *%R eq nat nat_of_N (@GRing.exp R).
+Lemma PN R : @power_theory R 1 *%R eq nat nat_of_N (@GRing.exp R).
 Proof.
 by split=> r [] //=; elim=> //= p <-;
   rewrite (Pos2Nat.inj_xI, Pos2Nat.inj_xO) ?exprS -exprD addnn -mul2n.
 Qed.
-
-End Ring.
 
 Lemma RR (R : comRingType) :
   @ring_theory R 0 1 +%R *%R (fun x y => x - y) -%R eq.
@@ -101,12 +45,10 @@ Proof.
 exact/mk_rt/subrr/(fun _ _ => erefl)/mulrDl/mulrA/mulrC/mul1r/addrA/addrC/add0r.
 Qed.
 
-Lemma RF (F : fieldType) :
-  @field_theory
-    F 0 1 +%R *%R (fun x y => x - y) -%R (fun x y => x / y) GRing.inv eq.
+Lemma RF F : @field_theory F 0 1 +%R *%R (fun x y => x - y) -%R
+                           (fun x y => x / y) GRing.inv eq.
 Proof.
-by split => //= [||x /eqP];
-  [exact: RR | apply/eqP; rewrite oner_eq0 | exact: mulVf].
+by split=> // [||x /eqP]; [exact: RR | exact/eqP/oner_neq0 | exact: mulVf].
 Qed.
 
 Definition Rcorrect (R : comRingType) :=
@@ -114,7 +56,7 @@ Definition Rcorrect (R : comRingType) :=
     (Eqsth R) (RE R) (Rth_ARth (Eqsth R) (RE R) (RR R)) (RZ R) (PN R)
     (triv_div_th (Eqsth R) (RE R) (Rth_ARth (Eqsth R) (RE R) (RR R)) (RZ R)).
 
-Definition Fcorrect (F : fieldType) :=
+Definition Fcorrect F :=
   Field_correct
     (Eqsth F) (RE F) (congr1 GRing.inv)
     (F2AF (Eqsth F) (RE F) (RF F)) (RZ F) (PN F)
@@ -259,7 +201,7 @@ elim: {R} e F f => //=.
   by rewrite -[Negz _]intz rmorph_int /intmul mulrS NEeval_correct.
 Qed.
 
-End AuxLemmas.
+End Internals.
 
 Register Coq.Init.Logic.eq       as ring.eq.
 Register Coq.Init.Logic.eq_refl  as ring.erefl.
