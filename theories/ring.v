@@ -12,9 +12,6 @@ Import GRing.Theory.
 
 Local Open Scope ring_scope.
 
-(* The following proofs are based on ones in elliptic-curves-ssr:             *)
-(* https://github.com/strub/elliptic-curves-ssr/blob/631af893e591466207929714c45b5f7476d579d0/common/ssrring.v *)
-
 Module Import Internals.
 
 Implicit Types (R : ringType) (F : fieldType).
