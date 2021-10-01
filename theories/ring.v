@@ -1,7 +1,7 @@
 From Coq Require Import ZArith ZifyClasses Ring Ring_polynom Field_theory.
 From elpi Require Export elpi.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
-From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint rat.
+From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
 From mathcomp Require Import zify ssrZ.
 
 Set Implicit Arguments.
@@ -59,32 +59,32 @@ Definition Fcorrect F :=
     (F2AF (Eqsth F) (RE F) (RF F)) (RZ F) (PN F)
     (triv_div_th (Eqsth F) (RE F) (Rth_ARth (Eqsth F) (RE F) (RR F)) (RZ F)).
 
-Inductive NExpr : Type :=
-  | NEX : nat -> NExpr
-  | NEadd : NExpr -> NExpr -> NExpr
-  | NEsucc : NExpr -> NExpr
-  | NEmul : NExpr -> NExpr -> NExpr
-  | NEexp : NExpr -> nat -> NExpr.
+Inductive NatExpr : Type :=
+  | NatX : nat -> NatExpr
+  | NatAdd : NatExpr -> NatExpr -> NatExpr
+  | NatSucc : NatExpr -> NatExpr
+  | NatMul : NatExpr -> NatExpr -> NatExpr
+  | NatExp : NatExpr -> nat -> NatExpr.
 
-Fixpoint NEeval (ne : NExpr) : nat :=
+Fixpoint NatEval (ne : NatExpr) : nat :=
   match ne with
-    | NEX x => x
-    | NEadd e1 e2 => NEeval e1 + NEeval e2
-    | NEsucc e => S (NEeval e)
-    | NEmul e1 e2 => NEeval e1 * NEeval e2
-    | NEexp e1 n => NEeval e1 ^ n
+    | NatX x => x
+    | NatAdd e1 e2 => NatEval e1 + NatEval e2
+    | NatSucc e => S (NatEval e)
+    | NatMul e1 e2 => NatEval e1 * NatEval e2
+    | NatExp e1 n => NatEval e1 ^ n
   end.
 
-Fixpoint NEeval' R (e : NExpr) : R :=
+Fixpoint NatEval' R (e : NatExpr) : R :=
   match e with
-    | NEX x => x%:~R
-    | NEadd e1 e2 => NEeval' R e1 + NEeval' R e2
-    | NEsucc e1 => 1 + NEeval' R e1
-    | NEmul e1 e2 => NEeval' R e1 * NEeval' R e2
-    | NEexp e1 n => NEeval' R e1 ^+ n
+    | NatX x => x%:~R
+    | NatAdd e1 e2 => NatEval' R e1 + NatEval' R e2
+    | NatSucc e1 => 1 + NatEval' R e1
+    | NatMul e1 e2 => NatEval' R e1 * NatEval' R e2
+    | NatExp e1 n => NatEval' R e1 ^+ n
   end.
 
-Lemma NEeval_correct R (e : NExpr) : (NEeval e)%:R = NEeval' R e.
+Lemma NatEval_correct R (e : NatExpr) : (NatEval e)%:R = NatEval' R e.
 Proof.
 elim: e => //=.
 - by move=> e1 IHe1 e2 IHe2; rewrite natrD IHe1 IHe2.
@@ -93,109 +93,111 @@ elim: e => //=.
 - by move=> e1 IHe1 e2; rewrite natrX IHe1.
 Qed.
 
-Inductive RExpr : ringType -> Type :=
-  | REX (R : ringType) : R -> RExpr R
-  | RE0 (R : ringType) : RExpr R
-  | REopp (R : ringType) : RExpr R -> RExpr R
-  | REadd (R : ringType) : RExpr R -> RExpr R -> RExpr R
-  | REmuln (R : ringType) : RExpr R -> NExpr -> RExpr R
-  | REmulz (R : ringType) : RExpr R -> RExpr [ringType of int] -> RExpr R
-  | RE1 (R : ringType) : RExpr R
-  | REmul (R : ringType) : RExpr R -> RExpr R -> RExpr R
-  | REexpn (R : ringType) : RExpr R -> nat -> RExpr R
-  | REinv (F : fieldType) : RExpr F -> RExpr F
-  | REmorph (R' R : ringType) : {rmorphism R' -> R} -> RExpr R' -> RExpr R
-  | REposz : NExpr -> RExpr [ringType of int]
-  | REnegz : NExpr -> RExpr [ringType of int].
+Inductive RingExpr : ringType -> Type :=
+  | RingX (R : ringType) : R -> RingExpr R
+  | Ring0 (R : ringType) : RingExpr R
+  | RingOpp (R : ringType) : RingExpr R -> RingExpr R
+  | RingAdd (R : ringType) : RingExpr R -> RingExpr R -> RingExpr R
+  | RingMuln (R : ringType) : RingExpr R -> NatExpr -> RingExpr R
+  | RingMulz (R : ringType) :
+    RingExpr R -> RingExpr [ringType of int] -> RingExpr R
+  | Ring1 (R : ringType) : RingExpr R
+  | RingMul (R : ringType) : RingExpr R -> RingExpr R -> RingExpr R
+  | RingExpn (R : ringType) : RingExpr R -> nat -> RingExpr R
+  | RingInv (F : fieldType) : RingExpr F -> RingExpr F
+  | RingMorph (R' R : ringType) :
+    {rmorphism R' -> R} -> RingExpr R' -> RingExpr R
+  | RingPosz : NatExpr -> RingExpr [ringType of int]
+  | RingNegz : NatExpr -> RingExpr [ringType of int].
 
-Fixpoint REeval R (e : RExpr R) : R :=
+Fixpoint RingEval R (e : RingExpr R) : R :=
   match e with
-    | REX _ x => x
-    | RE0 _ => 0%R
-    | REopp _ e1 => - REeval e1
-    | REadd _ e1 e2 => REeval e1 + REeval e2
-    | REmuln _ e1 e2 => REeval e1 *+ NEeval e2
-    | REmulz _ e1 e2 => REeval e1 *~ REeval e2
-    | RE1 _ => 1%R
-    | REmul _ e1 e2 => REeval e1 * REeval e2
-    | REexpn _ e1 n => REeval e1 ^+ n
-    | REinv _ e1 => (REeval e1) ^-1
-    | REmorph _ _ f e1 => f (REeval e1)
-    | REposz e1 => Posz (NEeval e1)
-    | REnegz e2 => Negz (NEeval e2)
+    | RingX _ x => x
+    | Ring0 _ => 0%R
+    | RingOpp _ e1 => - RingEval e1
+    | RingAdd _ e1 e2 => RingEval e1 + RingEval e2
+    | RingMuln _ e1 e2 => RingEval e1 *+ NatEval e2
+    | RingMulz _ e1 e2 => RingEval e1 *~ RingEval e2
+    | Ring1 _ => 1%R
+    | RingMul _ e1 e2 => RingEval e1 * RingEval e2
+    | RingExpn _ e1 n => RingEval e1 ^+ n
+    | RingInv _ e1 => (RingEval e1) ^-1
+    | RingMorph _ _ f e1 => f (RingEval e1)
+    | RingPosz e1 => Posz (NatEval e1)
+    | RingNegz e2 => Negz (NatEval e2)
   end.
 
-Fixpoint RMEeval R R' (f : {rmorphism R -> R'}) (e : RExpr R) : R' :=
-  match e in RExpr R return {rmorphism R -> R'} -> R' with
-    | REX _ x => fun f => f x
-    | RE0 _ => fun => 0%R
-    | REopp _ e1 => fun f => - RMEeval f e1
-    | REadd _ e1 e2 => fun f => RMEeval f e1 + RMEeval f e2
-    | REmuln _ e1 e2 => fun f => RMEeval f e1 * NEeval' R' e2
-    | REmulz _ e1 e2 => fun f =>
-      RMEeval f e1 * RMEeval [rmorphism of intmul _] e2
-    | RE1 _ => fun => 1%R
-    | REmul _ e1 e2 => fun f => RMEeval f e1 * RMEeval f e2
-    | REexpn _ e1 n => fun f => RMEeval f e1 ^+ n
-    | REinv _ e1 => fun f => f (REeval e1)^-1
-    | REmorph _ _ g e1 => fun f => RMEeval [rmorphism of f \o g] e1
-    | REposz e1 => fun => NEeval' _ e1
-    | REnegz e1 => fun => - (1 + NEeval' _ e1)
+Fixpoint RingEval' R R' (f : {rmorphism R -> R'}) (e : RingExpr R) : R' :=
+  match e in RingExpr R return {rmorphism R -> R'} -> R' with
+    | RingX _ x => fun f => f x
+    | Ring0 _ => fun => 0%R
+    | RingOpp _ e1 => fun f => - RingEval' f e1
+    | RingAdd _ e1 e2 => fun f => RingEval' f e1 + RingEval' f e2
+    | RingMuln _ e1 e2 => fun f => RingEval' f e1 * NatEval' R' e2
+    | RingMulz _ e1 e2 => fun f =>
+      RingEval' f e1 * RingEval' [rmorphism of intmul _] e2
+    | Ring1 _ => fun => 1%R
+    | RingMul _ e1 e2 => fun f => RingEval' f e1 * RingEval' f e2
+    | RingExpn _ e1 n => fun f => RingEval' f e1 ^+ n
+    | RingInv _ e1 => fun f => f (RingEval e1)^-1
+    | RingMorph _ _ g e1 => fun f => RingEval' [rmorphism of f \o g] e1
+    | RingPosz e1 => fun => NatEval' _ e1
+    | RingNegz e1 => fun => - (1 + NatEval' _ e1)
   end f.
 
-Lemma RMEeval_correct R R' (f : {rmorphism R -> R'}) (e : RExpr R) :
-  f (REeval e) = RMEeval f e.
+Lemma RingEval_correct R R' (f : {rmorphism R -> R'}) (e : RingExpr R) :
+  f (RingEval e) = RingEval' f e.
 Proof.
 elim: {R} e R' f => //=.
 - by move=> R R' f; rewrite rmorph0.
 - by move=> R e1 IHe1 R' f; rewrite rmorphN IHe1.
 - by move=> R e1 IHe1 e2 IHe2 R' f; rewrite rmorphD IHe1 IHe2.
-- by move=> R e1 IHe1 e2 R' f; rewrite rmorphMn IHe1 -mulr_natr NEeval_correct.
+- by move=> R e1 IHe1 e2 R' f; rewrite rmorphMn IHe1 -mulr_natr NatEval_correct.
 - by move=> R e1 IHe1 e2 IHe2 R' f; rewrite rmorphMz IHe1 -mulrzr IHe2.
 - by move=> R R' f; rewrite rmorph1.
 - by move=> R e1 IHe1 e2 IHe2 R' f; rewrite rmorphM IHe1 IHe2.
 - by move=> R e1 IHe1 e2 R' f; rewrite rmorphX IHe1.
 - by move=> R R' g e1 IHe1 R'' f; rewrite -IHe1.
-- by move=> e R' f; rewrite -[Posz _]intz rmorph_int [LHS]NEeval_correct.
+- by move=> e R' f; rewrite -[Posz _]intz rmorph_int [LHS]NatEval_correct.
 - move=> e R' f.
-  by rewrite -[Negz _]intz rmorph_int /intmul mulrS NEeval_correct.
+  by rewrite -[Negz _]intz rmorph_int /intmul mulrS NatEval_correct.
 Qed.
 
-Fixpoint FMEeval R F (f : {rmorphism R -> F}) (e : RExpr R) : F :=
-  match e in RExpr R return {rmorphism R -> F} -> F with
-    | REX _ x => fun f => f x
-    | RE0 _ => fun => 0%R
-    | REopp _ e1 => fun f => - FMEeval f e1
-    | REadd _ e1 e2 => fun f => FMEeval f e1 + FMEeval f e2
-    | REmuln _ e1 e2 => fun f => FMEeval f e1 * NEeval' F e2
-    | REmulz _ e1 e2 => fun f =>
-      FMEeval f e1 * FMEeval [rmorphism of intmul _] e2
-    | RE1 _ => fun => 1%R
-    | REmul _ e1 e2 => fun f => FMEeval f e1 * FMEeval f e2
-    | REexpn _ e1 n => fun f => FMEeval f e1 ^+ n
-    | REinv _ e1 => fun f => (FMEeval f e1)^-1
-    | REmorph _ _ g e1 => fun f => FMEeval [rmorphism of f \o g] e1
-    | REposz e1 => fun => NEeval' _ e1
-    | REnegz e1 => fun => - (1 + NEeval' _ e1)
+Fixpoint FieldEval' R F (f : {rmorphism R -> F}) (e : RingExpr R) : F :=
+  match e in RingExpr R return {rmorphism R -> F} -> F with
+    | RingX _ x => fun f => f x
+    | Ring0 _ => fun => 0%R
+    | RingOpp _ e1 => fun f => - FieldEval' f e1
+    | RingAdd _ e1 e2 => fun f => FieldEval' f e1 + FieldEval' f e2
+    | RingMuln _ e1 e2 => fun f => FieldEval' f e1 * NatEval' F e2
+    | RingMulz _ e1 e2 => fun f =>
+      FieldEval' f e1 * FieldEval' [rmorphism of intmul _] e2
+    | Ring1 _ => fun => 1%R
+    | RingMul _ e1 e2 => fun f => FieldEval' f e1 * FieldEval' f e2
+    | RingExpn _ e1 n => fun f => FieldEval' f e1 ^+ n
+    | RingInv _ e1 => fun f => (FieldEval' f e1)^-1
+    | RingMorph _ _ g e1 => fun f => FieldEval' [rmorphism of f \o g] e1
+    | RingPosz e1 => fun => NatEval' _ e1
+    | RingNegz e1 => fun => - (1 + NatEval' _ e1)
   end f.
 
-Lemma FMEeval_correct R F (f : {rmorphism R -> F}) (e : RExpr R) :
-  f (REeval e) = FMEeval f e.
+Lemma FieldEval_correct R F (f : {rmorphism R -> F}) (e : RingExpr R) :
+  f (RingEval e) = FieldEval' f e.
 Proof.
 elim: {R} e F f => //=.
 - by move=> R F f; rewrite rmorph0.
 - by move=> R e1 IHe1 F f; rewrite rmorphN IHe1.
 - by move=> R e1 IHe1 e2 IHe2 F f; rewrite rmorphD IHe1 IHe2.
-- by move=> R e1 IHe1 e2 F f; rewrite rmorphMn IHe1 -mulr_natr NEeval_correct.
+- by move=> R e1 IHe1 e2 F f; rewrite rmorphMn IHe1 -mulr_natr NatEval_correct.
 - by move=> R e1 IHe1 e2 IHe2 F f; rewrite rmorphMz IHe1 -mulrzr IHe2.
 - by move=> R F f; rewrite rmorph1.
 - by move=> R e1 IHe1 e2 IHe2 F f; rewrite rmorphM IHe1 IHe2.
 - by move=> R e1 IHe1 e2 F f; rewrite rmorphX IHe1.
 - by move=> F' e1 IHe1 F f; rewrite fmorphV IHe1.
 - by move=> R R' g e1 IHe1 F f; rewrite -IHe1.
-- by move=> e F f; rewrite -[Posz _]intz rmorph_int [LHS]NEeval_correct.
+- by move=> e F f; rewrite -[Posz _]intz rmorph_int [LHS]NatEval_correct.
 - move=> e F f.
-  by rewrite -[Negz _]intz rmorph_int /intmul mulrS NEeval_correct.
+  by rewrite -[Negz _]intz rmorph_int /intmul mulrS NatEval_correct.
 Qed.
 
 End Internals.

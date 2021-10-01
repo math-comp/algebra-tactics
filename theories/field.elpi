@@ -22,8 +22,8 @@ quote-arg Ring VarMap (trm Proof)
     IdRingMorph = {{ @GRing.idfun_rmorphism lp:Ring }},
     ring.quote Ring none Ring (x\ x) IdRingMorph T1 RE1 PE1 VarMap,
     ring.quote Ring none Ring (x\ x) IdRingMorph T2 RE2 PE2 VarMap,
-    RMcorrect1 = {{ @RMEeval_correct lp:Ring lp:Ring lp:IdRingMorph lp:RE1 }},
-    RMcorrect2 = {{ @RMEeval_correct lp:Ring lp:Ring lp:IdRingMorph lp:RE2 }},
+    RMcorrect1 = {{ @RingEval_correct lp:Ring lp:Ring lp:IdRingMorph lp:RE1 }},
+    RMcorrect2 = {{ @RingEval_correct lp:Ring lp:Ring lp:IdRingMorph lp:RE2 }},
     Proof' = {{ lib:ring.etrans (lib:ring.esym lp:RMcorrect1)
                                 (lib:ring.etrans lp:Proof lp:RMcorrect2) }}
   ].
@@ -37,9 +37,10 @@ pred field-reflection i:term, i:term, i:term, i:term, i:term, i:term, i:term,
                       i:term, i:term, i:goal, o:list sealed-goal.
 field-reflection Ring Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS :-
   IdRingMorph = {{ @GRing.idfun_rmorphism lp:Ring }},
-  FMcorrect1 = {{ @FMEeval_correct lp:Ring lp:Field lp:IdRingMorph lp:RE1 }},
-  FMcorrect2 = {{ @FMEeval_correct lp:Ring lp:Field lp:IdRingMorph lp:RE2 }},
-  Fcorrect = {{ @Fcorrect lp:Field 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }},
+  FMcorrect1 = {{ @FieldEval_correct lp:Ring lp:Field lp:IdRingMorph lp:RE1 }},
+  FMcorrect2 = {{ @FieldEval_correct lp:Ring lp:Field lp:IdRingMorph lp:RE2 }},
+  Fcorrect =
+    {{ @Fcorrect lp:Field 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }},
   coq.ltac.call "field_reflection"
     [ trm FMcorrect1, trm FMcorrect2, trm Fcorrect ] G GS.
 field-reflection _ _ _ _ _ _ _ _ _ _ _ :-
