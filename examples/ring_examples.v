@@ -67,6 +67,16 @@ Proof. ring. Qed.
 
 End RingMorphism.
 
+Section Additive.
+
+Variables (V' V : zmodType) (R : comRingType).
+Variables (g : {additive V' -> V}) (f : {additive V -> R}) (a : V') (b : V).
+
+Goal f (g a + b) ^+ 2 = f (g a) ^+ 2 + f b ^+ 2 + f (g (a *+ 2)) * f b.
+Proof. ring. Qed.
+
+End Additive.
+
 Section NumeralExamples.
 
 Lemma abstract_constants (R : comRingType): 200%:R * 30%:R = 6000%:R :> R.
