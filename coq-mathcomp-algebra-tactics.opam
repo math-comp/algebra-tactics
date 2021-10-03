@@ -10,15 +10,15 @@ dev-repo: "git+https://github.com/math-comp/algebra-tactics.git"
 bug-reports: "https://github.com/math-comp/algebra-tactics/issues"
 license: "CECILL-B"
 
-synopsis: "Reflexive ring and field tactics for Mathematical Components"
+synopsis: "Ring and field tactics for Mathematical Components"
 description: """
 This library provides `ring` and `field` tactics for Mathematical Components,
-that work with any `comRingType`s and `fieldType`s, respectively. Their
-instance resolution is done through canonical structure inference. Therefore,
-they work with abstract rings and do not require `Add Ring` and `Add Field`
-commands. Another key feature of this library is that they automatically push
-down ring morphisms to leaves of ring and field expressions before
-normalization to the Horner form."""
+that work with any `comRingType` and `fieldType` instances, respectively.
+Their instance resolution is done through canonical structure inference.
+Therefore, they work with abstract rings and do not require `Add Ring` and
+`Add Field` commands. Another key feature of this library is that they
+automatically push down ring morphisms and additive functions to leaves of
+ring/field expressions before normalization to the Horner form."""
 
 build: [make "-j%{jobs}%" ]
 install: [make "install"]

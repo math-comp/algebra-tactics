@@ -267,6 +267,57 @@ move: F f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> V V' g e1 IHe1 F f; rewrite -IHe1.
 Qed.
 
+Lemma lock_PCond (F : fieldType) (l : seq F) (le : seq (PExpr Z)) :
+  (forall zero one add mul sub opp Feq R_of_int exp,
+   zero = 0 -> one = 1 -> add = +%R -> mul = *%R -> sub = (fun x y => x - y) ->
+   opp = -%R -> Feq = eq -> R_of_int = intmul 1 -> exp = @GRing.exp F ->
+   Field_theory.PCond
+     zero one add mul sub opp Feq
+     (fun n : Z => R_of_int (int_of_Z n)) N.to_nat exp l le) ->
+  Field_theory.PCond
+    0 1 +%R *%R (fun x y => x - y) -%R eq
+    (fun n : Z => (int_of_Z n)%:~R) N.to_nat (@GRing.exp F) l le.
+Proof. exact. Qed.
+
+Ltac ring_reflection RMcorrect1 RMcorrect2 Rcorrect :=
+  apply: (eq_trans RMcorrect1);
+  apply: (eq_trans _ (esym RMcorrect2));
+  apply: Rcorrect;
+  [vm_compute; reflexivity].
+
+Ltac simpl_PCond :=
+  let zero := fresh "zero" in
+  let one := fresh "one" in
+  let add := fresh "add" in
+  let mul := fresh "mul" in
+  let sub := fresh "sub" in
+  let opp := fresh "opp" in
+  let Feq := fresh "Feq" in
+  let R_of_int := fresh "R_of_int" in
+  let exp := fresh "exp" in
+  let zeroE := fresh "zeroE" in
+  let oneE := fresh "oneE" in
+  let addE := fresh "addE" in
+  let mulE := fresh "mulE" in
+  let subE := fresh "subE" in
+  let oppE := fresh "oppE" in
+  let FeqE := fresh "FeqE" in
+  let R_of_intE := fresh "R_of_intE" in
+  let expE := fresh "expE" in
+  apply: Internals.lock_PCond;
+  move=> zero one add mul sub opp Feq R_of_int exp;
+  move=> zeroE oneE addE mulE subE oppE FeqE R_of_intE expE;
+  vm_compute;
+  rewrite ?{zero}zeroE ?{one}oneE ?{add}addE ?{mul}mulE ?{sub}subE ?{opp}oppE;
+  rewrite ?{Feq}FeqE ?{R_of_int}R_of_intE ?{exp}expE;
+  do ?split; apply/eqP.
+
+Ltac field_reflection FMcorrect1 FMcorrect2 Fcorrect :=
+  apply: (eq_trans FMcorrect1);
+  apply: (eq_trans _ (esym FMcorrect2));
+  apply: Fcorrect; [reflexivity | reflexivity | reflexivity |
+                    vm_compute; reflexivity | simpl_PCond].
+
 End Internals.
 
 Register Coq.Init.Logic.eq       as ring.eq.
@@ -279,12 +330,6 @@ Elpi Accumulate File "theories/quote.elpi".
 Elpi Accumulate File "theories/ring.elpi".
 Elpi Typecheck.
 
-Ltac ring_reflection RMcorrect1 RMcorrect2 Rcorrect :=
-  apply: (eq_trans RMcorrect1);
-  apply: (eq_trans _ (esym RMcorrect2));
-  apply: Rcorrect;
-  [vm_compute; reflexivity].
-
 Tactic Notation "ring" := elpi ring.
 Tactic Notation "ring" ":" ne_constr_list(L) := elpi ring ltac_term_list:(L).
 
@@ -292,12 +337,6 @@ Elpi Tactic field.
 Elpi Accumulate File "theories/quote.elpi".
 Elpi Accumulate File "theories/field.elpi".
 Elpi Typecheck.
-
-Ltac field_reflection FMcorrect1 FMcorrect2 Fcorrect :=
-  apply: (eq_trans FMcorrect1);
-  apply: (eq_trans _ (esym FMcorrect2));
-  apply: Fcorrect; [reflexivity | reflexivity | reflexivity |
-                    vm_compute; reflexivity | simpl].
 
 Tactic Notation "field" := elpi field.
 Tactic Notation "field" ":" ne_constr_list(L) := elpi field ltac_term_list:(L).

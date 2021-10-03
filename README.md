@@ -13,12 +13,12 @@ Follow the instructions on https://github.com/coq-community/templates to regener
 
 
 This library provides `ring` and `field` tactics for Mathematical Components,
-that work with any `comRingType`s and `fieldType`s, respectively. Their
-instance resolution is done through canonical structure inference. Therefore,
-they work with abstract rings and do not require `Add Ring` and `Add Field`
-commands. Another key feature of this library is that they automatically push
-down ring morphisms to leaves of ring and field expressions before
-normalization to the Horner form.
+that work with any `comRingType` and `fieldType` instances, respectively.
+Their instance resolution is done through canonical structure inference.
+Therefore, they work with abstract rings and do not require `Add Ring` and
+`Add Field` commands. Another key feature of this library is that they
+automatically push down ring morphisms and additive functions to leaves of
+ring/field expressions before normalization to the Horner form.
 
 ## Meta
 
@@ -54,7 +54,7 @@ make install
 
 
 ## Credits
-The way we adapt internals of Coq's `ring` and `field` tactics to algebraic
-structures of the Mathematical Components library is inspired by the
+The way we adapt the internals of Coq's `ring` and `field` tactics to
+algebraic structures of the Mathematical Components library is inspired by the
 [elliptic-curves-ssr](https://github.com/strub/elliptic-curves-ssr) library by
 Evmorfia-Iro Bartzia and Pierre-Yves Strub.
