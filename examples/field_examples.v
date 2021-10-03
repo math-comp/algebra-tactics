@@ -14,14 +14,14 @@ Local Open Scope ring_scope.
    (abstract) field. *)
 
 Goal forall (F : fieldType) (x : F), x != 0 -> (1 - 1 / x) * x - x + 1 = 0.
-Proof. by move=> F x x_neq0; field; exact/eqP. Qed.
+Proof. by move=> F x x_neq0; field. Qed.
 
 Goal forall (F F' : fieldType) (f : {rmorphism F -> F'}) (x : F),
     f x != 0 -> f ((1 - 1 / x) * x - x + 1) = 0.
-Proof. by move=> F F' f x x_neq0; field; exact/eqP. Qed.
+Proof. by move=> F F' f x x_neq0; field. Qed.
 
 Goal forall (F : fieldType) (x y : F), y != 0 -> y = x -> x / y = 1.
-Proof. by move=> F x y y_neq0; field; exact/eqP. Qed.
+Proof. by move=> F x y y_neq0; field. Qed.
 
 Goal forall (F : fieldType) (x y : F), y != 0 -> y = 1 -> x = 1 -> x / y = 1.
-Proof. by move=> F x y y_neq0; field; exact/eqP. Qed.
+Proof. by move=> F x y y_neq0; field. Qed.
