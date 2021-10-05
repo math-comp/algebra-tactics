@@ -33,17 +33,13 @@ list->conj [] {{ I }} :- !.
 list->conj [P] P :- !.
 list->conj [P|PS] {{ conj lp:P lp:IS }} :- !, list->conj PS IS.
 
-pred field-reflection i:term, i:term, i:term, i:term, i:term, i:term, i:term,
+pred field-reflection i:term, i:term, i:term, i:term, i:term, i:term,
                       i:term, i:term, i:goal, o:list sealed-goal.
-field-reflection Ring Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS :-
-  IdRingMorph = {{ @GRing.idfun_rmorphism lp:Ring }},
-  FMcorrect1 = {{ @FieldEval_correct lp:Ring lp:Field lp:IdRingMorph lp:RE1 }},
-  FMcorrect2 = {{ @FieldEval_correct lp:Ring lp:Field lp:IdRingMorph lp:RE2 }},
-  Fcorrect =
-    {{ @Fcorrect lp:Field 100 lp:VarMap' lp:Lpe' lp:PE1 lp:PE2 lp:LpeProofs' }},
+field-reflection Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS :-
   coq.ltac.call "field_reflection"
-    [ trm FMcorrect1, trm FMcorrect2, trm Fcorrect ] G GS.
-field-reflection _ _ _ _ _ _ _ _ _ _ _ :-
+    [trm Field, trm VarMap', trm Lpe', trm RE1, trm RE2, trm PE1, trm PE2,
+     trm LpeProofs'] G GS.
+field-reflection _ _ _ _ _ _ _ _ _ _ :-
   coq.ltac.fail 0 "Not a valid ring equation".
 
 pred field i:goal, o:list sealed-goal.
@@ -71,7 +67,7 @@ field (goal _ _ P _ Args as G) GS :- std.do! [
     list->conj LpeProofs LpeProofs',
     std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
     std.time (
-      field-reflection Ring Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS
+      field-reflection Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS
     ) ReflTime,
     coq.say "Reflection:" ReflTime "sec.",
   ].

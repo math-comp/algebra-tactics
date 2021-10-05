@@ -60,11 +60,11 @@ Definition Fcorrect F :=
     (triv_div_th (Eqsth F) (RE F) (Rth_ARth (Eqsth F) (RE F) (RR F)) (RZ F)).
 
 Inductive NatExpr : Type :=
-  | NatX : nat -> NatExpr
-  | NatAdd : NatExpr -> NatExpr -> NatExpr
-  | NatSucc : NatExpr -> NatExpr
-  | NatMul : NatExpr -> NatExpr -> NatExpr
-  | NatExp : NatExpr -> nat -> NatExpr.
+  | NatX    of nat
+  | NatAdd  of NatExpr & NatExpr
+  | NatSucc of NatExpr
+  | NatMul  of NatExpr & NatExpr
+  | NatExp  of NatExpr & nat.
 
 Fixpoint NatEval (ne : NatExpr) : nat :=
   match ne with
@@ -280,12 +280,6 @@ Lemma lock_PCond (F : fieldType) (l : seq F) (le : seq (PExpr Z)) :
     (fun n : Z => (int_of_Z n)%:~R) N.to_nat (@GRing.exp F) l le.
 Proof. exact. Qed.
 
-Ltac ring_reflection RMcorrect1 RMcorrect2 Rcorrect :=
-  apply: (eq_trans RMcorrect1);
-  apply: (eq_trans _ (esym RMcorrect2));
-  apply: Rcorrect;
-  [vm_compute; reflexivity].
-
 Ltac simpl_PCond :=
   let zero := fresh "zero" in
   let one := fresh "one" in
@@ -315,11 +309,20 @@ Ltac simpl_PCond :=
   rewrite ?{Feq}FeqE ?{R_of_int}R_of_intE ?{exp}expE ?{l}lE;
   do ?split; apply/eqP.
 
-Ltac field_reflection FMcorrect1 FMcorrect2 Fcorrect :=
-  apply: (eq_trans FMcorrect1);
-  apply: (eq_trans _ (esym FMcorrect2));
-  apply: Fcorrect; [reflexivity | reflexivity | reflexivity |
-                    vm_compute; reflexivity | simpl_PCond].
+Ltac ring_reflection R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+  let R' := constr:(GRing.ComRing.ringType R) in
+  let Mcorrect := constr:(RingEval_correct (@GRing.idfun_rmorphism R')) in
+  apply: (eq_trans (Mcorrect RE1) (eq_trans _ (esym (Mcorrect RE2))));
+  apply: (@Rcorrect R 100 VarMap Lpe PE1 PE2 LpeProofs);
+  [vm_compute; reflexivity].
+
+Ltac field_reflection F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+  let R := constr:(GRing.Field.ringType F) in
+  let Mcorrect := constr:(FieldEval_correct (@GRing.idfun_rmorphism R)) in
+  apply: (eq_trans (Mcorrect RE1) (eq_trans _ (esym (Mcorrect RE2))));
+  apply: (@Fcorrect F 100 VarMap Lpe PE1 PE2 LpeProofs);
+  [reflexivity | reflexivity | reflexivity |
+   vm_compute; reflexivity | simpl_PCond].
 
 End Internals.
 
