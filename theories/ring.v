@@ -268,12 +268,13 @@ move: F f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 Qed.
 
 Lemma lock_PCond (F : fieldType) (l : seq F) (le : seq (PExpr Z)) :
-  (forall zero one add mul sub opp Feq R_of_int exp,
+  (forall zero one add mul sub opp Feq R_of_int exp l',
    zero = 0 -> one = 1 -> add = +%R -> mul = *%R -> sub = (fun x y => x - y) ->
    opp = -%R -> Feq = eq -> R_of_int = intmul 1 -> exp = @GRing.exp F ->
+   l' = l ->
    Field_theory.PCond
      zero one add mul sub opp Feq
-     (fun n : Z => R_of_int (int_of_Z n)) N.to_nat exp l le) ->
+     (fun n : Z => R_of_int (int_of_Z n)) N.to_nat exp l' le) ->
   Field_theory.PCond
     0 1 +%R *%R (fun x y => x - y) -%R eq
     (fun n : Z => (int_of_Z n)%:~R) N.to_nat (@GRing.exp F) l le.
@@ -295,6 +296,7 @@ Ltac simpl_PCond :=
   let Feq := fresh "Feq" in
   let R_of_int := fresh "R_of_int" in
   let exp := fresh "exp" in
+  let l := fresh "l" in
   let zeroE := fresh "zeroE" in
   let oneE := fresh "oneE" in
   let addE := fresh "addE" in
@@ -304,12 +306,13 @@ Ltac simpl_PCond :=
   let FeqE := fresh "FeqE" in
   let R_of_intE := fresh "R_of_intE" in
   let expE := fresh "expE" in
+  let lE := fresh "lE" in
   apply: Internals.lock_PCond;
-  move=> zero one add mul sub opp Feq R_of_int exp;
-  move=> zeroE oneE addE mulE subE oppE FeqE R_of_intE expE;
+  move=> zero one add mul sub opp Feq R_of_int exp l;
+  move=> zeroE oneE addE mulE subE oppE FeqE R_of_intE expE lE;
   vm_compute;
   rewrite ?{zero}zeroE ?{one}oneE ?{add}addE ?{mul}mulE ?{sub}subE ?{opp}oppE;
-  rewrite ?{Feq}FeqE ?{R_of_int}R_of_intE ?{exp}expE;
+  rewrite ?{Feq}FeqE ?{R_of_int}R_of_intE ?{exp}expE ?{l}lE;
   do ?split; apply/eqP.
 
 Ltac field_reflection FMcorrect1 FMcorrect2 Fcorrect :=

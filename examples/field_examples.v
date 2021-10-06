@@ -25,3 +25,9 @@ Proof. by move=> F x y y_neq0; field. Qed.
 
 Goal forall (F : fieldType) (x y : F), y != 0 -> y = 1 -> x = 1 -> x / y = 1.
 Proof. by move=> F x y y_neq0; field. Qed.
+
+(* Using the _%:R embedding from nat to F *)
+
+Goal forall (F : fieldType) (n : nat),
+    n%:R != 0 :> F -> (2 * n)%:R / n%:R = 2%:R :> F.
+Proof. by move=> F n n_neq0; field. Qed.
