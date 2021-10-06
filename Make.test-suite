@@ -2,3 +2,4 @@ examples/field_examples.v
 examples/ring_examples.v
 
 -I .
+-arg -w -arg -notation-overridden
