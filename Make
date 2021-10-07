@@ -1,3 +1,4 @@
+theories/ratify_field.v
 theories/ring.v
 theories/zify_ring.v
 
