@@ -1,4 +1,8 @@
+theories/ratify_field.v
 theories/ring.v
+theories/zify_field.v
+theories/zify_ring.v
 
 -R theories mathcomp.algebra_tactics
+-arg -w -arg -notation-overridden
 -arg -w -arg +elpi.typecheck

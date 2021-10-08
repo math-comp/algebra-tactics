@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint rat.
-From mathcomp Require Import ring.
+From mathcomp Require Import ring zify_ring.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -31,3 +31,7 @@ Proof. by move=> F x y y_neq0; field. Qed.
 Goal forall (F : fieldType) (n : nat),
     n%:R != 0 :> F -> (2 * n)%:R / n%:R = 2%:R :> F.
 Proof. by move=> F n n_neq0; field. Qed.
+
+Goal forall (F : numFieldType) (n : nat),
+    n != 1%N -> (2%:R - (2 * n)%:R) / (1 - n%:R) = 2%:R :> F.
+Proof. by move=> F n n_neq0; field; lia_ring. Qed.

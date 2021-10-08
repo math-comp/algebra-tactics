@@ -2,7 +2,7 @@ From Coq Require Import ZArith ZifyClasses Ring Ring_polynom Field_theory.
 From elpi Require Export elpi.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
-From mathcomp Require Import zify ssrZ.
+From mathcomp Require Import ssrZ.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -15,6 +15,8 @@ Local Open Scope ring_scope.
 Module Import Internals.
 
 Implicit Types (V : zmodType) (R : ringType) (F : fieldType).
+
+(* Normalizing ring and field expressions to the Horner form by reflection    *)
 
 Lemma RE R : @ring_eq_ext R +%R *%R -%R eq.
 Proof. by split; do! move=> ? _ <-. Qed.
@@ -59,12 +61,14 @@ Definition Fcorrect F :=
     (F2AF (Eqsth F) (RE F) (RF F)) (RZ F) (PN F)
     (triv_div_th (Eqsth F) (RE F) (Rth_ARth (Eqsth F) (RE F) (RR F)) (RZ F)).
 
+(* Pushing down morphisms in ring and field expressions by reflection         *)
+
 Inductive NatExpr : Type :=
-  | NatX : nat -> NatExpr
-  | NatAdd : NatExpr -> NatExpr -> NatExpr
-  | NatSucc : NatExpr -> NatExpr
-  | NatMul : NatExpr -> NatExpr -> NatExpr
-  | NatExp : NatExpr -> nat -> NatExpr.
+  | NatX    of nat
+  | NatAdd  of NatExpr & NatExpr
+  | NatSucc of NatExpr
+  | NatMul  of NatExpr & NatExpr
+  | NatExp  of NatExpr & nat.
 
 Fixpoint NatEval (ne : NatExpr) : nat :=
   match ne with
@@ -267,6 +271,8 @@ move: F f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> V V' g e1 IHe1 F f; rewrite -IHe1.
 Qed.
 
+(* Auxiliary Ltac code which will be invoked from Elpi *)
+
 Lemma lock_PCond (F : fieldType) (l : seq F) (le : seq (PExpr Z)) :
   (forall zero one add mul sub opp Feq R_of_int exp l',
    zero = 0 -> one = 1 -> add = +%R -> mul = *%R -> sub = (fun x y => x - y) ->
@@ -279,12 +285,6 @@ Lemma lock_PCond (F : fieldType) (l : seq F) (le : seq (PExpr Z)) :
     0 1 +%R *%R (fun x y => x - y) -%R eq
     (fun n : Z => (int_of_Z n)%:~R) N.to_nat (@GRing.exp F) l le.
 Proof. exact. Qed.
-
-Ltac ring_reflection RMcorrect1 RMcorrect2 Rcorrect :=
-  apply: (eq_trans RMcorrect1);
-  apply: (eq_trans _ (esym RMcorrect2));
-  apply: Rcorrect;
-  [vm_compute; reflexivity].
 
 Ltac simpl_PCond :=
   let zero := fresh "zero" in
@@ -315,11 +315,20 @@ Ltac simpl_PCond :=
   rewrite ?{Feq}FeqE ?{R_of_int}R_of_intE ?{exp}expE ?{l}lE;
   do ?split; apply/eqP.
 
-Ltac field_reflection FMcorrect1 FMcorrect2 Fcorrect :=
-  apply: (eq_trans FMcorrect1);
-  apply: (eq_trans _ (esym FMcorrect2));
-  apply: Fcorrect; [reflexivity | reflexivity | reflexivity |
-                    vm_compute; reflexivity | simpl_PCond].
+Ltac ring_reflection R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+  let R' := constr:(GRing.ComRing.ringType R) in
+  let Mcorrect := constr:(RingEval_correct (@GRing.idfun_rmorphism R')) in
+  apply: (eq_trans (Mcorrect RE1) (eq_trans _ (esym (Mcorrect RE2))));
+  apply: (@Rcorrect R 100 VarMap Lpe PE1 PE2 LpeProofs);
+  [vm_compute; reflexivity].
+
+Ltac field_reflection F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+  let R := constr:(GRing.Field.ringType F) in
+  let Mcorrect := constr:(FieldEval_correct (@GRing.idfun_rmorphism R)) in
+  apply: (eq_trans (Mcorrect RE1) (eq_trans _ (esym (Mcorrect RE2))));
+  apply: (@Fcorrect F 100 VarMap Lpe PE1 PE2 LpeProofs);
+  [reflexivity | reflexivity | reflexivity | vm_compute; reflexivity |
+   simpl_PCond].
 
 End Internals.
 
