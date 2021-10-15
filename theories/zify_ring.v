@@ -93,5 +93,5 @@ Ltac zify_ring :=
     end;
   rewrite ?(zify_eqb, zify_ler, zify_ltr) /=.
 
-Ltac lia_ring := zify_ring; lia.
-Ltac nia_ring := zify_ring; nia.
+Ltac ring_lia := zify_ring; lia.
+Ltac ring_nia := zify_ring; nia.

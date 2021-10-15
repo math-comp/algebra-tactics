@@ -34,4 +34,4 @@ Proof. by move=> F n n_neq0; field. Qed.
 
 Goal forall (F : numFieldType) (n : nat),
     n != 1%N -> (2%:R - (2 * n)%:R) / (1 - n%:R) = 2%:R :> F.
-Proof. by move=> F n n_neq0; field; lia_ring. Qed.
+Proof. by move=> F n n_neq0; field; ring_lia. Qed.
