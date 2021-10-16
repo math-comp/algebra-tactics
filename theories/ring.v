@@ -2,7 +2,7 @@ From Coq Require Import ZArith ZifyClasses Ring Ring_polynom Field_theory.
 From elpi Require Export elpi.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
-From mathcomp Require Import ssrZ.
+From mathcomp Require Import ssrZ zify.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -112,6 +112,7 @@ Inductive RingExpr : ringType -> Type :=
   | RingMorph' V R : {additive V -> R} -> ZmodExpr V -> RingExpr R
   | RingPosz : NatExpr -> RingExpr [ringType of int]
   | RingNegz : NatExpr -> RingExpr [ringType of int]
+  | RingZc : Z -> RingExpr [ringType of Z]
 with ZmodExpr : zmodType -> Type :=
   | ZmodX V : V -> ZmodExpr V
   | Zmod0 V : ZmodExpr V
@@ -140,6 +141,7 @@ Fixpoint RingEval R (e : RingExpr R) : R :=
     | RingMorph' _ _ f e1 => f (ZmodEval e1)
     | RingPosz e1 => Posz (NatEval e1)
     | RingNegz e2 => Negz (NatEval e2)
+    | RingZc x => x
   end
 with ZmodEval V (e : ZmodExpr V) : V :=
   match e with
@@ -169,6 +171,7 @@ Fixpoint RingEval' R R' (f : {rmorphism R -> R'}) (e : RingExpr R) : R' :=
     | RingMorph' _ _ g e1 => fun f => RZmodEval' [additive of f \o g] e1
     | RingPosz e1 => fun => NatEval' _ e1
     | RingNegz e1 => fun => - (1 + NatEval' _ e1)
+    | RingZc x => fun => (int_of_Z x)%:~R
   end f
 with RZmodEval' V R (f : {additive V -> R}) (e : ZmodExpr V) : R :=
   match e in ZmodExpr V return {additive V -> R} -> R with
@@ -203,6 +206,7 @@ move: R' f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> e R' f; rewrite -[Posz _]intz rmorph_int [LHS]NatEval_correct.
 - move=> e R' f.
   by rewrite -[Negz _]intz rmorph_int /intmul mulrS NatEval_correct.
+- by move=> x R' f; rewrite -(rmorph_int f); congr (f _); lia.
 - by move=> V R f; rewrite raddf0.
 - by move=> V e1 IHe1 R f; rewrite raddfN IHe1.
 - by move=> V e1 IHe1 e2 IHe2 R f; rewrite raddfD IHe1 IHe2.
@@ -228,6 +232,7 @@ Fixpoint FieldEval' R F (f : {rmorphism R -> F}) (e : RingExpr R) : F :=
     | RingMorph' _ _ g e1 => fun f => FZmodEval' [additive of f \o g] e1
     | RingPosz e1 => fun => NatEval' _ e1
     | RingNegz e1 => fun => - (1 + NatEval' _ e1)
+    | RingZc x => fun => (int_of_Z x)%:~R
   end f
 with FZmodEval' V F (f : {additive V -> F}) (e : ZmodExpr V) : F :=
   match e in ZmodExpr V return {additive V -> F} -> F with
@@ -263,6 +268,7 @@ move: F f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> e F f; rewrite -[Posz _]intz rmorph_int [LHS]NatEval_correct.
 - move=> e F f.
   by rewrite -[Negz _]intz rmorph_int /intmul mulrS NatEval_correct.
+- by move=> x R' f; rewrite -(rmorph_int f); congr (f _); lia.
 - by move=> V F f; rewrite raddf0.
 - by move=> V e1 IHe1 F f; rewrite raddfN IHe1.
 - by move=> V e1 IHe1 e2 IHe2 F f; rewrite raddfD IHe1 IHe2.

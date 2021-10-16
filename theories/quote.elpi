@@ -17,10 +17,16 @@ n-constant 0 {{ lib:num.N.N0 }} :- !.
 n-constant N {{ lib:num.N.Npos lp:T }} :- !, positive-constant N T.
 
 pred z-constant o:int, o:term.
-z-constant N {{ lib:num.Z.Zneg lp:T }} :-
-  N < 0, !, positive-constant {calc (~ N)} T.
 z-constant 0 {{ lib:num.Z.Z0 }} :- !.
-z-constant N {{ lib:num.Z.Zpos lp:T }} :- 0 < N, !, positive-constant N T.
+z-constant N T :-
+  var T, N < 0, !,
+  T = {{ lib:num.Z.Zneg lp:T' }}, positive-constant {calc (~ N)} T'.
+z-constant N T :-
+  var T, 0 < N, !, T = {{ lib:num.Z.Zpos lp:T' }}, positive-constant N T'.
+z-constant N {{ lib:num.Z.Zneg lp:T }} :-
+  var N, !, positive-constant N' T, N is ~ N'.
+z-constant N {{ lib:num.Z.Zpos lp:T }} :-
+  var N, !, positive-constant N T.
 
 pred nat-constant o:int, o:term.
 nat-constant N _ :- not (var N), N < 0, !, fail.
@@ -333,6 +339,11 @@ quote.ring SrcRing _ TgtRing _ _ {{ Negz lp:In }}
   coq.unify-eq {{ int_Ring }} SrcRing ok,
   !,
   quote.nat1 TgtRing In OutM1 Out1 VarMap.
+% Z constants
+quote.ring SrcRing _ _ _ _ In {{ @RingZc lp:In }} Out _ :-
+  quote.expr.constant In Out,
+  coq.unify-eq {{ ZInstances.Z_ringType }} SrcRing ok,
+  z-constant _ In, !.
 % morphisms
 quote.ring SrcRing _ TgtRing MorphFun Morph In
            {{ @RingMorph lp:NewSrcRing lp:SrcRing lp:NewMorph lp:OutM }}
