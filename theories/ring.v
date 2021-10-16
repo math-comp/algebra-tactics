@@ -277,49 +277,116 @@ move: F f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> V V' g e1 IHe1 F f; rewrite -IHe1.
 Qed.
 
-(* Auxiliary Ltac code which will be invoked from Elpi *)
+(* PCond *)
+
+Section PCond.
+
+Variables (conj : bool -> bool -> bool) (conjE : conj = andb).
+Variables (R : Type) (rO rI : R) (radd rmul rsub : R -> R -> R) (ropp : R -> R).
+Variables (req : R -> R -> Prop) (rneqb : R -> R -> bool).
+Variables (reqP : forall x y : R, reflect (~ req x y) (rneqb x y)).
+Variables (C : Type) (phi : C -> R).
+Variables (Cpow : Type) (Cp_phi : N -> Cpow) (rpow : R -> Cpow -> R).
+
+Notation eval := (PEeval rO rI radd rmul rsub ropp phi Cp_phi rpow).
+
+Fixpoint PCondb (l : seq R) (le : seq (PExpr C)) : bool :=
+  match le with
+  | [::] => true
+  | [:: e1] => rneqb (eval l e1) rO
+  | e1 :: l1 => conj (rneqb (eval l e1) rO) (PCondb l l1)
+  end.
+
+Lemma PCondP l le : reflect
+  (PCond rO rI radd rmul rsub ropp req phi Cp_phi rpow l le) (PCondb l le).
+Proof.
+elim: le => /= [|e [|e' le] IHle].
+- exact: (iffP idP).
+- by apply: (iffP idP) => /reqP.
+by rewrite conjE; apply: (iffP andP); case=> ? /IHle ?; split => //; apply/reqP.
+Qed.
+
+End PCond.
 
 Lemma lock_PCond (F : fieldType) (l : seq F) (le : seq (PExpr Z)) :
-  (forall zero one add mul sub opp Feq R_of_int exp l',
-   zero = 0 -> one = 1 -> add = +%R -> mul = *%R -> sub = (fun x y => x - y) ->
-   opp = -%R -> Feq = eq -> R_of_int = intmul 1 -> exp = @GRing.exp F ->
-   l' = l ->
-   Field_theory.PCond
-     zero one add mul sub opp Feq
-     (fun n : Z => R_of_int (int_of_Z n)) N.to_nat exp l' le) ->
+  (forall is_true_ andb_ zero one add mul sub opp Feqb R_of_Z exp l',
+      is_true_ = is_true -> andb_ = andb ->
+      zero = 0 -> one = 1 -> add = +%R -> mul = *%R ->
+      sub = (fun x y => x - y) -> opp = -%R ->
+      Feqb = (fun x y => ~~ (x == y)) ->
+      R_of_Z = (fun x => (int_of_Z x)%:~R) -> exp = @GRing.exp F -> l' = l ->
+      is_true_
+        (PCondb andb_ zero one add mul sub opp Feqb R_of_Z N.to_nat exp l'
+                (Fapp (Fcons00 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
+                               (triv_div 0 1 Z.eqb)) le [::]))) ->
   Field_theory.PCond
     0 1 +%R *%R (fun x y => x - y) -%R eq
     (fun n : Z => (int_of_Z n)%:~R) N.to_nat (@GRing.exp F) l le.
-Proof. exact. Qed.
+Proof.
+move=> H.
+apply: Pcond_simpl_gen;
+  [ exact: RE | exact/F2AF/RF/RE | exact: RZ | exact: PN |
+    exact/triv_div_th/RZ/Rth_ARth/RR/RE/RE/Eqsth | ].
+move=> _ ->; apply/PCondP/(H is_true); try exact: erefl.
+by move=> ? ?; apply/(iffP negP); apply/contra_not => /eqP.
+Qed.
+
+Lemma lock_PCond_ (F : numFieldType) (l : seq F) (le : seq (PExpr Z)) :
+  (forall is_true_ andb_ zero one add mul sub opp Feqb R_of_Z exp l',
+      is_true_ = is_true -> andb_ = andb ->
+      zero = 0 -> one = 1 -> add = +%R -> mul = *%R ->
+      sub = (fun x y => x - y) -> opp = -%R ->
+      Feqb = (fun x y => ~~ (x == y)) ->
+      R_of_Z = (fun x => (int_of_Z x)%:~R) -> exp = @GRing.exp F -> l' = l ->
+      is_true_
+        (PCondb andb_ zero one add mul sub opp Feqb R_of_Z N.to_nat exp l'
+                (Fapp (Fcons2 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
+                               (triv_div 0 1 Z.eqb)) le [::]))) ->
+  Field_theory.PCond
+    0 1 +%R *%R (fun x y => x - y) -%R eq
+    (fun n : Z => (int_of_Z n)%:~R) N.to_nat (@GRing.exp F) l le.
+Proof.
+move=> H.
+apply: Pcond_simpl_complete;
+  [ exact: RE | exact/F2AF/RF/RE | exact: RZ | exact: PN |
+    exact/triv_div_th/RZ/Rth_ARth/RR/RE/RE/Eqsth | | ].
+- move=> x y /intr_inj; lia.
+- move=> _ ->; apply/PCondP/(H is_true); try exact: erefl.
+  by move=> ? ?; apply/(iffP negP); apply/contra_not => /eqP.
+Qed.
 
 Ltac simpl_PCond :=
+  let is_true_ := fresh "is_true_" in
+  let andb_ := fresh "andb_" in
   let zero := fresh "zero" in
   let one := fresh "one" in
   let add := fresh "add" in
   let mul := fresh "mul" in
   let sub := fresh "sub" in
   let opp := fresh "opp" in
-  let Feq := fresh "Feq" in
-  let R_of_int := fresh "R_of_int" in
+  let Feqb := fresh "Feqb" in
+  let R_of_Z := fresh "R_of_Z" in
   let exp := fresh "exp" in
   let l := fresh "l" in
+  let is_trueE := fresh "is_trueE" in
+  let andbE := fresh "andbE" in
   let zeroE := fresh "zeroE" in
   let oneE := fresh "oneE" in
   let addE := fresh "addE" in
   let mulE := fresh "mulE" in
   let subE := fresh "subE" in
   let oppE := fresh "oppE" in
-  let FeqE := fresh "FeqE" in
-  let R_of_intE := fresh "R_of_intE" in
+  let FeqbE := fresh "FeqE" in
+  let R_of_ZE := fresh "R_of_ZE" in
   let expE := fresh "expE" in
   let lE := fresh "lE" in
-  apply: Internals.lock_PCond;
-  move=> zero one add mul sub opp Feq R_of_int exp l;
-  move=> zeroE oneE addE mulE subE oppE FeqE R_of_intE expE lE;
+  (apply: lock_PCond_ || apply: lock_PCond);
+  move=> is_true_ andb_ zero one add mul sub opp Feqb R_of_Z exp l;
+  move=> is_trueE andbE zeroE oneE addE mulE subE oppE FeqbE R_of_ZE expE lE;
   vm_compute;
+  rewrite ?{is_true_}is_trueE ?{andb_}andbE;
   rewrite ?{zero}zeroE ?{one}oneE ?{add}addE ?{mul}mulE ?{sub}subE ?{opp}oppE;
-  rewrite ?{Feq}FeqE ?{R_of_int}R_of_intE ?{exp}expE ?{l}lE;
-  do ?split; apply/eqP.
+  rewrite ?{Feqb}FeqbE ?{R_of_Z}R_of_ZE ?{exp}expE ?{l}lE.
 
 Ltac ring_reflection R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let R' := constr:(GRing.ComRing.ringType R) in
