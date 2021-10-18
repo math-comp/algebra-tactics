@@ -17,10 +17,16 @@ n-constant 0 {{ lib:num.N.N0 }} :- !.
 n-constant N {{ lib:num.N.Npos lp:T }} :- !, positive-constant N T.
 
 pred z-constant o:int, o:term.
-z-constant N {{ lib:num.Z.Zneg lp:T }} :-
-  N < 0, !, positive-constant {calc (~ N)} T.
 z-constant 0 {{ lib:num.Z.Z0 }} :- !.
-z-constant N {{ lib:num.Z.Zpos lp:T }} :- 0 < N, !, positive-constant N T.
+z-constant N T :-
+  var T, N < 0, !,
+  T = {{ lib:num.Z.Zneg lp:T' }}, positive-constant {calc (~ N)} T'.
+z-constant N T :-
+  var T, 0 < N, !, T = {{ lib:num.Z.Zpos lp:T' }}, positive-constant N T'.
+z-constant N {{ lib:num.Z.Zneg lp:T }} :-
+  var N, !, positive-constant N' T, N is ~ N'.
+z-constant N {{ lib:num.Z.Zpos lp:T }} :-
+  var N, !, positive-constant N T.
 
 pred nat-constant o:int, o:term.
 nat-constant N _ :- not (var N), N < 0, !, fail.
@@ -241,6 +247,13 @@ quote.ring SrcRing SrcField TgtRing MorphFun Morph
                {{ @GRing.opp (GRing.Ring.zmodType lp:SrcRing) }} ok,
   !,
   quote.ring SrcRing SrcField TgtRing MorphFun Morph In1 OutM1 Out1 VarMap.
+% Z.opp
+quote.ring SrcRing none TgtRing MorphFun Morph
+           {{ Z.opp lp:In1 }} {{ @RingZOpp lp:OutM1 }} Out VarMap :-
+  quote.expr.opp Out1 Out,
+  coq.unify-eq {{ ZInstances.Z_ringType }} SrcRing ok,
+  !,
+  quote.ring SrcRing none TgtRing MorphFun Morph In1 OutM1 Out1 VarMap.
 % +%R
 quote.ring SrcRing SrcField TgtRing MorphFun Morph
            {{ @GRing.add lp:SrcZmodule lp:In1 lp:In2 }}
@@ -251,6 +264,24 @@ quote.ring SrcRing SrcField TgtRing MorphFun Morph
   !,
   quote.ring SrcRing SrcField TgtRing MorphFun Morph In1 OutM1 Out1 VarMap, !,
   quote.ring SrcRing SrcField TgtRing MorphFun Morph In2 OutM2 Out2 VarMap.
+% Z.add
+quote.ring SrcRing none TgtRing MorphFun Morph
+           {{ Z.add lp:In1 lp:In2 }} {{ @RingZAdd lp:OutM1 lp:OutM2 }}
+           Out VarMap :-
+  quote.expr.add Out1 Out2 Out,
+  coq.unify-eq {{ ZInstances.Z_ringType }} SrcRing ok,
+  !,
+  quote.ring SrcRing none TgtRing MorphFun Morph In1 OutM1 Out1 VarMap,
+  quote.ring SrcRing none TgtRing MorphFun Morph In2 OutM2 Out2 VarMap.
+% Z.sub
+quote.ring SrcRing none TgtRing MorphFun Morph
+           {{ Z.sub lp:In1 lp:In2 }} {{ @RingZSub lp:OutM1 lp:OutM2 }}
+           Out VarMap :-
+  quote.expr.add Out1 { quote.expr.opp Out2 } Out,
+  coq.unify-eq {{ ZInstances.Z_ringType }} SrcRing ok,
+  !,
+  quote.ring SrcRing none TgtRing MorphFun Morph In1 OutM1 Out1 VarMap,
+  quote.ring SrcRing none TgtRing MorphFun Morph In2 OutM2 Out2 VarMap.
 % (_ *+ _)%R
 quote.ring SrcRing SrcField TgtRing MorphFun Morph
            {{ @GRing.natmul lp:SrcZmodule lp:In1 lp:In2 }}
@@ -288,8 +319,16 @@ quote.ring SrcRing SrcField TgtRing MorphFun Morph
   !,
   quote.ring SrcRing SrcField TgtRing MorphFun Morph In1 OutM1 Out1 VarMap, !,
   quote.ring SrcRing SrcField TgtRing MorphFun Morph In2 OutM2 Out2 VarMap.
+% Z.mul
+quote.ring SrcRing none TgtRing MorphFun Morph
+           {{ Z.mul lp:In1 lp:In2 }} {{ @RingZMul lp:OutM1 lp:OutM2 }}
+           Out VarMap :-
+  quote.expr.mul Out1 Out2 Out,
+  coq.unify-eq {{ ZInstances.Z_ringType }} SrcRing ok,
+  !,
+  quote.ring SrcRing none TgtRing MorphFun Morph In1 OutM1 Out1 VarMap,
+  quote.ring SrcRing none TgtRing MorphFun Morph In2 OutM2 Out2 VarMap.
 % (_ ^+ _)%R
-% TODO: Treat [GRing.exp] as morphisms
 quote.ring SrcRing SrcField TgtRing MorphFun Morph
            {{ @GRing.exp lp:SrcRing' lp:In1 lp:In2 }}
            {{ @RingExpn lp:SrcRing lp:OutM1 lp:In2 }} Out VarMap :-
@@ -299,23 +338,50 @@ quote.ring SrcRing SrcField TgtRing MorphFun Morph
   !,
   quote.ring SrcRing SrcField TgtRing MorphFun Morph In1 OutM1 Out1 VarMap, !,
   n-constant Exp Out2.
-% (_ ^ _)%R
+% (_ ^ Posz _)%R
 quote.ring SrcRing SrcField TgtRing MorphFun Morph
            {{ @exprz lp:SrcUnitRing lp:In1 lp:In2 }}
-           {{ @RingExpn lp:SrcRing lp:OutM1 lp:In2' }} Out VarMap :-
+           {{ @RingExpPosz lp:SrcUnitRing lp:OutM1 lp:In2' }} Out VarMap :-
   quote.expr.exp Out1 Out2 Out,
   coq.unify-eq {{ GRing.UnitRing.ringType lp:SrcUnitRing }} SrcRing ok,
-  coq.unify-eq In2 {{ Posz lp:In2' }} ok,
-  nat-constant Exp { coq.reduction.vm.norm In2' {{ nat }} },
+  coq.reduction.vm.norm In2 {{ int }} {{ Posz lp:In2' }},
+  nat-constant Exp In2',
   !,
   quote.ring SrcRing SrcField TgtRing MorphFun Morph In1 OutM1 Out1 VarMap, !,
   n-constant Exp Out2.
+% (_ ^ Negz _)%R
+quote.ring SrcRing (some SrcField) TgtRing MorphFun Morph
+           {{ @exprz lp:SrcUnitRing lp:In1 lp:In2 }}
+           {{ @RingExpNegz lp:SrcField lp:OutM1 lp:In2' }}
+           {{ @FEinv Z (@FEpow Z lp:Out1 lp:Out2) }} VarMap :-
+  field-mode,
+  coq.unify-eq {{ lp:SrcUnitRing }}
+               {{ GRing.Field.unitRingType lp:SrcField }} ok,
+  coq.reduction.vm.norm In2 {{ int }} {{ Negz lp:In2' }},
+  nat-constant Exp In2',
+  !,
+  quote.ring SrcRing (some SrcField) TgtRing MorphFun Morph
+             In1 OutM1 Out1 VarMap, !,
+  n-constant {calc (Exp + 1)} Out2.
+% Z.pow
+quote.ring SrcRing none TgtRing MorphFun Morph
+           {{ Z.pow lp:In1 lp:In2 }} {{ @RingZExp lp:OutM1 lp:In2' }}
+           Out VarMap :-
+  coq.unify-eq {{ ZInstances.Z_ringType }} SrcRing ok,
+  coq.reduction.vm.norm In2 {{ Z }} In2',
+  z-constant Exp In2',
+  !,
+  if (Exp >= 0)
+     (quote.ring SrcRing none TgtRing MorphFun Morph In1 OutM1 Out1 VarMap,
+      n-constant Exp Out2,
+      quote.expr.exp Out1 Out2 Out)
+     (quote.expr.zero Out).
 % _^-1
 quote.ring SrcRing (some SrcField) TgtRing MorphFun Morph
-           {{ @GRing.inv lp:SrcUnitRing' lp:In1 }}
+           {{ @GRing.inv lp:SrcUnitRing lp:In1 }}
            {{ @RingInv lp:SrcField lp:OutM1 }} {{ @FEinv Z lp:Out1 }} VarMap :-
   field-mode,
-  coq.unify-eq {{ @GRing.inv lp:SrcUnitRing' }}
+  coq.unify-eq {{ @GRing.inv lp:SrcUnitRing }}
                {{ @GRing.inv (GRing.Field.unitRingType lp:SrcField) }} ok,
   !,
   quote.ring SrcRing (some SrcField) TgtRing MorphFun Morph
@@ -333,6 +399,11 @@ quote.ring SrcRing _ TgtRing _ _ {{ Negz lp:In }}
   coq.unify-eq {{ int_Ring }} SrcRing ok,
   !,
   quote.nat1 TgtRing In OutM1 Out1 VarMap.
+% Z constants
+quote.ring SrcRing _ _ _ _ In {{ @RingZC lp:In }} Out _ :-
+  quote.expr.constant In Out,
+  coq.unify-eq {{ ZInstances.Z_ringType }} SrcRing ok,
+  z-constant _ In, !.
 % morphisms
 quote.ring SrcRing _ TgtRing MorphFun Morph In
            {{ @RingMorph lp:NewSrcRing lp:SrcRing lp:NewMorph lp:OutM }}

@@ -210,5 +210,5 @@ Ltac zify_field :=
     end;
   rewrite ?(zify_eqb, zify_lef, zify_ltf) /=.
 
-Ltac lia_field := zify_field; lia.
-Ltac nia_field := zify_field; nia.
+Ltac field_lia := zify_field; lia.
+Ltac field_nia := zify_field; nia.
