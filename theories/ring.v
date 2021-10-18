@@ -210,7 +210,7 @@ with RZmodEval' V R (f : {additive V -> R}) (e : ZmodExpr V) : R :=
     | ZmodMorph _ _ g e1 => fun f => RZmodEval' [additive of f \o g] e1
   end f.
 
-Lemma RingEval_correct R R' (f : {rmorphism R -> R'}) (e : RingExpr R) :
+Lemma RingEval_correct_rec R R' (f : {rmorphism R -> R'}) (e : RingExpr R) :
   f (RingEval e) = RingEval' f e.
 Proof.
 pose P R e :=
@@ -246,6 +246,10 @@ move: R' f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> V e1 IHe1 e2 IHe2 R f; rewrite raddfMz IHe1 -mulrzr IHe2.
 - by move=> V V' g e1 IHe1 R f; rewrite -IHe1.
 Qed.
+
+Lemma RingEval_correct R (e : RingExpr R) :
+  RingEval e = RingEval' [rmorphism of idfun] e.
+Proof. exact: RingEval_correct_rec [rmorphism of idfun] _. Qed.
 
 Fixpoint FieldEval' R F (f : {rmorphism R -> F}) (e : RingExpr R) : F :=
   match e in RingExpr R return {rmorphism R -> F} -> F with
@@ -286,7 +290,7 @@ with FZmodEval' V F (f : {additive V -> F}) (e : ZmodExpr V) : F :=
     | ZmodMorph _ _ g e1 => fun f => FZmodEval' [additive of f \o g] e1
   end f.
 
-Lemma FieldEval_correct R F (f : {rmorphism R -> F}) (e : RingExpr R) :
+Lemma FieldEval_correct_rec R F (f : {rmorphism R -> F}) (e : RingExpr R) :
   f (RingEval e) = FieldEval' f e.
 Proof.
 pose P R e :=
@@ -324,6 +328,10 @@ move: F f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> V e1 IHe1 e2 IHe2 F f; rewrite raddfMz IHe1 -mulrzr IHe2.
 - by move=> V V' g e1 IHe1 F f; rewrite -IHe1.
 Qed.
+
+Lemma FieldEval_correct F (e : RingExpr F) :
+  RingEval e = FieldEval' [rmorphism of idfun] e.
+Proof. exact: FieldEval_correct_rec [rmorphism of idfun] _. Qed.
 
 (* PCond *)
 
@@ -438,20 +446,19 @@ Ltac simpl_PCond :=
 
 Ltac ring_reflection R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let R' := constr:(GRing.ComRing.ringType R) in
-  let Mcorrect := constr:(RingEval_correct (@GRing.idfun_rmorphism R')) in
-  apply: (eq_trans (Mcorrect RE1) (eq_trans _ (esym (Mcorrect RE2))));
+  rewrite [LHS](@RingEval_correct R' RE1) [RHS](@RingEval_correct R' RE2);
   apply: (@Rcorrect R 100 VarMap Lpe PE1 PE2 LpeProofs);
   [vm_compute; reflexivity].
 
 Ltac field_reflection F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
-  let R := constr:(GRing.Field.ringType F) in
-  let Mcorrect := constr:(FieldEval_correct (@GRing.idfun_rmorphism R)) in
-  apply: (eq_trans (Mcorrect RE1) (eq_trans _ (esym (Mcorrect RE2))));
+  rewrite [LHS](@FieldEval_correct F RE1) [RHS](@FieldEval_correct F RE2);
   apply: (@Fcorrect F 100 VarMap Lpe PE1 PE2 LpeProofs);
   [reflexivity | reflexivity | reflexivity | vm_compute; reflexivity |
    simpl_PCond].
 
 End Internals.
+
+Strategy expand [RingEval RingEval' FieldEval' PEeval FEeval].
 
 Register Coq.Init.Logic.eq       as ring.eq.
 Register Coq.Init.Logic.eq_refl  as ring.erefl.
