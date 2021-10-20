@@ -5,7 +5,7 @@ eucldiv N D M R :- var N, N is D * M + R.
 eucldiv N D M R :- var M, M is N div D, R is N mod D.
 
 pred positive-constant o:int, o:term.
-positive-constant 1 {{ lib:num.pos.xH }}.
+positive-constant 1 {{ lib:num.pos.xH }} :- !.
 positive-constant N {{ lib:num.pos.xO lp:T }} :-
   eucldiv N 2 M 0, positive-constant M T.
 positive-constant N {{ lib:num.pos.xI lp:T }} :-
@@ -28,15 +28,14 @@ z-constant N {{ lib:num.Z.Zneg lp:T }} :-
 z-constant N {{ lib:num.Z.Zpos lp:T }} :-
   var N, !, positive-constant N T.
 
-pred nat-constant o:int, o:term.
-nat-constant N _ :- not (var N), N < 0, !, fail.
-nat-constant 0 {{ lib:num.nat.O }} :- !.
-nat-constant SN SM :-
-  var SM, 0 < SN, !,
-  nat-constant {calc (SN - 1)} M,
-  SM = {{ lib:num.nat.S lp:M }}.
-nat-constant SN {{ lib:num.nat.S lp:M }} :-
-  var SN, !, nat-constant N M, SN is N + 1.
+pred int->nat i:int, o:term.
+int->nat 0 {{ lib:num.nat.O }} :- !.
+int->nat SN {{ lib:num.nat.S lp:M }} :- !, int->nat {calc (SN - 1)} M.
+int->nat N T :- coq.error "int->nat" N T.
+
+pred nat->int i:term, o:int.
+nat->int {{ lib:num.nat.O }} 0 :- !.
+nat->int {{ lib:num.nat.S lp:M }} SN :- nat->int M N, SN is N + 1.
 
 pred list-constant o:term, o:list term, o:term.
 list-constant T [] {{ @nil lp:T }} :- !.
@@ -96,49 +95,53 @@ ring->field Ring (some Field) :-
   !.
 ring->field _ none.
 
-% [quote.nat(1|2) Ring Input OutM Out VarMap]
+% [quote.nat Ring Input OutM Out VarMap]
 % - [Ring] is a [ringType] instance,
 % - [Input] is a term of type [nat],
 % - [OutM] and [Out] are reified terms of [Input], and
 % - [VarMap] is a variable map.
-% [Input] of [quote.nat1] is possibly a constant that reduces to
-% [S (..(S O)..)], but of [quote.nat2] is not.
-pred quote.nat1 i:term, i:term, o:term, o:term, o:list term.
-quote.nat1 _ In {{ @NatX lp:In }} Out _ :-
-  % TODO: more efficient constant detection
-  quote.expr.constant Out' Out,
-  nat-constant N { coq.reduction.vm.norm In {{ nat }} }, !,
-  z-constant N Out'.
-quote.nat1 Ring In OutM Out VarMap :- !,
-  quote.nat2 Ring In OutM Out VarMap.
-
-pred quote.nat2 i:term, i:term, o:term, o:term, o:list term.
-quote.nat2 Ring {{ addn lp:In1 lp:In2 }}
-                {{ @NatAdd lp:OutM1 lp:OutM2 }} Out VarMap :- !,
-  quote.expr.add Out1 Out2 Out, !,
-  quote.nat1 Ring In1 OutM1 Out1 VarMap, !,
-  quote.nat1 Ring In2 OutM2 Out2 VarMap.
-quote.nat2 Ring {{ S lp:In1 }} {{ NatSucc lp:OutM1 }} Out VarMap :- !,
-  if field-mode (Out = {{ @FEadd Z (@FEI Z) lp:Out1 }})
-                (Out = {{ @PEadd Z (@PEI Z) lp:Out1 }}), !,
-  quote.nat2 Ring In1 OutM1 Out1 VarMap.
-quote.nat2 Ring {{ muln lp:In1 lp:In2 }}
-                {{ NatMul lp:OutM1 lp:OutM2 }} Out VarMap :- !,
-  quote.expr.mul Out1 Out2 Out, !,
-  quote.nat1 Ring In1 OutM1 Out1 VarMap, !,
-  quote.nat1 Ring In2 OutM2 Out2 VarMap.
-quote.nat2 Ring {{ expn lp:In1 lp:In2 }}
-                {{ NatExp lp:OutM1 lp:In2 }} Out VarMap :-
-  quote.expr.exp Out1 Out2 Out, !,
-  nat-constant Exp { coq.reduction.vm.norm In2 {{ nat }} },
-  !,
-  quote.nat2 Ring In1 OutM1 Out1 VarMap, !,
-  n-constant Exp Out2.
-quote.nat2 Ring In {{ NatX lp:In }} Out VarMap :-
+pred quote.nat i:term, i:term, o:term, o:term, o:list term.
+quote.nat _ {{ lib:num.nat.O }} {{ NatX lib:num.nat.O }} Out _ :- !,
+  quote.expr.constant { z-constant 0 } Out.
+quote.nat Ring {{ lib:num.nat.S lp:In }} OutM Out VarMap :- !,
+  quote.nat Ring { quote.count-succ In N } OutM2 Out2 VarMap, !,
+  N' is N + 1, !,
+  int->nat N' OutM1, !,
+  z-constant N' Out1, !,
+  if (In = {{ lib:num.nat.O }})
+     (OutM = {{ NatX lp:OutM1 }}, quote.expr.constant Out1 Out)
+     (OutM = {{ NatAdd (NatX lp:OutM1) lp:OutM2 }},
+      quote.expr.add { quote.expr.constant Out1 } Out2 Out).
+quote.nat Ring {{ addn lp:In1 lp:In2 }}
+               {{ NatAdd lp:OutM1 lp:OutM2 }} Out VarMap :- !,
+  quote.nat Ring In1 OutM1 Out1 VarMap, !,
+  quote.nat Ring In2 OutM2 Out2 VarMap, !,
+  quote.expr.add Out1 Out2 Out.
+quote.nat Ring {{ muln lp:In1 lp:In2 }}
+               {{ NatMul lp:OutM1 lp:OutM2 }} Out VarMap :- !,
+  quote.nat Ring In1 OutM1 Out1 VarMap, !,
+  quote.nat Ring In2 OutM2 Out2 VarMap, !,
+  quote.expr.mul Out1 Out2 Out.
+quote.nat Ring {{ expn lp:In1 lp:In2 }}
+               {{ NatExp lp:OutM1 lp:In2 }} Out VarMap :-
+  nat->int { coq.reduction.vm.norm In2 {{ nat }} } Exp, !,
+  quote.nat Ring In1 OutM1 Out1 VarMap, !,
+  quote.expr.exp Out1 { n-constant Exp } Out.
+% For now, we normalize some specific form of terms of type nat.
+quote.nat _ {{ Nat.of_num_uint lp:In' }} {{ NatX lp:In }} Out _ :-
+  In = {{ Nat.of_num_uint lp:In' }},
+  nat->int { coq.reduction.vm.norm In {{ nat }} } N, !,
+  z-constant N Out',
+  quote.expr.constant Out' Out.
+quote.nat Ring In {{ NatX lp:In }} Out VarMap :- !,
   Zmodule = {{ GRing.Ring.zmodType lp:Ring }},
-  mem VarMap {{ @GRing.natmul lp:Zmodule (@GRing.one lp:Ring) lp:In }} N,
-  quote.expr.variable { positive-constant {calc (N + 1)} } Out,
-  !.
+  mem VarMap {{ @GRing.natmul lp:Zmodule (@GRing.one lp:Ring) lp:In }} N, !,
+  quote.expr.variable { positive-constant {calc (N + 1)} } Out.
+
+pred quote.count-succ i:term, o:int, o:term.
+quote.count-succ {{ lib:num.nat.S lp:In }} N' Out :- !,
+  quote.count-succ In N Out, N' is N + 1.
+quote.count-succ In 0 In :- !.
 
 % [quote.zmod SrcZmodule TgtRing MorphFun Morph Input OutM Out VarMap]
 % - [SrcZmodule] is a [zmodType] instance,
@@ -184,7 +187,7 @@ quote.zmod SrcZmodule TgtRing MorphFun Morph
   coq.unify-eq SrcZmodule SrcZmodule' ok,
   !,
   quote.zmod SrcZmodule TgtRing MorphFun Morph In1 OutM1 Out1 VarMap, !,
-  quote.nat1 TgtRing In2 OutM2 Out2 VarMap.
+  quote.nat TgtRing In2 OutM2 Out2 VarMap.
 % (_ *~ _)%R
 quote.zmod SrcZmodule TgtRing MorphFun Morph
            {{ @intmul lp:SrcZmodule' lp:In1 lp:In2 }}
@@ -290,7 +293,7 @@ quote.ring SrcRing SrcField TgtRing MorphFun Morph
   coq.unify-eq SrcZmodule {{ @GRing.Ring.zmodType lp:SrcRing }} ok,
   !,
   quote.ring SrcRing SrcField TgtRing MorphFun Morph In1 OutM1 Out1 VarMap, !,
-  quote.nat1 TgtRing In2 OutM2 Out2 VarMap.
+  quote.nat TgtRing In2 OutM2 Out2 VarMap.
 % (_ *~ _)%R
 quote.ring SrcRing SrcField TgtRing MorphFun Morph
            {{ @intmul lp:SrcZmodule lp:In1 lp:In2 }}
@@ -334,7 +337,7 @@ quote.ring SrcRing SrcField TgtRing MorphFun Morph
            {{ @RingExpn lp:SrcRing lp:OutM1 lp:In2 }} Out VarMap :-
   quote.expr.exp Out1 Out2 Out,
   coq.unify-eq SrcRing' SrcRing ok,
-  nat-constant Exp { coq.reduction.vm.norm In2 {{ nat }} },
+  nat->int { coq.reduction.vm.norm In2 {{ nat }} } Exp,
   !,
   quote.ring SrcRing SrcField TgtRing MorphFun Morph In1 OutM1 Out1 VarMap, !,
   n-constant Exp Out2.
@@ -345,7 +348,7 @@ quote.ring SrcRing SrcField TgtRing MorphFun Morph
   quote.expr.exp Out1 Out2 Out,
   coq.unify-eq {{ GRing.UnitRing.ringType lp:SrcUnitRing }} SrcRing ok,
   coq.reduction.vm.norm In2 {{ int }} {{ Posz lp:In2' }},
-  nat-constant Exp In2',
+  nat->int In2' Exp,
   !,
   quote.ring SrcRing SrcField TgtRing MorphFun Morph In1 OutM1 Out1 VarMap, !,
   n-constant Exp Out2.
@@ -358,7 +361,7 @@ quote.ring SrcRing (some SrcField) TgtRing MorphFun Morph
   coq.unify-eq {{ lp:SrcUnitRing }}
                {{ GRing.Field.unitRingType lp:SrcField }} ok,
   coq.reduction.vm.norm In2 {{ int }} {{ Negz lp:In2' }},
-  nat-constant Exp In2',
+  nat->int In2' Exp,
   !,
   quote.ring SrcRing (some SrcField) TgtRing MorphFun Morph
              In1 OutM1 Out1 VarMap, !,
@@ -391,14 +394,14 @@ quote.ring SrcRing _ TgtRing _ _
            {{ Posz lp:In }} {{ @RingPosz lp:OutM }} Out VarMap :-
   coq.unify-eq {{ int_Ring }} SrcRing ok,
   !,
-  quote.nat1 TgtRing In OutM Out VarMap.
+  quote.nat TgtRing In OutM Out VarMap.
 % Negz
 quote.ring SrcRing _ TgtRing _ _ {{ Negz lp:In }}
            {{ @RingNegz lp:OutM1 }} Out VarMap :-
   quote.expr.opp { quote.expr.add { quote.expr.one } Out1 } Out,
   coq.unify-eq {{ int_Ring }} SrcRing ok,
   !,
-  quote.nat1 TgtRing In OutM1 Out1 VarMap.
+  quote.nat TgtRing In OutM1 Out1 VarMap.
 % Z constants
 quote.ring SrcRing _ _ _ _ In {{ @RingZC lp:In }} Out _ :-
   quote.expr.constant In Out,
