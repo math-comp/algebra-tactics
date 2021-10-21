@@ -41,6 +41,11 @@ pred list-constant o:term, o:list term, o:term.
 list-constant T [] {{ @nil lp:T }} :- !.
 list-constant T [X|XS] {{ @cons lp:T lp:X lp:XS' }} :- list-constant T XS XS'.
 
+pred int->list i:int, o:list A.
+int->list N _  :- N < 0, !, fail.
+int->list 0 [] :- !.
+int->list N [_|XS] :- int->list {calc (N - 1)} XS.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 pred mem o:list term, o:term, o:int.
@@ -406,18 +411,26 @@ quote.ring SrcRing _ _ _ _ In {{ @RingZC lp:In }} Out _ :-
   z-constant _ In, !,
   quote.expr.constant In Out.
 % morphisms
-quote.ring SrcRing _ TgtRing MorphFun Morph In
-           {{ @RingMorph lp:NewSrcRing lp:SrcRing lp:NewMorph lp:OutM }}
-           Out VarMap :-
-  NewMorphFun = (x\ {{ @GRing.RMorphism.apply
-                       lp:NewSrcRing lp:SrcRing _ lp:NewMorph lp:x }}),
-  coq.unify-eq In (NewMorphFun In1) ok,
-  !,
-  % TODO: for concrete morphisms, should we unpack [NewMorph]?
-  CompMorph = {{ @GRing.comp_rmorphism lp:NewSrcRing
-                   lp:SrcRing lp:TgtRing lp:Morph lp:NewMorph }},
-  quote.ring NewSrcRing { ring->field NewSrcRing } TgtRing
-             (x\ MorphFun (NewMorphFun x)) CompMorph In1 OutM Out VarMap.
+quote.ring SrcRing _ TgtRing MorphFun Morph
+           {{ @GRing.RMorphism.apply
+                lp:NewSrcRing lp:SrcRing' _ lp:NewMorph lp:In }}
+           OutM Out VarMap :-
+  coq.unify-eq SrcRing SrcRing' ok, !,
+  quote.ring.morphism
+    NewSrcRing SrcRing TgtRing NewMorph MorphFun Morph In OutM Out VarMap.
+% morphism (canonical instance)
+quote.ring SrcRing _ TgtRing MorphFun Morph
+           (app [global InHead | _] as In) OutM Out VarMap :-
+  coq.CS.db-for {{:gref GRing.RMorphism.apply }} (cs-gref InHead)
+                [cs-instance _ _ NewMorphRef],
+  NewMorph =
+    app [global NewMorphRef |
+         { int->list { coq.count-prods { coq.env.typeof NewMorphRef } } }],
+  coq.unify-eq
+    {{ @GRing.RMorphism.apply lp:NewSrcRing lp:SrcRing _ lp:NewMorph lp:In1 }}
+    In ok, !,
+  quote.ring.morphism
+    NewSrcRing SrcRing TgtRing NewMorph MorphFun Morph In1 OutM Out VarMap.
 % additive functions
 quote.ring SrcRing _ TgtRing MorphFun Morph In
            {{ @RingMorph' lp:NewSrcZmodule lp:SrcRing lp:NewMorph lp:OutM }}
@@ -442,3 +455,29 @@ quote.ring SrcRing _ _ MorphFun _ In {{ @RingX lp:SrcRing lp:In }} Out VarMap :-
   quote.expr.variable { positive-constant {calc (N + 1)} } Out.
 quote.ring _ _ _ _ _ In _ _ _ :- coq.error "Unknown" {coq.term->string In}.
 % TODO: converse ring
+
+pred quote.ring.morphism
+  i:term, i:term, i:term, i:term, i:(term -> term), i:term, i:term,
+  o:term, o:term, o: list term.
+% quote.ring.morphism
+%     SrcRing MidRing TgtRing NewMorph MorphFun Morph In
+%     {{ @RingMorph lp:SrcRing lp:MidRing lp:NewMorph lp:OutM }} Out VarMap :-
+%   coq.unify-eq {{ @GRing.RMorphism.Pack _ _ _ (fun x => lp:(NewMorphFun x)) _ }}
+%                NewMorph ok,
+%   !,
+%   quote.ring SrcRing { ring->field SrcRing } TgtRing
+%              (x\ MorphFun (NewMorphFun x))
+%              {{ @GRing.comp_rmorphism lp:SrcRing lp:MidRing lp:TgtRing
+%                                       lp:Morph lp:NewMorph }}
+%              In OutM Out VarMap.
+quote.ring.morphism
+    SrcRing MidRing TgtRing NewMorph MorphFun Morph In
+    {{ @RingMorph lp:SrcRing lp:MidRing lp:NewMorph lp:OutM }} Out VarMap :- !,
+  Phant =
+    {{ Phant (GRing.Ring.sort lp:SrcRing -> GRing.Ring.sort lp:MidRing) }},
+  CompMorphFun = (x\ MorphFun {{ @GRing.RMorphism.apply
+                    lp:SrcRing lp:MidRing lp:Phant lp:NewMorph lp:x }}),
+  CompMorph = {{ @GRing.comp_rmorphism
+                   lp:SrcRing lp:MidRing lp:TgtRing lp:Morph lp:NewMorph }},
+  quote.ring SrcRing { ring->field SrcRing } TgtRing
+             CompMorphFun CompMorph In OutM Out VarMap.
