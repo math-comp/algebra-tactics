@@ -113,47 +113,78 @@ Definition Fcorrect F :=
     (F2AF (Eqsth F) (RE F) (RF F)) (RZ F) (PN F)
     (triv_div_th (Eqsth F) (RE F) (Rth_ARth (Eqsth F) (RE F) (RR F)) (RZ F)).
 
+(* Post-processing non-zero conditions of the field tactic                    *)
 Section PCond.
 
-Variables (conj : bool -> bool -> bool) (conjE : conj = andb).
+Variables (P : Type) (ptrue : P) (pneg : P -> P) (pand : P -> P -> P).
 Variables (R : Type) (rO rI : R) (radd rmul rsub : R -> R -> R) (ropp : R -> R).
-Variables (req : R -> R -> Prop) (rneqb : R -> R -> bool).
-Variables (reqP : forall x y : R, reflect (~ req x y) (rneqb x y)).
+Variables (req : R -> R -> P).
 Variables (C : Type) (phi : C -> R).
 Variables (Cpow : Type) (Cp_phi : N -> Cpow) (rpow : R -> Cpow -> R).
 
 Notation eval := (PEeval rO rI radd rmul rsub ropp phi Cp_phi rpow).
 
-Fixpoint PCondb (l : seq R) (le : seq (PExpr C)) : bool :=
+Fixpoint PCond' (l : seq R) (le : seq (PExpr C)) : P :=
   match le with
-  | [::] => true
-  | [:: e1] => rneqb (eval l e1) rO
-  | e1 :: l1 => conj (rneqb (eval l e1) rO) (PCondb l l1)
+  | [::] => ptrue
+  | [:: e1] => pneg (req (eval l e1) rO)
+  | e1 :: l1 => pand (pneg (req (eval l e1) rO)) (PCond' l l1)
   end.
 
-Lemma PCondP l le : reflect
-  (PCond rO rI radd rmul rsub ropp req phi Cp_phi rpow l le) (PCondb l le).
+End PCond.
+
+Section PCond_facts.
+
+Lemma PCondE : PCond = PCond' True not and. Proof. by []. Qed.
+
+Variable (F : fieldType).
+Let F_of_pos p : F := if p is xH then 1 else (Pos.to_nat p)%:R.
+Let F_of_Z n : F :=
+  match n with Z0 => 0 | Zpos p => F_of_pos p | Zneg p => - F_of_pos p end.
+
+(* The following two lemmas should be immediate consequences of parametricity *)
+Lemma PEvalE l e :
+  PEeval 0 1 +%R *%R (fun x y => x - y) -%R F_of_Z N.to_nat (@GRing.exp F) l e =
+  PEeval 0 1 +%R *%R (fun x y => x - y) -%R (fun n => (int_of_Z n)%:~R)
+         N.to_nat (@GRing.exp F) l e.
 Proof.
-elim: le => /= [|e [|e' le] IHle].
-- exact: (iffP idP).
-- by apply: (iffP idP) => /reqP.
-by rewrite conjE; apply: (iffP andP); case=> ? /IHle ?; split => //; apply/reqP.
+elim: e => //= [| ? -> ? -> | ? -> ? -> | ? -> ? -> | ? -> | ? ->] //.
+by case=> [|[p|p|]|[p|p|]]; rewrite //= nmulrn; congr intmul; lia.
 Qed.
 
-End PCond.
+Lemma PCondP l le :
+  reflect
+    (PCond' True not and 0 1 +%R *%R (fun x y : F => x - y) -%R eq
+            (fun n0 : Z => (int_of_Z n0)%:~R) N.to_nat (@GRing.exp F) l le)
+    (PCond' true negb andb 0 1 +%R *%R (fun x y : F => x - y) -%R eq_op
+            F_of_Z N.to_nat (@GRing.exp F) l le).
+Proof.
+elim: le => [/=|e1 /= [|e2 le] IH].
+- exact: ReflectT.
+- by rewrite PEvalE; apply: (iffP negP); apply/contra_not => /eqP.
+- by rewrite PEvalE; apply: (iffP andP) => -[/eqP ? /IH ?].
+Qed.
+
+End PCond_facts.
 
 Lemma field_correct (F : fieldType) (n : nat) (l : seq F)
                     (lpe : seq (PExpr Z * PExpr Z)) (fe1 fe2 : FExpr Z) :
   interp_PElist 0 1 +%R *%R (fun x y => x - y) -%R eq
-                (R_of_Z F) nat_of_N_opaque (@GRing.exp _) l lpe ->
+                (R_of_Z F) nat_of_N_opaque (@GRing.exp F) l lpe ->
   let lmp :=
     mk_monpol_list 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb (triv_div 0 1 Z.eqb) lpe
   in
-  (forall is_true_ andb_ zero one add mul sub opp Feqb R_of_Z exp l',
-      is_true_ = is_true -> andb_ = andb ->
+  (forall is_true_ negb_ andb_ zero one add mul sub opp Feqb F_of_nat exp l',
+      is_true_ = is_true -> negb_ = negb -> andb_ = andb ->
       zero = 0 -> one = 1 -> add = +%R -> mul = *%R ->
-      sub = (fun x y => x - y) -> opp = -%R -> Feqb = (fun x y => x != y) ->
-      R_of_Z = (fun x => (int_of_Z x)%:~R) -> exp = @GRing.exp F -> l' = l ->
+      sub = (fun x y => x - y) -> opp = -%R -> Feqb = eq_op ->
+      F_of_nat = GRing.natmul 1 -> exp = @GRing.exp F -> l' = l ->
+      let F_of_pos p := if p is xH then one else F_of_nat (Pos.to_nat p) in
+      let F_of_Z n :=
+        match n with
+          Z0 => zero | Zpos p => F_of_pos p | Zneg p => opp (F_of_pos p)
+        end
+      in
       let nfe1 := Fnorm 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb fe1 in
       let nfe2 := Fnorm 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb fe2 in
       let norm_subst' :=
@@ -161,40 +192,45 @@ Lemma field_correct (F : fieldType) (n : nat) (l : seq F)
       in
       Peq Z.eqb (norm_subst' (PEmul (num nfe1) (denum nfe2)))
                 (norm_subst' (PEmul (num nfe2) (denum nfe1))) /\
-      is_true_
-        (PCondb andb_ zero one add mul sub opp Feqb R_of_Z N.to_nat exp l'
-                (Fapp (Fcons00 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
-                               (triv_div 0 1 Z.eqb))
-                      (condition nfe1 ++ condition nfe2) [::]))) ->
+      is_true_ (PCond' true negb_ andb_
+                       zero one add mul sub opp Feqb F_of_Z N.to_nat exp l'
+                       (Fapp (Fcons00 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
+                                      (triv_div 0 1 Z.eqb))
+                             (condition nfe1 ++ condition nfe2) [::]))) ->
   let FEeval' :=
     FEeval 0 1 +%R *%R (fun x y => x - y) -%R (fun x y => x / y) GRing.inv
-           (R_of_Z F) nat_of_N_opaque (@GRing.exp _) l
+           (R_of_Z F) nat_of_N_opaque (@GRing.exp F) l
   in
   FEeval' fe1 = FEeval' fe2.
 Proof.
 move=> Hlpe lmp /=.
-move=> /(_ _ _ _ _ _ _ _ _ _ _ _ _ erefl erefl erefl erefl erefl erefl erefl).
-move=> /(_ _ _ _ _ _ erefl erefl erefl erefl erefl) [] Heq Hcond.
+move=> /(_ _ _ _ _ _ _ _ _ _ _ _ _ _ erefl erefl erefl erefl erefl erefl erefl).
+move=> /(_ _ _ _ _ _ _ erefl erefl erefl erefl erefl erefl) [] Heq Hcond.
 apply: (Fcorrect Hlpe erefl erefl erefl Heq).
 apply: Pcond_simpl_gen;
   [ exact: RE | exact/F2AF/RF/RE | exact: RZ | exact: PN |
-    exact/triv_div_th/RZ/Rth_ARth/RR/RE/RE/Eqsth | ].
-move=> _ ->; rewrite /R_of_Z int_of_Z_opaqueE nat_of_N_opaqueE.
-by apply/PCondP/Hcond => // ? ?; apply/(iffP negP); apply/contra_not => /eqP.
+    exact/triv_div_th/RZ/Rth_ARth/RR/RE/RE/Eqsth | move=> _ -> ].
+by rewrite /R_of_Z int_of_Z_opaqueE nat_of_N_opaqueE; exact/PCondP.
 Qed.
 
 Lemma numField_correct (F : numFieldType) (n : nat) (l : seq F)
-                       (lpe : seq (PExpr Z * PExpr Z)) (fe1 fe2 : FExpr Z) :
+                    (lpe : seq (PExpr Z * PExpr Z)) (fe1 fe2 : FExpr Z) :
   interp_PElist 0 1 +%R *%R (fun x y => x - y) -%R eq
-                (R_of_Z F) nat_of_N_opaque (@GRing.exp _) l lpe ->
+                (R_of_Z F) nat_of_N_opaque (@GRing.exp F) l lpe ->
   let lmp :=
     mk_monpol_list 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb (triv_div 0 1 Z.eqb) lpe
   in
-  (forall is_true_ andb_ zero one add mul sub opp Feqb R_of_Z exp l',
-      is_true_ = is_true -> andb_ = andb ->
+  (forall is_true_ negb_ andb_ zero one add mul sub opp Feqb F_of_nat exp l',
+      is_true_ = is_true -> negb_ = negb -> andb_ = andb ->
       zero = 0 -> one = 1 -> add = +%R -> mul = *%R ->
-      sub = (fun x y => x - y) -> opp = -%R -> Feqb = (fun x y => x != y) ->
-      R_of_Z = (fun x => (int_of_Z x)%:~R) -> exp = @GRing.exp F -> l' = l ->
+      sub = (fun x y => x - y) -> opp = -%R -> Feqb = eq_op ->
+      F_of_nat = GRing.natmul 1 -> exp = @GRing.exp F -> l' = l ->
+      let F_of_pos p := if p is xH then one else F_of_nat (Pos.to_nat p) in
+      let F_of_Z n :=
+        match n with
+          Z0 => zero | Zpos p => F_of_pos p | Zneg p => opp (F_of_pos p)
+        end
+      in
       let nfe1 := Fnorm 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb fe1 in
       let nfe2 := Fnorm 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb fe2 in
       let norm_subst' :=
@@ -202,27 +238,26 @@ Lemma numField_correct (F : numFieldType) (n : nat) (l : seq F)
       in
       Peq Z.eqb (norm_subst' (PEmul (num nfe1) (denum nfe2)))
                 (norm_subst' (PEmul (num nfe2) (denum nfe1))) /\
-      is_true_
-        (PCondb andb_ zero one add mul sub opp Feqb R_of_Z N.to_nat exp l'
-                (Fapp (Fcons2 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
-                               (triv_div 0 1 Z.eqb))
-                      (condition nfe1 ++ condition nfe2) [::]))) ->
+      is_true_ (PCond' true negb_ andb_
+                       zero one add mul sub opp Feqb F_of_Z N.to_nat exp l'
+                       (Fapp (Fcons2 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
+                                     (triv_div 0 1 Z.eqb))
+                             (condition nfe1 ++ condition nfe2) [::]))) ->
   let FEeval' :=
     FEeval 0 1 +%R *%R (fun x y => x - y) -%R (fun x y => x / y) GRing.inv
-           (R_of_Z F) nat_of_N_opaque (@GRing.exp _) l
+           (R_of_Z F) nat_of_N_opaque (@GRing.exp F) l
   in
   FEeval' fe1 = FEeval' fe2.
 Proof.
 move=> Hlpe lmp /=.
-move=> /(_ _ _ _ _ _ _ _ _ _ _ _ _ erefl erefl erefl erefl erefl erefl erefl).
-move=> /(_ _ _ _ _ _ erefl erefl erefl erefl erefl) [] Heq Hcond.
+move=> /(_ _ _ _ _ _ _ _ _ _ _ _ _ _ erefl erefl erefl erefl erefl erefl erefl).
+move=> /(_ _ _ _ _ _ _ erefl erefl erefl erefl erefl erefl) [] Heq Hcond.
 apply: (Fcorrect Hlpe erefl erefl erefl Heq).
 apply: Pcond_simpl_complete;
   [ exact: RE | exact/F2AF/RF/RE | exact: RZ | exact: PN |
-    exact/triv_div_th/RZ/Rth_ARth/RR/RE/RE/Eqsth | | ].
+    exact/triv_div_th/RZ/Rth_ARth/RR/RE/RE/Eqsth | | move=> _ -> ].
 - by rewrite /R_of_Z int_of_Z_opaqueE => x y /intr_inj; lia.
-- move=> _ ->; rewrite /R_of_Z int_of_Z_opaqueE nat_of_N_opaqueE.
-- by apply/PCondP/Hcond => // ? ?; apply/(iffP negP); apply/contra_not => /eqP.
+- by rewrite /R_of_Z int_of_Z_opaqueE nat_of_N_opaqueE; exact/PCondP.
 Qed.
 
 (* Pushing down morphisms in ring and field expressions by reflection         *)
@@ -515,6 +550,7 @@ Ltac ring_reflection R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
 
 Ltac field_reflection F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let is_true_ := fresh "is_true_" in
+  let negb_ := fresh "negb_" in
   let andb_ := fresh "andb_" in
   let zero := fresh "zero" in
   let one := fresh "one" in
@@ -523,10 +559,11 @@ Ltac field_reflection F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let sub := fresh "sub" in
   let opp := fresh "opp" in
   let Feqb := fresh "Feqb" in
-  let R_of_Z := fresh "R_of_Z" in
+  let F_of_nat := fresh "F_of_nat" in
   let exp := fresh "exp" in
   let l := fresh "l" in
   let is_trueE := fresh "is_trueE" in
+  let negbE := fresh "negbE" in
   let andbE := fresh "andbE" in
   let zeroE := fresh "zeroE" in
   let oneE := fresh "oneE" in
@@ -534,19 +571,20 @@ Ltac field_reflection F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let mulE := fresh "mulE" in
   let subE := fresh "subE" in
   let oppE := fresh "oppE" in
-  let FeqbE := fresh "FeqE" in
-  let R_of_ZE := fresh "R_of_ZE" in
+  let FeqbE := fresh "FeqbE" in
+  let F_of_natE := fresh "F_of_natE" in
   let expE := fresh "expE" in
   let lE := fresh "lE" in
   rewrite [LHS](@FieldEval_correct F RE1) [RHS](@FieldEval_correct F RE2);
   (apply: (@numField_correct _ 100 VarMap Lpe PE1 PE2 LpeProofs) ||
    apply: (@field_correct _ 100 VarMap Lpe PE1 PE2 LpeProofs));
-  move=> is_true_ andb_ zero one add mul sub opp Feqb R_of_Z exp l;
-  move=> is_trueE andbE zeroE oneE addE mulE subE oppE FeqbE R_of_ZE expE lE;
+  move=> is_true_ negb_ andb_ zero one add mul sub opp Feqb F_of_nat exp l;
+  move=> is_trueE negbE andbE zeroE oneE addE mulE subE oppE FeqbE F_of_natE;
+  move=> expE lE;
   vm_compute; split; first reflexivity;
-  rewrite ?{is_true_}is_trueE ?{andb_}andbE;
+  rewrite ?{is_true_}is_trueE ?{negb_}negbE ?{andb_}andbE;
   rewrite ?{zero}zeroE ?{one}oneE ?{add}addE ?{mul}mulE ?{sub}subE ?{opp}oppE;
-  rewrite ?{Feqb}FeqbE ?{R_of_Z}R_of_ZE ?{exp}expE ?{l}lE.
+  rewrite ?{Feqb}FeqbE ?{F_of_nat}F_of_natE ?{exp}expE ?{l}lE.
 
 End Internals.
 
