@@ -30,7 +30,7 @@ license:
 
 supported_coq_versions:
   text: 8.13 or later
-  opam: '{(>= "8.13" & < "8.15~") | (= "dev")}'
+  opam: '{>= "8.13"}'
 
 tested_coq_nix_versions:
 
@@ -47,17 +47,17 @@ tested_coq_opam_versions:
 dependencies:
 - opam:
     name: coq-mathcomp-algebra
-    version: '{(>= "1.12" & < "1.13~") | (= "dev")}'
+    version: '{>= "1.12"}'
   description: |-
     [MathComp](https://math-comp.github.io) 1.12.0 or later
 - opam:
     name: coq-mathcomp-zify
-    version: '{(>= "1.1.0") | (= "dev")}'
+    version: '{>= "1.1.0"}'
   description: |-
     [Mczify](https://github.com/math-comp/mczify) 1.1.0 or later
 - opam:
     name: coq-elpi
-    version: '{(>= "1.10.1") | (= "dev")}'
+    version: '{>= "1.10.1"}'
   description: |-
     [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.10.1 or later
 
