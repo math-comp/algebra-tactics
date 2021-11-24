@@ -1,6 +1,7 @@
 examples/field_examples.v
 examples/ring_examples.v
 examples/from_sander.v
+examples/zmodule.v
 
 -I .
 -arg -w -arg -notation-overridden
