@@ -19,9 +19,8 @@ quote-arg Ring VarMap (trm Proof)
     @ltacfail! 0 => std.assert-ok!
       (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
       "An argument is not a proof of equation of the expected type",
-    IdRingMorph = {{ @GRing.idfun_rmorphism lp:Ring }},
-    quote.ring Ring none Ring (x\ x) IdRingMorph T1 RE1 PE1 VarMap,
-    quote.ring Ring none Ring (x\ x) IdRingMorph T2 RE2 PE2 VarMap,
+    quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
+    quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap,
     RMcorrect1 = {{ @RingEval_correct lp:Ring lp:RE1 }},
     RMcorrect2 = {{ @RingEval_correct lp:Ring lp:RE2 }},
     Proof' = {{ lib:ring.etrans (lib:ring.esym lp:RMcorrect1)
@@ -55,9 +54,8 @@ ring (goal _ _ P _ Args as G) GS :- std.do! [
       "Cannot find a declared comRingType",
     std.time (
       std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
-      IdRingMorph = {{ @GRing.idfun_rmorphism lp:Ring }},
-      quote.ring Ring none Ring (x\ x) IdRingMorph T1 RE1 PE1 VarMap,
-      quote.ring Ring none Ring (x\ x) IdRingMorph T2 RE2 PE2 VarMap
+      quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
+      quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap
     ) ReifTime,
     coq.say "Reification:" ReifTime "sec.",
     list-constant Ty VarMap VarMap',
