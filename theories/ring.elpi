@@ -21,8 +21,8 @@ quote-arg Ring VarMap (trm Proof)
       "An argument is not a proof of equation of the expected type",
     quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
     quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap,
-    RMcorrect1 = {{ @RingEval_correct lp:Ring lp:RE1 }},
-    RMcorrect2 = {{ @RingEval_correct lp:Ring lp:RE2 }},
+    RMcorrect1 = {{ @Rnorm_correct lp:Ring lp:RE1 }},
+    RMcorrect2 = {{ @Rnorm_correct lp:Ring lp:RE2 }},
     Proof' = {{ lib:ring.etrans (lib:ring.esym lp:RMcorrect1)
                                 (lib:ring.etrans lp:Proof lp:RMcorrect2) }}
   ].
