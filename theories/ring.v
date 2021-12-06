@@ -262,36 +262,36 @@ Qed.
 
 (* Pushing down morphisms in ring and field expressions by reflection         *)
 
-Inductive NatExpr : Type :=
-  | NatC    of N
-  | NatX    of nat
-  | NatAdd  of NatExpr & NatExpr
-  | NatSucc of NatExpr
-  | NatMul  of NatExpr & NatExpr
-  | NatExp  of NatExpr & N.
+Inductive NExpr : Type :=
+  | NC    of N
+  | NX    of nat
+  | NAdd  of NExpr & NExpr
+  | NSucc of NExpr
+  | NMul  of NExpr & NExpr
+  | NExp  of NExpr & N.
 
-Fixpoint NatEval (ne : NatExpr) : nat :=
+Fixpoint Neval (ne : NExpr) : nat :=
   match ne with
-    | NatC n => nat_of_N_expand n
-    | NatX x => x
-    | NatAdd e1 e2 => NatEval e1 + NatEval e2
-    | NatSucc e => S (NatEval e)
-    | NatMul e1 e2 => NatEval e1 * NatEval e2
-    | NatExp e1 n => NatEval e1 ^ nat_of_N_expand n
+    | NC n => nat_of_N_expand n
+    | NX x => x
+    | NAdd e1 e2 => Neval e1 + Neval e2
+    | NSucc e => S (Neval e)
+    | NMul e1 e2 => Neval e1 * Neval e2
+    | NExp e1 n => Neval e1 ^ nat_of_N_expand n
   end.
 
-Fixpoint NatEval' R (e : NatExpr) : R :=
+Fixpoint Nnorm R (e : NExpr) : R :=
   match e with
-    | NatC N0 => R_of_Z R Z0
-    | NatC (Npos n) => R_of_Z R (Zpos n)
-    | NatX x => x%:~R
-    | NatAdd e1 e2 => NatEval' R e1 + NatEval' R e2
-    | NatSucc e1 => 1 + NatEval' R e1
-    | NatMul e1 e2 => NatEval' R e1 * NatEval' R e2
-    | NatExp e1 n => NatEval' R e1 ^+ nat_of_N_opaque n
+    | NC N0 => R_of_Z R Z0
+    | NC (Npos n) => R_of_Z R (Zpos n)
+    | NX x => x%:~R
+    | NAdd e1 e2 => Nnorm R e1 + Nnorm R e2
+    | NSucc e1 => 1 + Nnorm R e1
+    | NMul e1 e2 => Nnorm R e1 * Nnorm R e2
+    | NExp e1 n => Nnorm R e1 ^+ nat_of_N_opaque n
   end.
 
-Lemma NatEval_correct R (e : NatExpr) : (NatEval e)%:R = NatEval' R e.
+Lemma Neval_correct R (e : NExpr) : (Neval e)%:R = Nnorm R e.
 Proof.
 elim: e => //=.
 - by rewrite /R_of_Z int_of_Z_opaqueE; case.
@@ -301,134 +301,130 @@ elim: e => //=.
 - by move=> e1 IHe1 e2; rewrite natrX IHe1 nat_of_N_opaqueE.
 Qed.
 
-Inductive RingExpr : ringType -> Type :=
-  | RingX R : R -> RingExpr R
-  | Ring0 R : RingExpr R
-  | RingOpp R : RingExpr R -> RingExpr R
-  | RingZOpp : RingExpr [ringType of Z] -> RingExpr [ringType of Z]
-  | RingAdd R : RingExpr R -> RingExpr R -> RingExpr R
-  | RingZAdd : RingExpr [ringType of Z] -> RingExpr [ringType of Z] ->
-               RingExpr [ringType of Z]
-  | RingZSub : RingExpr [ringType of Z] -> RingExpr [ringType of Z] ->
-               RingExpr [ringType of Z]
-  | RingMuln R : RingExpr R -> NatExpr -> RingExpr R
-  | RingMulz R : RingExpr R -> RingExpr [ringType of int] -> RingExpr R
-  | Ring1 R : RingExpr R
-  | RingMul R : RingExpr R -> RingExpr R -> RingExpr R
-  | RingZMul : RingExpr [ringType of Z] -> RingExpr [ringType of Z] ->
-               RingExpr [ringType of Z]
-  | RingExpn R : RingExpr R -> N -> RingExpr R
-  | RingExpPosz (R : unitRingType) : RingExpr R -> N -> RingExpr R
-  | RingExpNegz F : RingExpr F -> N -> RingExpr F
-  | RingZExp : RingExpr [ringType of Z] -> Z -> RingExpr [ringType of Z]
-  | RingInv F : RingExpr F -> RingExpr F
-  | RingMorph R' R : {rmorphism R' -> R} -> RingExpr R' -> RingExpr R
-  | RingMorph' V R : {additive V -> R} -> ZmodExpr V -> RingExpr R
-  | RingPosz : NatExpr -> RingExpr [ringType of int]
-  | RingNegz : NatExpr -> RingExpr [ringType of int]
-  | RingZC : Z -> RingExpr [ringType of Z]
-with ZmodExpr : zmodType -> Type :=
-  | ZmodX V : V -> ZmodExpr V
-  | Zmod0 V : ZmodExpr V
-  | ZmodOpp V : ZmodExpr V -> ZmodExpr V
-  | ZmodAdd V : ZmodExpr V -> ZmodExpr V -> ZmodExpr V
-  | ZmodMuln V : ZmodExpr V -> NatExpr -> ZmodExpr V
-  | ZmodMulz V : ZmodExpr V -> RingExpr [ringType of int] -> ZmodExpr V
-  | ZmodMorph V' V : {additive V' -> V} -> ZmodExpr V' -> ZmodExpr V.
+Inductive RExpr : ringType -> Type :=
+  | RX R : R -> RExpr R
+  | R0 R : RExpr R
+  | ROpp R : RExpr R -> RExpr R
+  | RZOpp : RExpr [ringType of Z] -> RExpr [ringType of Z]
+  | RAdd R : RExpr R -> RExpr R -> RExpr R
+  | RZAdd : RExpr [ringType of Z] -> RExpr [ringType of Z] ->
+            RExpr [ringType of Z]
+  | RZSub : RExpr [ringType of Z] -> RExpr [ringType of Z] ->
+            RExpr [ringType of Z]
+  | RMuln R : RExpr R -> NExpr -> RExpr R
+  | RMulz R : RExpr R -> RExpr [ringType of int] -> RExpr R
+  | R1 R : RExpr R
+  | RMul R : RExpr R -> RExpr R -> RExpr R
+  | RZMul : RExpr [ringType of Z] -> RExpr [ringType of Z] ->
+            RExpr [ringType of Z]
+  | RExpn R : RExpr R -> N -> RExpr R
+  | RExpPosz (R : unitRingType) : RExpr R -> N -> RExpr R
+  | RExpNegz F : RExpr F -> N -> RExpr F
+  | RZExp : RExpr [ringType of Z] -> Z -> RExpr [ringType of Z]
+  | RInv F : RExpr F -> RExpr F
+  | RMorph R' R : {rmorphism R' -> R} -> RExpr R' -> RExpr R
+  | RMorph' V R : {additive V -> R} -> ZMExpr V -> RExpr R
+  | RPosz : NExpr -> RExpr [ringType of int]
+  | RNegz : NExpr -> RExpr [ringType of int]
+  | RZC : Z -> RExpr [ringType of Z]
+with ZMExpr : zmodType -> Type :=
+  | ZMX V : V -> ZMExpr V
+  | ZM0 V : ZMExpr V
+  | ZMOpp V : ZMExpr V -> ZMExpr V
+  | ZMAdd V : ZMExpr V -> ZMExpr V -> ZMExpr V
+  | ZMMuln V : ZMExpr V -> NExpr -> ZMExpr V
+  | ZMMulz V : ZMExpr V -> RExpr [ringType of int] -> ZMExpr V
+  | ZMMorph V' V : {additive V' -> V} -> ZMExpr V' -> ZMExpr V.
 
-Scheme RingExpr_ind' := Induction for RingExpr Sort Prop
-  with ZmodExpr_ind' := Induction for ZmodExpr Sort Prop.
+Scheme RExpr_ind' := Induction for RExpr Sort Prop
+  with ZMExpr_ind' := Induction for ZMExpr Sort Prop.
 
-Fixpoint RingEval R (e : RingExpr R) : R :=
+Fixpoint Reval R (e : RExpr R) : R :=
   match e with
-    | RingX _ x => x
-    | Ring0 _ => 0%R
-    | RingOpp _ e1 => - RingEval e1
-    | RingZOpp e1 => Z.opp (RingEval e1)
-    | RingAdd _ e1 e2 => RingEval e1 + RingEval e2
-    | RingZAdd e1 e2 => Z.add (RingEval e1) (RingEval e2)
-    | RingZSub e1 e2 => Z.sub (RingEval e1) (RingEval e2)
-    | RingMuln _ e1 e2 => RingEval e1 *+ NatEval e2
-    | RingMulz _ e1 e2 => RingEval e1 *~ RingEval e2
-    | Ring1 _ => 1%R
-    | RingMul _ e1 e2 => RingEval e1 * RingEval e2
-    | RingZMul e1 e2 => Z.mul (RingEval e1) (RingEval e2)
-    | RingExpn _ e1 n => RingEval e1 ^+ nat_of_N_expand n
-    | RingExpPosz _ e1 n => RingEval e1 ^ Posz (nat_of_N_expand n)
-    | RingExpNegz _ e1 n => RingEval e1 ^ Negz (nat_of_N_expand n)
-    | RingZExp e1 n => Z.pow (RingEval e1) n
-    | RingInv _ e1 => (RingEval e1) ^-1
-    | RingMorph _ _ f e1 => f (RingEval e1)
-    | RingMorph' _ _ f e1 => f (ZmodEval e1)
-    | RingPosz e1 => Posz (NatEval e1)
-    | RingNegz e2 => Negz (NatEval e2)
-    | RingZC x => x
+    | RX _ x => x
+    | R0 _ => 0%R
+    | ROpp _ e1 => - Reval e1
+    | RZOpp e1 => Z.opp (Reval e1)
+    | RAdd _ e1 e2 => Reval e1 + Reval e2
+    | RZAdd e1 e2 => Z.add (Reval e1) (Reval e2)
+    | RZSub e1 e2 => Z.sub (Reval e1) (Reval e2)
+    | RMuln _ e1 e2 => Reval e1 *+ Neval e2
+    | RMulz _ e1 e2 => Reval e1 *~ Reval e2
+    | R1 _ => 1%R
+    | RMul _ e1 e2 => Reval e1 * Reval e2
+    | RZMul e1 e2 => Z.mul (Reval e1) (Reval e2)
+    | RExpn _ e1 n => Reval e1 ^+ nat_of_N_expand n
+    | RExpPosz _ e1 n => Reval e1 ^ Posz (nat_of_N_expand n)
+    | RExpNegz _ e1 n => Reval e1 ^ Negz (nat_of_N_expand n)
+    | RZExp e1 n => Z.pow (Reval e1) n
+    | RInv _ e1 => (Reval e1)^-1
+    | RMorph _ _ f e1 => f (Reval e1)
+    | RMorph' _ _ f e1 => f (ZMeval e1)
+    | RPosz e1 => Posz (Neval e1)
+    | RNegz e2 => Negz (Neval e2)
+    | RZC x => x
   end
-with ZmodEval V (e : ZmodExpr V) : V :=
+with ZMeval V (e : ZMExpr V) : V :=
   match e with
-    | ZmodX _ x => x
-    | Zmod0 _ => 0%R
-    | ZmodOpp _ e1 => - ZmodEval e1
-    | ZmodAdd _ e1 e2 => ZmodEval e1 + ZmodEval e2
-    | ZmodMuln _ e1 e2 => ZmodEval e1 *+ NatEval e2
-    | ZmodMulz _ e1 e2 => ZmodEval e1 *~ RingEval e2
-    | ZmodMorph _ _ f e1 => f (ZmodEval e1)
+    | ZMX _ x => x
+    | ZM0 _ => 0%R
+    | ZMOpp _ e1 => - ZMeval e1
+    | ZMAdd _ e1 e2 => ZMeval e1 + ZMeval e2
+    | ZMMuln _ e1 e2 => ZMeval e1 *+ Neval e2
+    | ZMMulz _ e1 e2 => ZMeval e1 *~ Reval e2
+    | ZMMorph _ _ f e1 => f (ZMeval e1)
   end.
 
-Fixpoint RingEval' R R' (f : {rmorphism R -> R'}) (e : RingExpr R) : R' :=
-  match e in RingExpr R return {rmorphism R -> R'} -> R' with
-    | RingX _ x => fun f => f x
-    | Ring0 _ => fun => 0%R
-    | RingOpp _ e1 => fun f => - RingEval' f e1
-    | RingZOpp e1 => fun f => - RingEval' f e1
-    | RingAdd _ e1 e2 => fun f => RingEval' f e1 + RingEval' f e2
-    | RingZAdd e1 e2 => fun f => RingEval' f e1 + RingEval' f e2
-    | RingZSub e1 e2 => fun f => RingEval' f e1 - RingEval' f e2
-    | RingMuln _ e1 e2 => fun f => RingEval' f e1 * NatEval' R' e2
-    | RingMulz _ e1 e2 => fun f =>
-      RingEval' f e1 * RingEval' [rmorphism of intmul 1] e2
-    | Ring1 _ => fun => 1%R
-    | RingMul _ e1 e2 => fun f => RingEval' f e1 * RingEval' f e2
-    | RingZMul e1 e2 => fun f => RingEval' f e1 * RingEval' f e2
-    | RingExpn _ e1 n => fun f => RingEval' f e1 ^+ nat_of_N_opaque n
-    | RingExpPosz _ e1 n => fun f => RingEval' f e1 ^+ nat_of_N_opaque n
-    | RingExpNegz _ e1 n => fun f => f (RingEval e1 ^- (nat_of_N_opaque n).+1)
-    | RingZExp e1 (Z.neg _) => fun f => 0%Z
-    | RingZExp e1 n => fun f => RingEval' f e1 ^+ nat_of_N_opaque (Z.to_N n)
-    | RingInv _ e1 => fun f => f (RingEval e1)^-1
-    | RingMorph _ _ g e1 => fun f => RingEval' [rmorphism of f \o g] e1
-    | RingMorph' _ _ g e1 => fun f => RZmodEval' [additive of f \o g] e1
-    | RingPosz e1 => fun => NatEval' _ e1
-    | RingNegz e1 => fun => - (1 + NatEval' _ e1)
-    | RingZC x => fun => R_of_Z R' x
+Fixpoint Rnorm R R' (f : {rmorphism R -> R'}) (e : RExpr R) : R' :=
+  match e in RExpr R return {rmorphism R -> R'} -> R' with
+    | RX _ x => fun f => f x
+    | R0 _ => fun => 0%R
+    | ROpp _ e1 => fun f => - Rnorm f e1
+    | RZOpp e1 => fun f => - Rnorm f e1
+    | RAdd _ e1 e2 => fun f => Rnorm f e1 + Rnorm f e2
+    | RZAdd e1 e2 => fun f => Rnorm f e1 + Rnorm f e2
+    | RZSub e1 e2 => fun f => Rnorm f e1 - Rnorm f e2
+    | RMuln _ e1 e2 => fun f => Rnorm f e1 * Nnorm R' e2
+    | RMulz _ e1 e2 => fun f => Rnorm f e1 * Rnorm [rmorphism of intmul 1] e2
+    | R1 _ => fun => 1%R
+    | RMul _ e1 e2 => fun f => Rnorm f e1 * Rnorm f e2
+    | RZMul e1 e2 => fun f => Rnorm f e1 * Rnorm f e2
+    | RExpn _ e1 n => fun f => Rnorm f e1 ^+ nat_of_N_opaque n
+    | RExpPosz _ e1 n => fun f => Rnorm f e1 ^+ nat_of_N_opaque n
+    | RExpNegz _ e1 n => fun f => f (Reval e1 ^- (nat_of_N_opaque n).+1)
+    | RZExp e1 (Z.neg _) => fun f => 0%Z
+    | RZExp e1 n => fun f => Rnorm f e1 ^+ nat_of_N_opaque (Z.to_N n)
+    | RInv _ e1 => fun f => f (Reval e1)^-1
+    | RMorph _ _ g e1 => fun f => Rnorm [rmorphism of f \o g] e1
+    | RMorph' _ _ g e1 => fun f => RZMnorm [additive of f \o g] e1
+    | RPosz e1 => fun => Nnorm _ e1
+    | RNegz e1 => fun => - (1 + Nnorm _ e1)
+    | RZC x => fun => R_of_Z R' x
   end f
-with RZmodEval' V R (f : {additive V -> R}) (e : ZmodExpr V) : R :=
-  match e in ZmodExpr V return {additive V -> R} -> R with
-    | ZmodX _ x => fun f => f x
-    | Zmod0 _ => fun => 0%R
-    | ZmodOpp _ e1 => fun f => - RZmodEval' f e1
-    | ZmodAdd _ e1 e2 => fun f => RZmodEval' f e1 + RZmodEval' f e2
-    | ZmodMuln _ e1 e2 => fun f => RZmodEval' f e1 * NatEval' R e2
-    | ZmodMulz _ e1 e2 => fun f =>
-      RZmodEval' f e1 * RingEval' [rmorphism of intmul 1] e2
-    | ZmodMorph _ _ g e1 => fun f => RZmodEval' [additive of f \o g] e1
+with RZMnorm V R (f : {additive V -> R}) (e : ZMExpr V) : R :=
+  match e in ZMExpr V return {additive V -> R} -> R with
+    | ZMX _ x => fun f => f x
+    | ZM0 _ => fun => 0%R
+    | ZMOpp _ e1 => fun f => - RZMnorm f e1
+    | ZMAdd _ e1 e2 => fun f => RZMnorm f e1 + RZMnorm f e2
+    | ZMMuln _ e1 e2 => fun f => RZMnorm f e1 * Nnorm R e2
+    | ZMMulz _ e1 e2 => fun f => RZMnorm f e1 * Rnorm [rmorphism of intmul 1] e2
+    | ZMMorph _ _ g e1 => fun f => RZMnorm [additive of f \o g] e1
   end f.
 
-Lemma RingEval_correct_rec R R' (f : {rmorphism R -> R'}) (e : RingExpr R) :
-  f (RingEval e) = RingEval' f e.
+Lemma Rnorm_correct_rec R R' (f : {rmorphism R -> R'}) (e : RExpr R) :
+  f (Reval e) = Rnorm f e.
 Proof.
-pose P R e :=
-  forall R' (f : {rmorphism R -> R'}), f (RingEval e) = RingEval' f e.
-pose P0 V e :=
-  forall R' (f : {additive V -> R'}), f (ZmodEval e) = RZmodEval' f e.
-move: R' f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
+pose P R e := forall R' (f : {rmorphism R -> R'}), f (Reval e) = Rnorm f e.
+pose P0 V e := forall R' (f : {additive V -> R'}), f (ZMeval e) = RZMnorm f e.
+move: R' f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> R R' f; rewrite rmorph0.
 - by move=> R e1 IHe1 R' f; rewrite rmorphN IHe1.
 - by move=> e1 IHe1 R' f; rewrite rmorphN IHe1.
 - by move=> R e1 IHe1 e2 IHe2 R' f; rewrite rmorphD IHe1 IHe2.
 - by move=> e1 IHe1 e2 IHe2 R' f; rewrite rmorphD IHe1 IHe2.
 - by move=> e1 IHe1 e2 IHe2 R' f; rewrite rmorphB IHe1 IHe2.
-- by move=> R e1 IHe1 e2 R' f; rewrite rmorphMn IHe1 -mulr_natr NatEval_correct.
+- by move=> R e1 IHe1 e2 R' f; rewrite rmorphMn IHe1 -mulr_natr Neval_correct.
 - by move=> R e1 IHe1 e2 IHe2 R' f; rewrite rmorphMz IHe1 -mulrzr IHe2.
 - by move=> R R' f; rewrite rmorph1.
 - by move=> R e1 IHe1 e2 IHe2 R' f; rewrite rmorphM IHe1 IHe2.
@@ -440,77 +436,72 @@ move: R' f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
   by rewrite -IHe1 -rmorphX; congr (f _); lia.
 - by move=> R R' g e1 IHe1 R'' f; rewrite -IHe1.
 - by move=> V R g e1 IHe1 R' f; rewrite -IHe1.
-- by move=> e R' f; rewrite -[Posz _]intz rmorph_int [LHS]NatEval_correct.
+- by move=> e R' f; rewrite -[Posz _]intz rmorph_int [LHS]Neval_correct.
 - move=> e R' f.
-  by rewrite -[Negz _]intz rmorph_int /intmul mulrS NatEval_correct.
+  by rewrite -[Negz _]intz rmorph_int /intmul mulrS Neval_correct.
 - move=> x R' f; rewrite /R_of_Z int_of_Z_opaqueE -(rmorph_int f); congr (f _).
   lia.
 - by move=> V R f; rewrite raddf0.
 - by move=> V e1 IHe1 R f; rewrite raddfN IHe1.
 - by move=> V e1 IHe1 e2 IHe2 R f; rewrite raddfD IHe1 IHe2.
-- by move=> V e1 IHe1 e2 R f; rewrite raddfMn IHe1 -mulr_natr NatEval_correct.
+- by move=> V e1 IHe1 e2 R f; rewrite raddfMn IHe1 -mulr_natr Neval_correct.
 - by move=> V e1 IHe1 e2 IHe2 R f; rewrite raddfMz IHe1 -mulrzr IHe2.
 - by move=> V V' g e1 IHe1 R f; rewrite -IHe1.
 Qed.
 
-Lemma RingEval_correct R (e : RingExpr R) :
-  RingEval e = RingEval' [rmorphism of idfun] e.
-Proof. exact: RingEval_correct_rec [rmorphism of idfun] _. Qed.
+Lemma Rnorm_correct R (e : RExpr R) : Reval e = Rnorm [rmorphism of idfun] e.
+Proof. exact: Rnorm_correct_rec [rmorphism of idfun] _. Qed.
 
-Fixpoint FieldEval' R F (f : {rmorphism R -> F}) (e : RingExpr R) : F :=
-  match e in RingExpr R return {rmorphism R -> F} -> F with
-    | RingX _ x => fun f => f x
-    | Ring0 _ => fun => 0%R
-    | RingOpp _ e1 => fun f => - FieldEval' f e1
-    | RingZOpp e1 => fun f => - FieldEval' f e1
-    | RingAdd _ e1 e2 => fun f => FieldEval' f e1 + FieldEval' f e2
-    | RingZAdd e1 e2 => fun f => FieldEval' f e1 + FieldEval' f e2
-    | RingZSub e1 e2 => fun f => FieldEval' f e1 - FieldEval' f e2
-    | RingMuln _ e1 e2 => fun f => FieldEval' f e1 * NatEval' F e2
-    | RingMulz _ e1 e2 => fun f =>
-      FieldEval' f e1 * FieldEval' [rmorphism of intmul 1] e2
-    | Ring1 _ => fun => 1%R
-    | RingMul _ e1 e2 => fun f => FieldEval' f e1 * FieldEval' f e2
-    | RingZMul e1 e2 => fun f => FieldEval' f e1 * FieldEval' f e2
-    | RingExpn _ e1 n => fun f => FieldEval' f e1 ^+ nat_of_N_opaque n
-    | RingExpPosz _ e1 n => fun f => FieldEval' f e1 ^+ nat_of_N_opaque n
-    | RingExpNegz _ e1 n => fun f => (FieldEval' f e1 ^- (nat_of_N_opaque n).+1)
-    | RingZExp e1 (Z.neg _) => fun f => 0%Z
-    | RingZExp e1 n => fun f => FieldEval' f e1 ^+ nat_of_N_opaque (Z.to_N n)
-    | RingInv _ e1 => fun f => (FieldEval' f e1)^-1
-    | RingMorph _ _ g e1 => fun f => FieldEval' [rmorphism of f \o g] e1
-    | RingMorph' _ _ g e1 => fun f => FZmodEval' [additive of f \o g] e1
-    | RingPosz e1 => fun => NatEval' _ e1
-    | RingNegz e1 => fun => - (1 + NatEval' _ e1)
-    | RingZC x => fun => R_of_Z F x
+Fixpoint Fnorm R F (f : {rmorphism R -> F}) (e : RExpr R) : F :=
+  match e in RExpr R return {rmorphism R -> F} -> F with
+    | RX _ x => fun f => f x
+    | R0 _ => fun => 0%R
+    | ROpp _ e1 => fun f => - Fnorm f e1
+    | RZOpp e1 => fun f => - Fnorm f e1
+    | RAdd _ e1 e2 => fun f => Fnorm f e1 + Fnorm f e2
+    | RZAdd e1 e2 => fun f => Fnorm f e1 + Fnorm f e2
+    | RZSub e1 e2 => fun f => Fnorm f e1 - Fnorm f e2
+    | RMuln _ e1 e2 => fun f => Fnorm f e1 * Nnorm F e2
+    | RMulz _ e1 e2 => fun f => Fnorm f e1 * Fnorm [rmorphism of intmul 1] e2
+    | R1 _ => fun => 1%R
+    | RMul _ e1 e2 => fun f => Fnorm f e1 * Fnorm f e2
+    | RZMul e1 e2 => fun f => Fnorm f e1 * Fnorm f e2
+    | RExpn _ e1 n => fun f => Fnorm f e1 ^+ nat_of_N_opaque n
+    | RExpPosz _ e1 n => fun f => Fnorm f e1 ^+ nat_of_N_opaque n
+    | RExpNegz _ e1 n => fun f => Fnorm f e1 ^- (nat_of_N_opaque n).+1
+    | RZExp e1 (Z.neg _) => fun f => 0%Z
+    | RZExp e1 n => fun f => Fnorm f e1 ^+ nat_of_N_opaque (Z.to_N n)
+    | RInv _ e1 => fun f => (Fnorm f e1)^-1
+    | RMorph _ _ g e1 => fun f => Fnorm [rmorphism of f \o g] e1
+    | RMorph' _ _ g e1 => fun f => FZMnorm [additive of f \o g] e1
+    | RPosz e1 => fun => Nnorm _ e1
+    | RNegz e1 => fun => - (1 + Nnorm _ e1)
+    | RZC x => fun => R_of_Z F x
   end f
-with FZmodEval' V F (f : {additive V -> F}) (e : ZmodExpr V) : F :=
-  match e in ZmodExpr V return {additive V -> F} -> F with
-    | ZmodX _ x => fun f => f x
-    | Zmod0 _ => fun => 0%R
-    | ZmodOpp _ e1 => fun f => - FZmodEval' f e1
-    | ZmodAdd _ e1 e2 => fun f => FZmodEval' f e1 + FZmodEval' f e2
-    | ZmodMuln _ e1 e2 => fun f => FZmodEval' f e1 * NatEval' F e2
-    | ZmodMulz _ e1 e2 => fun f =>
-      FZmodEval' f e1 * FieldEval' [rmorphism of intmul 1] e2
-    | ZmodMorph _ _ g e1 => fun f => FZmodEval' [additive of f \o g] e1
+with FZMnorm V F (f : {additive V -> F}) (e : ZMExpr V) : F :=
+  match e in ZMExpr V return {additive V -> F} -> F with
+    | ZMX _ x => fun f => f x
+    | ZM0 _ => fun => 0%R
+    | ZMOpp _ e1 => fun f => - FZMnorm f e1
+    | ZMAdd _ e1 e2 => fun f => FZMnorm f e1 + FZMnorm f e2
+    | ZMMuln _ e1 e2 => fun f => FZMnorm f e1 * Nnorm F e2
+    | ZMMulz _ e1 e2 => fun f => FZMnorm f e1 * Fnorm [rmorphism of intmul 1] e2
+    | ZMMorph _ _ g e1 => fun f => FZMnorm [additive of f \o g] e1
   end f.
 
-Lemma FieldEval_correct_rec R F (f : {rmorphism R -> F}) (e : RingExpr R) :
-  f (RingEval e) = FieldEval' f e.
+Lemma Fnorm_correct_rec R F (f : {rmorphism R -> F}) (e : RExpr R) :
+  f (Reval e) = Fnorm f e.
 Proof.
-pose P R e :=
-  forall F (f : {rmorphism R -> F}), f (RingEval e) = FieldEval' f e.
-pose P0 V e :=
-  forall F (f : {additive V -> F}), f (ZmodEval e) = FZmodEval' f e.
-move: F f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
+pose P R e := forall F (f : {rmorphism R -> F}), f (Reval e) = Fnorm f e.
+pose P0 V e := forall F (f : {additive V -> F}), f (ZMeval e) = FZMnorm f e.
+move: F f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> R F f; rewrite rmorph0.
 - by move=> R e1 IHe1 F f; rewrite rmorphN IHe1.
 - by move=> e1 IHe1 F f; rewrite rmorphN IHe1.
 - by move=> R e1 IHe1 e2 IHe2 F f; rewrite rmorphD IHe1 IHe2.
 - by move=> e1 IHe1 e2 IHe2 F f; rewrite rmorphD IHe1 IHe2.
 - by move=> e1 IHe1 e2 IHe2 F f; rewrite rmorphB IHe1 IHe2.
-- by move=> R e1 IHe1 e2 F f; rewrite rmorphMn IHe1 -mulr_natr NatEval_correct.
+- by move=> R e1 IHe1 e2 F f; rewrite rmorphMn IHe1 -mulr_natr Neval_correct.
 - by move=> R e1 IHe1 e2 IHe2 F f; rewrite rmorphMz IHe1 -mulrzr IHe2.
 - by move=> R F f; rewrite rmorph1.
 - by move=> R e1 IHe1 e2 IHe2 F f; rewrite rmorphM IHe1 IHe2.
@@ -523,28 +514,27 @@ move: F f; elim e using (@RingExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> F' e1 IHe1 F f; rewrite fmorphV IHe1.
 - by move=> R R' g e1 IHe1 F f; rewrite -IHe1.
 - by move=> V R g e1 IHe1 F f; rewrite -IHe1.
-- by move=> e F f; rewrite -[Posz _]intz rmorph_int [LHS]NatEval_correct.
+- by move=> e F f; rewrite -[Posz _]intz rmorph_int [LHS]Neval_correct.
 - move=> e F f.
-  by rewrite -[Negz _]intz rmorph_int /intmul mulrS NatEval_correct.
+  by rewrite -[Negz _]intz rmorph_int /intmul mulrS Neval_correct.
 - move=> x F f; rewrite /R_of_Z int_of_Z_opaqueE -(rmorph_int f); congr (f _).
   lia.
 - by move=> V F f; rewrite raddf0.
 - by move=> V e1 IHe1 F f; rewrite raddfN IHe1.
 - by move=> V e1 IHe1 e2 IHe2 F f; rewrite raddfD IHe1 IHe2.
-- by move=> V e1 IHe1 e2 F f; rewrite raddfMn IHe1 -mulr_natr NatEval_correct.
+- by move=> V e1 IHe1 e2 F f; rewrite raddfMn IHe1 -mulr_natr Neval_correct.
 - by move=> V e1 IHe1 e2 IHe2 F f; rewrite raddfMz IHe1 -mulrzr IHe2.
 - by move=> V V' g e1 IHe1 F f; rewrite -IHe1.
 Qed.
 
-Lemma FieldEval_correct F (e : RingExpr F) :
-  RingEval e = FieldEval' [rmorphism of idfun] e.
-Proof. exact: FieldEval_correct_rec [rmorphism of idfun] _. Qed.
+Lemma Fnorm_correct F (e : RExpr F) : Reval e = Fnorm [rmorphism of idfun] e.
+Proof. exact: Fnorm_correct_rec [rmorphism of idfun] _. Qed.
 
 (* Auxiliary Ltac code which will be invoked from Elpi *)
 
 Ltac ring_reflection R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let R' := constr:(GRing.ComRing.ringType R) in
-  rewrite [LHS](@RingEval_correct R' RE1) [RHS](@RingEval_correct R' RE2);
+  rewrite [LHS](@Rnorm_correct R' RE1) [RHS](@Rnorm_correct R' RE2);
   apply: (@Rcorrect R 100 VarMap Lpe PE1 PE2 LpeProofs);
   [vm_compute; reflexivity].
 
@@ -575,7 +565,7 @@ Ltac field_reflection F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let F_of_natE := fresh "F_of_natE" in
   let expE := fresh "expE" in
   let lE := fresh "lE" in
-  rewrite [LHS](@FieldEval_correct F RE1) [RHS](@FieldEval_correct F RE2);
+  rewrite [LHS](@Fnorm_correct F RE1) [RHS](@Fnorm_correct F RE2);
   (apply: (@numField_correct _ 100 VarMap Lpe PE1 PE2 LpeProofs) ||
    apply: (@field_correct _ 100 VarMap Lpe PE1 PE2 LpeProofs));
   move=> is_true_ negb_ andb_ zero one add mul sub opp Feqb F_of_nat exp l;
@@ -590,7 +580,7 @@ End Internals.
 
 Strategy expand
          [addn_expand nat_of_pos_rec_expand nat_of_pos_expand nat_of_N_expand
-          int_of_Z_expand RingEval RingEval' FieldEval' PEeval FEeval].
+          int_of_Z_expand Reval Rnorm Fnorm PEeval FEeval].
 
 Register Coq.Init.Logic.eq       as ring.eq.
 Register Coq.Init.Logic.eq_refl  as ring.erefl.
