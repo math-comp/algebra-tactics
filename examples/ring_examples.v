@@ -42,7 +42,7 @@ End AbstractCommutativeRing.
 
 Section AbstractRingMorphism.
 
-Variables (R : ringType) (R' : comRingType) (f : {rmorphism R -> R'}) (a b : R).
+Variables (R : ringType) (S : comRingType) (f : {rmorphism R -> S}) (a b : R).
 
 Goal f ((a + b) ^+ 2) = f a ^+ 2 + f b ^+ 2 + 2%:R * f a * f b.
 Proof. ring. Qed.
@@ -51,8 +51,8 @@ End AbstractRingMorphism.
 
 Section AbstractAdditiveFunction.
 
-Variables (V' V : zmodType) (R : comRingType).
-Variables (g : {additive V' -> V}) (f : {additive V -> R}) (a : V') (b : V).
+Variables (U V : zmodType) (R : comRingType).
+Variables (g : {additive U -> V}) (f : {additive V -> R}) (a : U) (b : V).
 
 Goal f (g a + b) ^+ 2 = f (g a) ^+ 2 + f b ^+ 2 + f (g (a *+ 2)) * f b.
 Proof. ring. Qed.

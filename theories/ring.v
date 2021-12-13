@@ -270,8 +270,8 @@ Inductive NExpr : Type :=
   | NMul  of NExpr & NExpr
   | NExp  of NExpr & N.
 
-Fixpoint Neval (ne : NExpr) : nat :=
-  match ne with
+Fixpoint Neval (e : NExpr) : nat :=
+  match e with
     | NC n => nat_of_N_expand n
     | NX x => x
     | NAdd e1 e2 => Neval e1 + Neval e2

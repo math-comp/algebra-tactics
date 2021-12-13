@@ -22,7 +22,7 @@ Arguments ZifyRing rval zval _ : clear implicits.
 
 Lemma zifyRingE (e : zifyRing) : rval e = (zval e)%:~R. Proof. by case: e. Qed.
 
-Definition zify_zero := ZifyRing 0%R 0%R erefl.
+Definition zify_zero := ZifyRing 0 0 erefl.
 
 Lemma zify_opp_subproof e1 : - rval e1 = (- zval e1)%:~R.
 Proof. by rewrite zifyRingE mulrNz. Qed.
@@ -45,7 +45,7 @@ Definition zify_mulrn e1 n :=
 Definition zify_mulrz e1 n :=
   ZifyRing (rval e1 *~ n) (zval e1 *~ n) (zify_mulrz_subproof e1 n).
 
-Definition zify_one := ZifyRing 1%R 1%R erefl.
+Definition zify_one := ZifyRing 1 1 erefl.
 
 Lemma zify_mul_subproof e1 e2 : rval e1 * rval e2 = (zval e1 * zval e2)%:~R.
 Proof. by rewrite 2!zifyRingE intrM. Qed.
