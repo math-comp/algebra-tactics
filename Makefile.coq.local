@@ -1,0 +1,1 @@
+theories/ring.vo : $(wildcard theories/*.elpi)
