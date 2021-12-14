@@ -1,12 +1,12 @@
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint rat.
-From mathcomp Require Import ring zify_ring.
+From mathcomp Require Import ring.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GRing.Theory.
+Import GRing.Theory Num.Theory.
 
 Local Open Scope ring_scope.
 
@@ -34,8 +34,8 @@ Proof. by move=> F n n_neq0; field. Qed.
 
 Goal forall (F : numFieldType) (n : nat),
   n != 1%N -> ((n ^ 2)%:R - 1) / (n%:R - 1) = (n%:R + 1) :> F.
-Proof. by move=> F n n_neq0; field; ring_lia. Qed.
+Proof. by move=> F n n_neq0; field; rewrite subr_eq0 pnatr_eq1. Qed.
 
 Goal forall (F : numFieldType) (n : nat),
-    n != 1%N -> (2%:R - (2 * n)%:R) / (1 - n%:R) = 2%:R :> F.
-Proof. by move=> F n n_neq0; field; ring_lia. Qed.
+  n != 1%N -> (2%:R - (2 * n)%:R) / (1 - n%:R) = 2%:R :> F.
+Proof. by move=> F n n_neq0; field; rewrite subr_eq0 eq_sym pnatr_eq1. Qed.
