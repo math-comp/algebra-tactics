@@ -160,19 +160,19 @@ pred quote.zmod i:term, i:term, i:(term -> term), i:term,
                 o:term, o:term, o:list term.
 % 0%R
 quote.zmod U _ _ {{ @GRing.zero lp:U' }} {{ @ZM0 lp:U }} Out _ :-
-  coq.unify-eq {{ @GRing.zero lp:U }} {{ @GRing.zero lp:U' }} ok, !,
+  coq.unify-eq U U' ok, !,
   quote.expr.zero Out.
 % -%R
 quote.zmod U R Morph {{ @GRing.opp lp:U' lp:In1 }}
            {{ @ZMOpp lp:U lp:OutM1 }} Out VarMap :-
-  coq.unify-eq {{ @GRing.opp lp:U }} {{ @GRing.opp lp:U' }} ok,
+  coq.unify-eq U U' ok,
   !,
   quote.zmod U R Morph In1 OutM1 Out1 VarMap, !,
   quote.expr.opp Out1 Out.
 % +%R
 quote.zmod U R Morph {{ @GRing.add lp:U' lp:In1 lp:In2 }}
            {{ @ZMAdd lp:U lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq {{ @GRing.add lp:U }} {{ @GRing.add lp:U' }} ok,
+  coq.unify-eq U U' ok,
   !,
   quote.zmod U R Morph In1 OutM1 Out1 VarMap, !,
   quote.zmod U R Morph In2 OutM2 Out2 VarMap, !,
@@ -223,14 +223,12 @@ pred quote.ring i:term, i:option term, i:term, i:(term -> term),
                 i:term, o:term, o:term, o:list term.
 % 0%R
 quote.ring R _ _ _ {{ @GRing.zero lp:V }} {{ @R0 lp:R }} Out _ :-
-  coq.unify-eq {{ @GRing.zero lp:V }}
-               {{ @GRing.zero (GRing.Ring.zmodType lp:R) }} ok, !,
+  coq.unify-eq V {{ GRing.Ring.zmodType lp:R }} ok, !,
   quote.expr.zero Out.
 % -%R
 quote.ring R F TR Morph {{ @GRing.opp lp:V lp:In1 }}
            {{ @ROpp lp:R lp:OutM1 }} Out VarMap :-
-  coq.unify-eq {{ @GRing.opp lp:V }}
-               {{ @GRing.opp (GRing.Ring.zmodType lp:R) }} ok,
+  coq.unify-eq V {{ GRing.Ring.zmodType lp:R }} ok,
   !,
   quote.ring R F TR Morph In1 OutM1 Out1 VarMap, !,
   quote.expr.opp Out1 Out.
@@ -244,8 +242,7 @@ quote.ring R none TR Morph
 % +%R
 quote.ring R F TR Morph {{ @GRing.add lp:V lp:In1 lp:In2 }}
            {{ @RAdd lp:R lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq {{ @GRing.add lp:V }}
-               {{ @GRing.add (GRing.Ring.zmodType lp:R) }} ok,
+  coq.unify-eq V {{ GRing.Ring.zmodType lp:R }} ok,
   !,
   quote.ring R F TR Morph In1 OutM1 Out1 VarMap, !,
   quote.ring R F TR Morph In2 OutM2 Out2 VarMap, !,
@@ -287,13 +284,13 @@ quote.ring R F TR Morph {{ @intmul lp:V lp:In1 lp:In2 }}
   quote.expr.mul Out1 Out2 Out.
 % 1%R
 quote.ring R _ _ _ {{ @GRing.one lp:R' }} {{ @R1 lp:R }} Out _ :-
-  coq.unify-eq {{ @GRing.one lp:R' }} {{ @GRing.one lp:R }} ok,
+  coq.unify-eq R' R ok,
   !,
   quote.expr.one Out.
 % *%R
 quote.ring R F TR Morph {{ @GRing.mul lp:R' lp:In1 lp:In2 }}
            {{ @RMul lp:R lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq {{ @GRing.mul lp:R' }} {{ @GRing.mul lp:R }} ok,
+  coq.unify-eq R' R ok,
   !,
   quote.ring R F TR Morph In1 OutM1 Out1 VarMap, !,
   quote.ring R F TR Morph In2 OutM2 Out2 VarMap, !,
@@ -350,8 +347,7 @@ quote.ring R none TR Morph {{ Z.pow lp:In1 lp:In2 }}
 quote.ring R (some F) TR Morph {{ @GRing.inv lp:R' lp:In1 }}
            {{ @RInv lp:F lp:OutM1 }} {{ @FEinv Z lp:Out1 }} VarMap :-
   field-mode,
-  coq.unify-eq {{ @GRing.inv lp:R' }}
-               {{ @GRing.inv (GRing.Field.unitRingType lp:F) }} ok,
+  coq.unify-eq R' {{ GRing.Field.unitRingType lp:F }} ok,
   !,
   quote.ring R (some F) TR Morph In1 OutM1 Out1 VarMap.
 % Posz
