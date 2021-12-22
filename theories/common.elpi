@@ -408,94 +408,197 @@ with-top-hyp (goal _ _ (prod N Src _) _ A as G) [G3] :- !,
   coq.ltac.set-goal-arguments A G G1 G2,
   append-last-hyp-to-args G2 G3.
 
-pred quote-arg i:term, o:list term, i:argument, o:pair term term.
-quote-arg Ring VarMap (trm Proof)
-          (pr {{ @pair (PExpr Z) (PExpr Z) lp:PE1 lp:PE2 }} Proof') :-
-  std.do! [
-    @ltacfail! 0 => std.assert-ok!
-      (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
-      "An argument is not a proof of equation of the expected type",
-    quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
-    quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap,
-    RMcorrect1 = {{ @Rnorm_correct lp:Ring lp:RE1 }},
-    RMcorrect2 = {{ @Rnorm_correct lp:Ring lp:RE2 }},
-    Proof' = {{ lib:ring.etrans (lib:ring.esym lp:RMcorrect1)
-                                (lib:ring.etrans lp:Proof lp:RMcorrect2) }}
-  ].
+% Introduce opaque definitions in the same way as [move NE: T => N].
+pred def-equations-rec i:list (pair name term), o:term.
+def-equations-rec [(pr N T) | TS] S :-
+  coq.name-suffix N "E" NE,
+  S = app [(fun N Ty x\ fun NE {{ @eq lp:Ty lp:x lp:T }} (S' x)),
+           T, {{ @erefl lp:Ty lp:T }}],
+  pi x xE\ def-equations-rec TS (S' x xE).
+def-equations-rec [] _.
+
+pred def-equations i:list (pair name term), i:goal, o:sealed-goal.
+def-equations TS G G1 :- def-equations-rec TS Proof, refine Proof G [G1].
+
+pred quote-arg i:term, i:term, i:term, i:term, i:term, i:term, i:term, i:term,
+               i:term, i:term, i:term, i:term, i:term, i:term, i:term, i:term,
+               i:term, o:list term, i:argument, o:pair term term.
+quote-arg Ring R_of_Z R_of_ZE Zero ZeroE Opp OppE Add AddE Sub SubE
+          One OneE Mul MulE Exp ExpE VarMap (trm Proof)
+          (pr {{ @pair (PExpr Z) (PExpr Z) lp:PE1 lp:PE2 }} Proof') :- std.do! [
+  @ltacfail! 0 => std.assert-ok!
+    (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
+    "An argument is not a proof of equation of the expected type",
+  quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
+  quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap,
+  RMcorrect1 = {{ @Rnorm_correct
+    lp:Ring lp:R_of_Z lp:R_of_ZE lp:Zero lp:ZeroE lp:Opp lp:OppE lp:Add lp:AddE
+    lp:Sub lp:SubE lp:One lp:OneE lp:Mul lp:MulE lp:Exp lp:ExpE lp:RE1 }},
+  RMcorrect2 = {{ @Rnorm_correct
+    lp:Ring lp:R_of_Z lp:R_of_ZE lp:Zero lp:ZeroE lp:Opp lp:OppE lp:Add lp:AddE
+    lp:Sub lp:SubE lp:One lp:OneE lp:Mul lp:MulE lp:Exp lp:ExpE lp:RE2 }},
+  Proof' = {{ lib:ring.etrans (lib:ring.esym lp:RMcorrect1)
+                              (lib:ring.etrans lp:Proof lp:RMcorrect2) }} ].
 
 pred list->conj i:list term, o:term.
 list->conj [] {{ I }} :- !.
 list->conj [P] P :- !.
 list->conj [P|PS] {{ conj lp:P lp:IS }} :- !, list->conj PS IS.
 
-pred ring-reflection i:term, i:term, i:term, i:term, i:term, i:term,
-                     i:term, i:term, i:goal, o:list sealed-goal.
-ring-reflection ComRing VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS :-
+pred decomp-ring-goal i:goal, o:term, o:term, o:term, o:term, o:term, o:term.
+decomp-ring-goal (goal _ _ P _ _) Ty Zmod Ring ComRing T1 T2 :- std.do! [
+  @ltacfail! 0 => std.assert-ok!
+    (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
+    "The goal is not an equation",
+  @ltacfail! 0 => std.assert-ok!
+    (coq.unify-eq Ty {{ GRing.Zmodule.sort lp:Zmod }})
+    "Cannot find a declared zmodType",
+  @ltacfail! 0 => std.assert-ok!
+    (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }})
+    "Cannot find a declared ringType",
+  @ltacfail! 0 => std.assert-ok!
+    (coq.unify-eq Ty {{ GRing.ComRing.sort lp:ComRing }})
+    "Cannot find a declared comRingType"].
+
+pred def-ring-ops i:goal, o:list sealed-goal.
+def-ring-ops (goal _ _ _ _ Args as G) [G2] :-
+  decomp-ring-goal G Ty Zmod Ring _ _ _,
+  def-equations
+    [pr `R_of_Z`
+        {{ fun n : Z => @intmul lp:Zmod (@GRing.one lp:Ring) (int_of_Z n) }},
+     pr `zero` {{ @GRing.zero lp:Zmod }},
+     pr `opp` {{ @GRing.opp lp:Zmod }},
+     pr `add` {{ @GRing.add lp:Zmod }},
+     pr `sub`
+        {{ fun x y : lp:Ty => @GRing.add lp:Zmod x (@GRing.opp lp:Zmod y) }},
+     pr `one` {{ @GRing.one lp:Ring }},
+     pr `mul` {{ @GRing.mul lp:Ring }},
+     pr `exp`
+        {{ fun (x : lp:Ty) (n : N) => @GRing.exp lp:Ring x (nat_of_N n) }} ]
+    G G1,
+  coq.ltac.set-goal-arguments Args G G1 G2.
+
+pred ring-reflection i:term, i:term, i:term, i:term, i:term, i:term, i:term,
+                     i:term, i:term, i:term, i:term, i:term, i:term, i:term,
+                     i:term, i:term, i:term, i:term, i:term, i:term, i:term,
+                     i:term, i:term, i:term, i:goal, o:list sealed-goal.
+ring-reflection
+    ComRing R_of_Z R_of_ZE Zero ZeroE Opp OppE Add AddE Sub SubE
+    One OneE Mul MulE Exp ExpE VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS :-
   coq.ltac.call "ring_reflection"
-    [trm ComRing, trm VarMap', trm Lpe', trm RE1, trm RE2, trm PE1, trm PE2,
-     trm LpeProofs'] G GS.
-ring-reflection _ _ _ _ _ _ _ _ _ _ :-
+    {std.map [ComRing, R_of_Z, R_of_ZE, Zero, ZeroE, Opp, OppE, Add, AddE,
+              Sub, SubE, One, OneE, Mul, MulE, Exp, ExpE,
+              VarMap', Lpe', RE1, RE2, PE1, PE2, LpeProofs'] (x\ y\ y = trm x)}
+    G GS.
+ring-reflection _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ :-
   coq.ltac.fail 0 "Not a valid ring equation".
 
 pred ring i:goal, o:list sealed-goal.
-ring (goal _ _ P _ Args as G) GS :- std.do! [
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
-      "The goal is not an equation",
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }})
-      "Cannot find a declared ringType",
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq Ty {{ GRing.ComRing.sort lp:ComRing }})
-      "Cannot find a declared comRingType",
-    std.time (
-      std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
-      quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
-      quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap
-    ) ReifTime,
-    coq.say "Reification:" ReifTime "sec.",
-    list-constant Ty VarMap VarMap',
-    list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
-    list->conj LpeProofs LpeProofs',
-    std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
-    std.time (
-      ring-reflection ComRing VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS
-    ) ReflTime,
-    coq.say "Reflection:" ReflTime "sec.",
-  ].
+ring (goal Ctx _ _ _ Args as G) GS :- std.do! [
+  Ctx = [decl ExpE _ _, decl Exp _ _, decl MulE _ _, decl Mul _ _,
+         decl OneE _ _, decl One _ _, decl SubE _ _, decl Sub _ _,
+         decl AddE _ _, decl Add _ _, decl OppE _ _, decl Opp _ _,
+         decl ZeroE _ _, decl Zero _ _, decl R_of_ZE _ _, decl R_of_Z _ _ | _],
+  decomp-ring-goal G Ty _ Ring ComRing T1 T2,
+  std.time (
+    std.unzip { std.map Args
+      (quote-arg Ring R_of_Z R_of_ZE Zero ZeroE Opp OppE Add AddE Sub SubE
+                 One OneE Mul MulE Exp ExpE VarMap) } Lpe LpeProofs, !,
+    quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap, !,
+    quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap
+  ) ReifTime,
+  coq.say "Reification:" ReifTime "sec.",
+  list-constant Ty VarMap VarMap',
+  list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
+  list->conj LpeProofs LpeProofs',
+  std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
+  std.time (
+    ring-reflection
+      ComRing R_of_Z R_of_ZE Zero ZeroE Opp OppE Add AddE Sub SubE
+      One OneE Mul MulE Exp ExpE VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS
+  ) ReflTime,
+  coq.say "Reflection:" ReflTime "sec."].
 
-pred field-reflection i:term, i:term, i:term, i:term, i:term, i:term,
-                      i:term, i:term, i:goal, o:list sealed-goal.
-field-reflection Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS :-
+pred decomp-field-goal
+  i:goal, o:term, o:term, o:term, o:term, o:term, o:term, o:term.
+decomp-field-goal
+    (goal _ _ P _ _) Ty Zmod Ring UnitRing Field T1 T2 :- std.do! [
+  @ltacfail! 0 => std.assert-ok!
+    (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
+    "The goal is not an equation",
+  @ltacfail! 0 => std.assert-ok!
+    (coq.unify-eq Ty {{ GRing.Zmodule.sort lp:Zmod }})
+    "Cannot find a declared zmodType",
+  @ltacfail! 0 => std.assert-ok!
+    (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }})
+    "Cannot find a declared ringType",
+  @ltacfail! 0 => std.assert-ok!
+    (coq.unify-eq Ty {{ GRing.UnitRing.sort lp:UnitRing }})
+    "Cannot find a declared unitRingType",
+  @ltacfail! 0 => std.assert-ok!
+    (coq.unify-eq Ty {{ GRing.Field.sort lp:Field }})
+    "Cannot find a declared fieldType"].
+
+pred def-field-ops i:goal, o:list sealed-goal.
+def-field-ops (goal _ _ _ _ Args as G) [G2] :-
+  decomp-field-goal G Ty Zmod Ring UnitRing _ _ _,
+  def-equations
+    [pr `F_of_Z` {{ fun n : Z =>
+                      @intmul lp:Zmod (@GRing.one lp:Ring) (int_of_Z n) }},
+     pr `zero` {{ @GRing.zero lp:Zmod }},
+     pr `opp` {{ @GRing.opp lp:Zmod }},
+     pr `add` {{ @GRing.add lp:Zmod }},
+     pr `sub` {{ fun x y : lp:Ty =>
+                   @GRing.add lp:Zmod x (@GRing.opp lp:Zmod y) }},
+     pr `one` {{ @GRing.one lp:Ring }},
+     pr `mul` {{ @GRing.mul lp:Ring }},
+     pr `exp` {{ fun (x : lp:Ty) (n : N) =>
+                   @GRing.exp lp:Ring x (nat_of_N n) }},
+     pr `inv` {{ @GRing.inv lp:UnitRing }},
+     pr `div` {{ fun x y : lp:Ty =>
+                   @GRing.mul lp:Ring x (@GRing.inv lp:UnitRing y) }}]
+    G G1,
+  coq.ltac.set-goal-arguments Args G G1 G2.
+
+pred field-reflection i:term, i:term, i:term, i:term, i:term, i:term, i:term,
+                      i:term, i:term, i:term, i:term, i:term, i:term, i:term,
+                      i:term, i:term, i:term, i:term, i:term, i:term, i:term,
+                      i:term, i:term, i:term, i:term, i:term, i:term, i:term,
+                      i:goal, o:list sealed-goal.
+field-reflection
+    Field R_of_Z R_of_ZE Zero ZeroE Opp OppE Add AddE Sub SubE One OneE Mul MulE
+    Exp ExpE Inv InvE Div DivE VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS :-
   coq.ltac.call "field_reflection"
-    [trm Field, trm VarMap', trm Lpe', trm RE1, trm RE2, trm PE1, trm PE2,
-     trm LpeProofs'] G GS.
-field-reflection _ _ _ _ _ _ _ _ _ _ :-
+    {std.map [Field, R_of_Z, R_of_ZE, Zero, ZeroE, Opp, OppE, Add, AddE,
+              Sub, SubE, One, OneE, Mul, MulE, Exp, ExpE, Inv, InvE, Div, DivE,
+              VarMap', Lpe', RE1, RE2, PE1, PE2, LpeProofs'] (x\ y\ y = trm x)}
+    G GS.
+field-reflection _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ :-
   coq.ltac.fail 0 "Not a valid ring equation".
 
 pred field i:goal, o:list sealed-goal.
-field (goal _ _ P _ Args as G) GS :- std.do! [
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
-      "The goal is not an equation",
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }})
-      "Cannot find a declared ringType",
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq Ty {{ GRing.Field.sort lp:Field }})
-      "Cannot find a declared fieldType",
-    std.time (
-      std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
-      field-mode => quote.ring Ring (some Field) Ring (x\ x) T1 RE1 PE1 VarMap,
-      field-mode => quote.ring Ring (some Field) Ring (x\ x) T2 RE2 PE2 VarMap
-    ) ReifTime,
-    coq.say "Reification:" ReifTime "sec.",
-    list-constant Ty VarMap VarMap',
-    list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
-    list->conj LpeProofs LpeProofs',
-    std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
-    std.time (
-      field-reflection Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS
-    ) ReflTime,
-    coq.say "Reflection:" ReflTime "sec.",
-  ].
+field (goal Ctx _ _ _ Args as G) GS :- std.do! [
+  Ctx = [decl DivE _ _, decl Div _ _, decl InvE _ _, decl Inv _ _,
+         decl ExpE _ _, decl Exp _ _, decl MulE _ _, decl Mul _ _,
+         decl OneE _ _, decl One _ _, decl SubE _ _, decl Sub _ _,
+         decl AddE _ _, decl Add _ _, decl OppE _ _, decl Opp _ _,
+         decl ZeroE _ _, decl Zero _ _, decl R_of_ZE _ _, decl R_of_Z _ _ | _],
+  decomp-field-goal G Ty _ Ring _ Field T1 T2,
+  std.time (
+    std.unzip { std.map Args
+      (quote-arg Ring R_of_Z R_of_ZE Zero ZeroE Opp OppE Add AddE Sub SubE
+                 One OneE Mul MulE Exp ExpE VarMap) } Lpe LpeProofs, !,
+    field-mode => quote.ring Ring (some Field) Ring (x\ x) T1 RE1 PE1 VarMap, !,
+    field-mode => quote.ring Ring (some Field) Ring (x\ x) T2 RE2 PE2 VarMap
+  ) ReifTime,
+  coq.say "Reification:" ReifTime "sec.",
+  list-constant Ty VarMap VarMap',
+  list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
+  list->conj LpeProofs LpeProofs',
+  std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
+  std.time (
+    field-reflection Field R_of_Z R_of_ZE Zero ZeroE Opp OppE Add AddE Sub SubE
+                     One OneE Mul MulE Exp ExpE Inv InvE Div DivE
+                     VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS
+  ) ReflTime,
+  coq.say "Reflection:" ReflTime "sec."].

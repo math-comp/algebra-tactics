@@ -1,4 +1,5 @@
 shorten coq.ltac.{ open, repeat, all, thenl }.
 
 msolve GL SubGL :-
-  all (thenl [repeat (open with-top-hyp), open field]) GL SubGL.
+  all (thenl [repeat (open with-top-hyp), open def-field-ops, open field])
+    GL SubGL.
