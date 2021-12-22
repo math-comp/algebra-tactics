@@ -588,7 +588,7 @@ Register Coq.Init.Logic.eq_sym   as ring.esym.
 Register Coq.Init.Logic.eq_trans as ring.etrans.
 
 Elpi Tactic ring.
-Elpi Accumulate File "theories/quote.elpi".
+Elpi Accumulate File "theories/common.elpi".
 Elpi Accumulate File "theories/ring.elpi".
 Elpi Typecheck.
 
@@ -596,7 +596,7 @@ Tactic Notation "ring" := elpi ring.
 Tactic Notation "ring" ":" ne_constr_list(L) := elpi ring ltac_term_list:(L).
 
 Elpi Tactic field.
-Elpi Accumulate File "theories/quote.elpi".
+Elpi Accumulate File "theories/common.elpi".
 Elpi Accumulate File "theories/field.elpi".
 Elpi Typecheck.
 
