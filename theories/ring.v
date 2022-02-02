@@ -17,29 +17,9 @@ Module Import Internals.
 Implicit Types (V : zmodType) (R : ringType) (F : fieldType).
 
 (* In reified syntax trees, constants must be represented by binary integers  *)
-(* `N` and `Z`. For the fine-grained control of conversion, we provide opaque *)
-(* and transparent (immediately expanding) versions of `N -> nat` and         *)
-(* `Z -> int` conversions.                                                    *)
-
-Module Type NatOfNSig.
-Parameter nat_of_N_opaque : N -> nat.
-Axiom nat_of_N_opaqueE : nat_of_N_opaque = nat_of_N.
-End NatOfNSig.
-
-Module Import NatOfN : NatOfNSig.
-Definition nat_of_N_opaque := nat_of_N.
-Definition nat_of_N_opaqueE := erefl nat_of_N.
-End NatOfN.
-
-Module Type IntOfZSig.
-Parameter int_of_Z_opaque : Z -> int.
-Axiom int_of_Z_opaqueE : int_of_Z_opaque = int_of_Z.
-End IntOfZSig.
-
-Module Import IntOfZ : IntOfZSig.
-Definition int_of_Z_opaque := int_of_Z.
-Definition int_of_Z_opaqueE := erefl int_of_Z.
-End IntOfZ.
+(* `N` and `Z`. For the fine-grained control of conversion, we provide        *)
+(* transparent (immediately expanding) versions of `N -> nat` and  `Z -> int` *)
+(* conversions.                                                               *)
 
 Definition addn_expand := Eval compute in addn.
 
@@ -670,7 +650,7 @@ End Internals.
 
 Strategy expand
          [addn_expand nat_of_pos_rec_expand nat_of_pos_expand nat_of_N_expand
-          int_of_Z_expand Reval Rnorm Fnorm PEeval FEeval].
+          int_of_Z_expand Neval Reval Nnorm Rnorm Fnorm PEeval FEeval].
 
 Register Coq.Init.Logic.eq       as ring.eq.
 Register Coq.Init.Logic.eq_refl  as ring.erefl.
