@@ -636,7 +636,8 @@ Ltac field_reflection F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let F_of_natE := fresh "F_of_natE" in
   let expE := fresh "expE" in
   let lE := fresh "lE" in
-  apply: (@field_correct F 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs);
+  (apply: (@numField_correct _ 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs) ||
+   apply: (@field_correct F 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs));
   [ exact: (fun _ _ _ _ _ _ _ _ _ _ => erefl) | ];
   move=> is_true_ negb_ andb_ zero one add mul sub opp Feqb F_of_nat exp l;
   move=> is_trueE negbE andbE zeroE oneE addE mulE subE oppE FeqbE F_of_natE;
