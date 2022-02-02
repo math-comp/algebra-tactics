@@ -74,6 +74,10 @@ pred quote.expr.add i:term, i:term, o:term.
 quote.expr.add In1 In2 {{ @FEadd Z lp:In1 lp:In2 }} :- field-mode, !.
 quote.expr.add In1 In2 {{ @PEadd Z lp:In1 lp:In2 }} :- !.
 
+pred quote.expr.sub i:term, i:term, o:term.
+quote.expr.sub In1 In2 {{ @FEsub Z lp:In1 lp:In2 }} :- field-mode, !.
+quote.expr.sub In1 In2 {{ @PEsub Z lp:In1 lp:In2 }} :- !.
+
 pred quote.expr.one o:term.
 quote.expr.one {{ @FEI Z }} :- field-mode, !.
 quote.expr.one {{ @PEI Z }} :- !.
@@ -261,7 +265,7 @@ quote.ring R none TR Morph {{ Z.sub lp:In1 lp:In2 }}
   !,
   quote.ring R none TR Morph In1 OutM1 Out1 VarMap, !,
   quote.ring R none TR Morph In2 OutM2 Out2 VarMap, !,
-  quote.expr.add Out1 { quote.expr.opp Out2 } Out.
+  quote.expr.sub Out1 Out2 Out.
 % (_ *+ _)%R
 quote.ring R F TR Morph {{ @GRing.natmul lp:V lp:In1 lp:In2 }}
            {{ @RMuln lp:R lp:OutM1 lp:OutM2 }} Out VarMap :-
