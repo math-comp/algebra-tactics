@@ -410,22 +410,15 @@ with-top-hyp (goal _ _ (prod N Src _) _ A as G) [G3] :- !,
 
 pred quote-arg i:term, o:list term, i:argument, o:pair term term.
 quote-arg Ring VarMap (trm Proof)
-          (pr {{ @pair (PExpr Z) (PExpr Z) lp:PE1 lp:PE2 }} Proof') :-
-  std.do! [
-    @ltacfail! 0 => std.assert-ok!
-      (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
-      "An argument is not a proof of equation of the expected type",
-    quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
-    quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap,
-    RMcorrect1 = {{ @Rnorm_correct lp:Ring lp:RE1 }},
-    RMcorrect2 = {{ @Rnorm_correct lp:Ring lp:RE2 }},
-    Proof' = {{ lib:ring.etrans (lib:ring.esym lp:RMcorrect1)
-                                (lib:ring.etrans lp:Proof lp:RMcorrect2) }}
-  ].
+          (pr {{ (lp:RE1, lp:RE2, lp:PE1, lp:PE2) }} Proof) :- std.do! [
+  @ltacfail! 0 => std.assert-ok!
+    (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
+    "An argument is not a proof of equation of the expected type",
+  quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
+  quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap ].
 
 pred list->conj i:list term, o:term.
 list->conj [] {{ I }} :- !.
-list->conj [P] P :- !.
 list->conj [P|PS] {{ conj lp:P lp:IS }} :- !, list->conj PS IS.
 
 pred ring-reflection i:term, i:term, i:term, i:term, i:term, i:term,
@@ -455,7 +448,8 @@ ring (goal _ _ P _ Args as G) GS :- std.do! [
     ) ReifTime,
     coq.say "Reification:" ReifTime "sec.",
     list-constant Ty VarMap VarMap',
-    list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
+    list-constant {{ (RExpr lp:Ring * RExpr lp:Ring * PExpr Z * PExpr Z)%type }}
+                  Lpe Lpe',
     list->conj LpeProofs LpeProofs',
     std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
     std.time (
@@ -491,7 +485,8 @@ field (goal _ _ P _ Args as G) GS :- std.do! [
     ) ReifTime,
     coq.say "Reification:" ReifTime "sec.",
     list-constant Ty VarMap VarMap',
-    list-constant {{ (PExpr Z * PExpr Z)%type }} Lpe Lpe',
+    list-constant {{ (RExpr lp:Ring * RExpr lp:Ring * PExpr Z * PExpr Z)%type }}
+                  Lpe Lpe',
     list->conj LpeProofs LpeProofs',
     std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
     std.time (
