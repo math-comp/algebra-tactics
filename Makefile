@@ -30,8 +30,14 @@ Makefile.test-suite.coq: Makefile Make.test-suite
 invoke-coqmakefile: Makefile.coq
 	$(COQMAKE) $(filter-out $(KNOWNTARGETS),$(MAKECMDGOALS))
 
-test-suite: Makefile.test-suite.coq invoke-coqmakefile
+test-suite: Makefile.test-suite.coq $(TEST_DEP)
 	$(COQMAKE_TESTSUITE)
+
+theories/%.vo: Makefile.coq
+	$(COQMAKE) $@
+
+examples/%.vo: Makefile.test-suite.coq
+	$(COQMAKE_TESTSUITE) $@
 
 clean::
 	@if [ -f Makefile.coq ]; then $(COQMAKE) clean; fi
