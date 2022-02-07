@@ -478,6 +478,7 @@ field (goal _ _ P _ Args as G) GS :- std.do! [
     @ltacfail! 0 => std.assert-ok!
       (coq.unify-eq Ty {{ GRing.Field.sort lp:Field }})
       "Cannot find a declared fieldType",
+    coq.unify-eq Ty {{ Num.NumField.sort lp:NField }} NFieldDiag,
     std.time (
       std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
       field-mode => quote.ring Ring (some Field) Ring (x\ x) T1 RE1 PE1 VarMap,
@@ -490,7 +491,9 @@ field (goal _ _ P _ Args as G) GS :- std.do! [
     list->conj LpeProofs LpeProofs',
     std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
     std.time (
-      field-reflection Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS
+      if (NFieldDiag = ok)
+         (field-reflection NField VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS)
+         (field-reflection Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS)
     ) ReflTime,
     coq.say "Reflection:" ReflTime "sec.",
   ].

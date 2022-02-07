@@ -603,13 +603,7 @@ apply: Pcond_simpl_complete;
     move=> _ ->; exact/PCondP ].
 Qed.
 
-(* Auxiliary Ltac code which will be invoked from Elpi *)
-
-Ltac ring_reflection R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
-  apply: (@ring_correct R 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs);
-  [ exact: (fun _ _ _ _ _ _ _ _ => erefl) | vm_compute; reflexivity].
-
-Ltac field_reflection F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+Ltac field_normalization :=
   let is_true_ := fresh "is_true_" in
   let negb_ := fresh "negb_" in
   let andb_ := fresh "andb_" in
@@ -636,18 +630,54 @@ Ltac field_reflection F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let F_of_natE := fresh "F_of_natE" in
   let expE := fresh "expE" in
   let lE := fresh "lE" in
-  (apply: (@numField_correct _ 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs) ||
-   apply: (@field_correct F 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs));
-  [ exact: (fun _ _ _ _ _ _ _ _ _ _ => erefl) | ];
   move=> is_true_ negb_ andb_ zero one add mul sub opp Feqb F_of_nat exp l;
   move=> is_trueE negbE andbE zeroE oneE addE mulE subE oppE FeqbE F_of_natE;
   move=> expE lE;
-  vm_compute; split; [ reflexivity | ];
+  vm_compute; refine (conj erefl _);
   rewrite ?{is_true_}is_trueE ?{negb_}negbE ?{andb_}andbE;
   rewrite ?{zero}zeroE ?{one}oneE ?{add}addE ?{mul}mulE ?{sub}subE ?{opp}oppE;
   rewrite ?{Feqb}FeqbE ?{F_of_nat}F_of_natE ?{exp}expE ?{l}lE.
 
 End Internals.
+
+(* Auxiliary Ltac code which will be invoked from Elpi *)
+
+Ltac ring_reflection_check R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+  refine (@ring_correct R 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
+                        (fun _ _ _ _ _ _ _ _ => erefl) _);
+  [ vm_compute; reflexivity ].
+
+Ltac ring_reflection_no_check R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+  exact_no_check (@ring_correct
+    R 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
+    (fun _ _ _ _ _ _ _ _ => erefl) ltac:(vm_compute; reflexivity)).
+
+Ltac ring_reflection := ring_reflection_check.
+
+Ltac field_reflection_check F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+  let refl_lemma :=
+    match type of F with
+      numFieldType => constr:(@numField_correct) | _ => constr:(@field_correct)
+    end
+  in
+  refine (refl_lemma F 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
+                     (fun _ _ _ _ _ _ _ _ _ _ => erefl) _);
+  field_normalization.
+
+Ltac field_reflection_no_check F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+  let refl_lemma :=
+    match type of F with
+      numFieldType => constr:(@numField_correct) | _ => constr:(@field_correct)
+    end
+  in
+  let obligation := fresh in
+  eassert (obligation : _);
+  [ | exact_no_check (refl_lemma
+        F 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
+        (fun _ _ _ _ _ _ _ _ _ _ => erefl)
+        ltac:(field_normalization; exact obligation)) ].
+
+Ltac field_reflection := field_reflection_check.
 
 Strategy expand
          [addn_expand nat_of_pos_rec_expand nat_of_pos_expand nat_of_N_expand
