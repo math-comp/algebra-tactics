@@ -712,3 +712,7 @@ Elpi Typecheck.
 
 Tactic Notation "field" := elpi field.
 Tactic Notation "field" ":" ne_constr_list(L) := elpi field ltac_term_list:(L).
+
+Elpi Query lp:{{
+  coq.option.add ["Algebra", "Tactics", "Debug"] (coq.option.bool ff) ff
+}}.

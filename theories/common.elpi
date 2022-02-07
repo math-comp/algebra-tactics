@@ -446,7 +446,6 @@ ring (goal _ _ P _ Args as G) GS :- std.do! [
       quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
       quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap
     ) ReifTime,
-    coq.say "Reification:" ReifTime "sec.",
     list-constant Ty VarMap VarMap',
     list-constant _ Lpe Lpe',
     std.assert-ok! (coq.typecheck Lpe' _) "Ill-typed term",
@@ -455,7 +454,10 @@ ring (goal _ _ P _ Args as G) GS :- std.do! [
     std.time (
       ring-reflection ComRing VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS
     ) ReflTime,
-    coq.say "Reflection:" ReflTime "sec.",
+    if (coq.option.get ["Algebra", "Tactics", "Debug"] (coq.option.bool tt))
+       (coq.say "Reification:" ReifTime "sec.\n",
+        coq.say "Reflection:" ReflTime "sec.")
+       true
   ].
 
 pred field-reflection i:term, i:term, i:term, i:term, i:term, i:term,
@@ -484,7 +486,6 @@ field (goal _ _ P _ Args as G) GS :- std.do! [
       field-mode => quote.ring Ring (some Field) Ring (x\ x) T1 RE1 PE1 VarMap,
       field-mode => quote.ring Ring (some Field) Ring (x\ x) T2 RE2 PE2 VarMap
     ) ReifTime,
-    coq.say "Reification:" ReifTime "sec.",
     list-constant Ty VarMap VarMap',
     list-constant _ Lpe Lpe',
     std.assert-ok! (coq.typecheck Lpe' _) "Ill-typed term",
@@ -495,5 +496,8 @@ field (goal _ _ P _ Args as G) GS :- std.do! [
          (field-reflection NField VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS)
          (field-reflection Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS)
     ) ReflTime,
-    coq.say "Reflection:" ReflTime "sec.",
+    if (coq.option.get ["Algebra", "Tactics", "Debug"] (coq.option.bool tt))
+       (coq.say "Reification:" ReifTime "sec.\n",
+        coq.say "Reflection:" ReflTime "sec.")
+       true
   ].
