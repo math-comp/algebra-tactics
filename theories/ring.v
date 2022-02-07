@@ -416,9 +416,12 @@ Lemma ring_correct (R : comRingType) (n : nat) (l : seq R)
                    (re1 re2 : RExpr R) (pe1 pe2 : PExpr Z) :
   interp_RElist lpe ->
   (forall R_of_Z zero opp add sub one mul exp,
-      let lpe' := (re1, re2, pe1, pe2) :: lpe in
-      norm_RElist R_of_Z zero opp add sub one mul exp lpe' =
-      interp_PElist R_of_Z zero opp add sub one mul exp l lpe') ->
+      Rnorm R_of_Z zero opp add sub one mul exp [rmorphism of idfun] re1 ::
+      Rnorm R_of_Z zero opp add sub one mul exp [rmorphism of idfun] re2 ::
+      norm_RElist R_of_Z zero opp add sub one mul exp lpe =
+      PEeval zero one add mul sub opp R_of_Z id exp l pe1 ::
+      PEeval zero one add mul sub opp R_of_Z id exp l pe2 ::
+     interp_PElist R_of_Z zero opp add sub one mul exp l lpe) ->
   (let norm_subst' :=
      norm_subst 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb (triv_div 0 1 Z.eqb) n
                 (mk_monpol_list
@@ -603,6 +606,11 @@ apply: Pcond_simpl_complete;
     move=> _ ->; exact/PCondP ].
 Qed.
 
+Ltac reflexivity_no_check :=
+  match goal with
+    | |- @eq ?T ?LHS ?RHS => exact_no_check (@Logic.eq_refl T LHS)
+  end.
+
 Ltac field_normalization :=
   let is_true_ := fresh "is_true_" in
   let negb_ := fresh "negb_" in
@@ -650,7 +658,8 @@ Ltac ring_reflection_check R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
 Ltac ring_reflection_no_check R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   exact_no_check (@ring_correct
     R 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
-    (fun _ _ _ _ _ _ _ _ => erefl) ltac:(vm_compute; reflexivity)).
+    (fun _ _ _ _ _ _ _ _ => ltac:(reflexivity_no_check))
+    ltac:(vm_compute; reflexivity)).
 
 Ltac ring_reflection := ring_reflection_check.
 
@@ -674,7 +683,7 @@ Ltac field_reflection_no_check F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   eassert (obligation : _);
   [ | exact_no_check (refl_lemma
         F 100 VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
-        (fun _ _ _ _ _ _ _ _ _ _ => erefl)
+        (fun _ _ _ _ _ _ _ _ _ _ => ltac:(reflexivity_no_check))
         ltac:(field_normalization; exact obligation)) ].
 
 Ltac field_reflection := field_reflection_check.
