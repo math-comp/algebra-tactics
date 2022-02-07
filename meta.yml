@@ -64,10 +64,14 @@ tested_coq_opam_versions:
 
 dependencies:
 - opam:
-    name: coq-mathcomp-algebra
+    name: coq-mathcomp-ssreflect
     version: '{>= "1.12"}'
   description: |-
-    [MathComp](https://math-comp.github.io) 1.12.0 or later
+    [MathComp](https://math-comp.github.io) ssreflect 1.12 or later
+- opam:
+    name: coq-mathcomp-algebra
+  description: |-
+    [MathComp](https://math-comp.github.io) algebra
 - opam:
     name: coq-mathcomp-zify
     version: '{>= "1.1.0"}'
