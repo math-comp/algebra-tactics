@@ -448,8 +448,8 @@ ring (goal _ _ P _ Args as G) GS :- std.do! [
     ) ReifTime,
     coq.say "Reification:" ReifTime "sec.",
     list-constant Ty VarMap VarMap',
-    list-constant {{ (RExpr lp:Ring * RExpr lp:Ring * PExpr Z * PExpr Z)%type }}
-                  Lpe Lpe',
+    list-constant _ Lpe Lpe',
+    std.assert-ok! (coq.typecheck Lpe' _) "Ill-typed term",
     list->conj LpeProofs LpeProofs',
     std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
     std.time (
@@ -486,8 +486,8 @@ field (goal _ _ P _ Args as G) GS :- std.do! [
     ) ReifTime,
     coq.say "Reification:" ReifTime "sec.",
     list-constant Ty VarMap VarMap',
-    list-constant {{ (RExpr lp:Ring * RExpr lp:Ring * PExpr Z * PExpr Z)%type }}
-                  Lpe Lpe',
+    list-constant _ Lpe Lpe',
+    std.assert-ok! (coq.typecheck Lpe' _) "Ill-typed term",
     list->conj LpeProofs LpeProofs',
     std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
     std.time (
