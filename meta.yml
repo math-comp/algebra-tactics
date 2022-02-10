@@ -17,6 +17,10 @@ description: |-
   automatically push down ring morphisms and additive functions to leaves of
   ring/field expressions before normalization to the Horner form.
 
+publications:
+- pub_url: https://arxiv.org/abs/2202.04330
+  pub_title: Reflexive tactics for algebra, revisited
+
 authors:
 - name: Kazuhiko Sakaguchi
   initial: true

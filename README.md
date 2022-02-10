@@ -32,7 +32,8 @@ ring/field expressions before normalization to the Horner form.
   - [Mczify](https://github.com/math-comp/mczify) 1.1.0 or later
   - [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.10.1 or later
 - Coq namespace: `mathcomp.algebra_tactics`
-- Related publication(s): none
+- Related publication(s):
+  - [Reflexive tactics for algebra, revisited](https://arxiv.org/abs/2202.04330) 
 
 ## Building and installation instructions
 
