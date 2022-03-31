@@ -56,7 +56,17 @@ make install
 
 
 ## Credits
-The way we adapt the internals of Coq's `ring` and `field` tactics to
-algebraic structures of the Mathematical Components library is inspired by the
-[elliptic-curves-ssr](https://github.com/strub/elliptic-curves-ssr) library by
-Evmorfia-Iro Bartzia and Pierre-Yves Strub.
+
+- The way we adapt the internals of Coq's `ring` and `field` tactics to
+  algebraic structures of the Mathematical Components library is inspired by
+  the [elliptic-curves-ssr](https://github.com/strub/elliptic-curves-ssr)
+  library by Evmorfia-Iro Bartzia and Pierre-Yves Strub.
+- The example [`from_sander.v`](examples/from_sander.v) contributed by Assia
+  Mahboubi was given to her by [Sander Dahmen](http://www.few.vu.nl/~sdn249/).
+  It is related to a computational proof that elliptic curves are endowed with
+  a group law.
+  As [suggested](https://hal.inria.fr/inria-00129237v4/document) by Laurent
+  Théry a while ago, this problem is a good benchmark for proof systems.
+  Laurent Théry and Guillaume Hanrot [formally
+  verified](https://doi.org/10.1007/978-3-540-74591-4_24) this property in Coq
+  in 2007.
