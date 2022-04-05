@@ -704,6 +704,9 @@ Elpi Typecheck.
 
 Tactic Notation "ring" := elpi ring.
 Tactic Notation "ring" ":" ne_constr_list(L) := elpi ring ltac_term_list:(L).
+Tactic Notation "#[" attributes(A) "]" "ring" := ltac_attributes:(A) elpi ring.
+Tactic Notation "#[" attributes(A) "]" "ring" ":" ne_constr_list(L) :=
+  ltac_attributes:(A) elpi ring ltac_term_list:(L).
 
 Elpi Tactic field.
 Elpi Accumulate File "theories/common.elpi".
@@ -712,3 +715,7 @@ Elpi Typecheck.
 
 Tactic Notation "field" := elpi field.
 Tactic Notation "field" ":" ne_constr_list(L) := elpi field ltac_term_list:(L).
+Tactic Notation "#[" attributes(A) "]" "field" :=
+  ltac_attributes:(A) elpi field.
+Tactic Notation "#[" attributes(A) "]" "field" ":" ne_constr_list(L) :=
+  ltac_attributes:(A) elpi field ltac_term_list:(L).

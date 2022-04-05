@@ -23,6 +23,10 @@ Goal (a + b + c) ^+ 2 =
      a * a + b ^+ 2 + c * c + 2%:R * a * b + 2%:R * a * c + 2%:R * b * c.
 Proof. ring. Qed.
 
+Goal (a + b + c) ^+ 2 =
+     a * a + b ^+ 2 + c * c + 2%:R * a * b + 2%:R * a * c + 2%:R * b * c.
+Proof. (#[verbose] ring). Qed.
+
 (* Using the _%:~R embedding from int to R : 2 is coerced to (Posz 2) : int *)
 Goal (a + b + c) ^+ 2 =
      a * a + b ^+ 2 + c * c + 2%:~R * a * b + 2%:~R * a * c + 2%:~R * b * c.
