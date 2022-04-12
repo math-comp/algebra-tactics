@@ -1,7 +1,9 @@
-examples/field_examples.v
-examples/ring_examples.v
+examples/field_examples_check.v
+examples/field_examples_no_check.v
+examples/ring_examples_check.v
+examples/ring_examples_no_check.v
 examples/from_sander.v
 examples/zmodule.v
 
--I .
+-R examples mathcomp.algebra_tactics.examples
 -arg -w -arg -notation-overridden

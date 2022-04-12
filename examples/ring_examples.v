@@ -1,6 +1,8 @@
-From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
-From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint rat.
-From mathcomp Require Import ring.
+(* This file should be tested by loaded from `ring_examples_check.v` and      *)
+(* `ring_examples_no_check.v`. To edit this file, uncomment `Require Import`s *)
+(* below: *)
+(* From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint rat. *)
+(* From mathcomp Require Import ring. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -112,12 +114,3 @@ Lemma test_vars :
 Proof. Time ring. Qed. (* 0.049 secs *)
 
 End MoreVariables.
-
-(* A failure to test the error message *)
-
-Goal forall (R : comRingType) (a : R), a + a = a.
-Proof.
-move=> R a.
-Fail ring. (* prints Not a valid ring equation. *)
-ring || idtac. (* elpi-tactic failure can be caught by Ltac. *)
-Abort.

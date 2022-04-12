@@ -1,6 +1,8 @@
-From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
-From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint rat.
-From mathcomp Require Import ring.
+(* This file should be tested by loaded from `field_examples_check.v` and     *)
+(* `field_examples_no_check.v`. To edit this file, uncomment `Require         *)
+(* Import`s below: *)
+(* From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint rat. *)
+(* From mathcomp Require Import ring. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
