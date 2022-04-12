@@ -394,6 +394,10 @@ quote.ring _ _ _ _ In _ _ _ :- coq.error "Unknown" {coq.term->string In}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+pred if-verbose i:prop.
+if-verbose P :- get-option "verbose" tt, !, P.
+if-verbose _.
+
 pred append-last-hyp-to-args i:sealed-goal, o:sealed-goal.
 append-last-hyp-to-args (nabla G) (nabla G1) :-
   pi x\ append-last-hyp-to-args (G x) (G1 x).
@@ -431,7 +435,10 @@ ring-reflection _ _ _ _ _ _ _ _ _ _ :-
   coq.ltac.fail 0 "Not a valid ring equation".
 
 pred ring i:goal, o:list sealed-goal.
-ring (goal _ _ P _ Args as G) GS :- std.do! [
+ring (goal _ _ P _ Args as G) GS :-
+  attributes A, !,
+  coq.parse-attributes A [att "verbose" bool] Opts, !,
+  Opts => std.do! [
     @ltacfail! 0 => std.assert-ok!
       (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
       "The goal is not an equation",
@@ -446,7 +453,7 @@ ring (goal _ _ P _ Args as G) GS :- std.do! [
       quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
       quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap
     ) ReifTime,
-    coq.say "Reification:" ReifTime "sec.",
+    if-verbose (coq.say "Reification:" ReifTime "sec."),
     list-constant Ty VarMap VarMap',
     list-constant _ Lpe Lpe',
     std.assert-ok! (coq.typecheck Lpe' _) "Ill-typed term",
@@ -455,7 +462,7 @@ ring (goal _ _ P _ Args as G) GS :- std.do! [
     std.time (
       ring-reflection ComRing VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS
     ) ReflTime,
-    coq.say "Reflection:" ReflTime "sec.",
+    if-verbose (coq.say "Reflection:" ReflTime "sec."),
   ].
 
 pred field-reflection i:term, i:term, i:term, i:term, i:term, i:term,
@@ -468,7 +475,10 @@ field-reflection _ _ _ _ _ _ _ _ _ _ :-
   coq.ltac.fail 0 "Not a valid ring equation".
 
 pred field i:goal, o:list sealed-goal.
-field (goal _ _ P _ Args as G) GS :- std.do! [
+field (goal _ _ P _ Args as G) GS :-
+  attributes A, !,
+  coq.parse-attributes A [att "verbose" bool] Opts, !,
+  Opts => std.do! [
     @ltacfail! 0 => std.assert-ok!
       (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
       "The goal is not an equation",
@@ -484,7 +494,7 @@ field (goal _ _ P _ Args as G) GS :- std.do! [
       field-mode => quote.ring Ring (some Field) Ring (x\ x) T1 RE1 PE1 VarMap,
       field-mode => quote.ring Ring (some Field) Ring (x\ x) T2 RE2 PE2 VarMap
     ) ReifTime,
-    coq.say "Reification:" ReifTime "sec.",
+    if-verbose (coq.say "Reification:" ReifTime "sec."),
     list-constant Ty VarMap VarMap',
     list-constant _ Lpe Lpe',
     std.assert-ok! (coq.typecheck Lpe' _) "Ill-typed term",
@@ -495,5 +505,5 @@ field (goal _ _ P _ Args as G) GS :- std.do! [
          (field-reflection NField VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS)
          (field-reflection Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS)
     ) ReflTime,
-    coq.say "Reflection:" ReflTime "sec.",
+    if-verbose (coq.say "Reflection:" ReflTime "sec."),
   ].
