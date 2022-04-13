@@ -1,5 +1,4 @@
-From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
-From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint rat.
+From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint rat.
 From mathcomp Require Import ring.
 
 Set Implicit Arguments.
@@ -8,7 +7,7 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 
-Section BiggerExample.
+Section Polynomials.
 
 Variables (R : unitRingType) (x1 x2 x3 y1 y2 y3 : R).
 
@@ -557,27 +556,49 @@ Definition f3 := 2%:R*x1^9%:R*x2^4 -
 2%:R*x1*y2^3*y3^5 + 2%:R*x2*y2^3*y3^5 + x1^4%:R*y3^6 - 4%:R*x1^3*x2*y3^6 +
 6%:R*x1^2*x2^2*y3^6 - 4%:R*x1*x2^3*y3^6 + x2^4%:R*y3^6.
 
-End BiggerExample.
+End Polynomials.
 
 Lemma from_sander_int (x1 x2 x3 y1 y2 y3 : int) :
   f1 x1 x2 x3 y1 y2 y3 * f2 x1 x2 x3 y1 y2 y3 = f3 x1 x2 x3 y1 y2 y3.
 Proof.
 rewrite /f1 /f2 /f3.
-Time ring. (* 21.102 secs *)
-Time Qed. (* 1.932 secs *)
+Time ring. (* 6.881 secs *)
+Time Qed. (* 0.95 secs *)
 
-(*
 Lemma from_sander_rat (x1 x2 x3 y1 y2 y3 : rat) :
   f1 x1 x2 x3 y1 y2 y3 * f2 x1 x2 x3 y1 y2 y3 = f3 x1 x2 x3 y1 y2 y3.
 Proof.
 rewrite /f1 /f2 /f3.
-Time ring. (* 20.657 secs *)
-Time Qed. (* 1.774 secs *)
+Time ring. (* 6.805 secs *)
+Time Qed. (* 0.94 secs *)
 
 Lemma from_sander_abstract (R : comUnitRingType) (x1 x2 x3 y1 y2 y3 : R) :
   f1 x1 x2 x3 y1 y2 y3 * f2 x1 x2 x3 y1 y2 y3 = f3 x1 x2 x3 y1 y2 y3.
 Proof.
 rewrite /f1 /f2 /f3.
-Time ring. (* 22.128 secs *)
-Time Qed. (* 2.197 secs *)
-*)
+Time ring. (* 6.303 secs *)
+Time Qed. (* 0.913 secs *)
+
+Ltac ring_reflection ::= ring_reflection_no_check.
+
+Lemma from_sander_int_no_check (x1 x2 x3 y1 y2 y3 : int) :
+  f1 x1 x2 x3 y1 y2 y3 * f2 x1 x2 x3 y1 y2 y3 = f3 x1 x2 x3 y1 y2 y3.
+Proof.
+rewrite /f1 /f2 /f3.
+Time ring. (* 4.93 secs *)
+Time Qed. (* 0.903 secs *)
+
+Lemma from_sander_rat_no_check (x1 x2 x3 y1 y2 y3 : rat) :
+  f1 x1 x2 x3 y1 y2 y3 * f2 x1 x2 x3 y1 y2 y3 = f3 x1 x2 x3 y1 y2 y3.
+Proof.
+rewrite /f1 /f2 /f3.
+Time ring. (* 4.772 secs *)
+Time Qed. (* 0.838 secs *)
+
+Lemma from_sander_abstract_no_check
+  (R : comUnitRingType) (x1 x2 x3 y1 y2 y3 : R) :
+  f1 x1 x2 x3 y1 y2 y3 * f2 x1 x2 x3 y1 y2 y3 = f3 x1 x2 x3 y1 y2 y3.
+Proof.
+rewrite /f1 /f2 /f3.
+Time ring. (* 5.023 secs *)
+Time Qed. (* 1.005 secs *)
