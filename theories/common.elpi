@@ -398,20 +398,6 @@ pred if-verbose i:prop.
 if-verbose P :- get-option "verbose" tt, !, P.
 if-verbose _.
 
-pred append-last-hyp-to-args i:sealed-goal, o:sealed-goal.
-append-last-hyp-to-args (nabla G) (nabla G1) :-
-  pi x\ append-last-hyp-to-args (G x) (G1 x).
-append-last-hyp-to-args (seal (goal Ctx RE Ty E Args))
-                        (seal (goal Ctx RE Ty E Args1)) :-
-  Ctx = [decl X _ _|_],
-  std.append Args [trm X] Args1.
-
-pred with-top-hyp i:goal, o:list sealed-goal.
-with-top-hyp (goal _ _ (prod N Src _) _ A as G) [G3] :- !,
-  refine (fun N Src _) G [G1],
-  coq.ltac.set-goal-arguments A G G1 G2,
-  append-last-hyp-to-args G2 G3.
-
 pred quote-arg i:term, o:list term, i:argument, o:pair term term.
 quote-arg Ring VarMap (trm Proof)
           (pr {{ (lp:RE1, lp:RE2, lp:PE1, lp:PE2) }} Proof) :- std.do! [

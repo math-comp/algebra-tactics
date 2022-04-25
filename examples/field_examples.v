@@ -23,10 +23,10 @@ Goal forall (F F' : fieldType) (f : {rmorphism F -> F'}) (x : F),
 Proof. by move=> F F' f x x_neq0; field. Qed.
 
 Goal forall (F : fieldType) (x y : F), y != 0 -> y = x -> x / y = 1.
-Proof. by move=> F x y y_neq0; field. Qed.
+Proof. by move=> F x y y_neq0 y_eq_x; field: y_eq_x. Qed.
 
 Goal forall (F : fieldType) (x y : F), y != 0 -> y = 1 -> x = 1 -> x / y = 1.
-Proof. by move=> F x y y_neq0; field. Qed.
+Proof. by move=> F x y y_neq0 y_eq1 xeq1; field: y_eq1 xeq1. Qed.
 
 (* Using the _%:R embedding from nat to F *)
 
