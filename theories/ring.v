@@ -363,9 +363,6 @@ End Fnorm.
 
 (* Normalizing ring and field expressions to the Horner form by reflection    *)
 
-Lemma RE R : @ring_eq_ext R +%R *%R -%R eq.
-Proof. by split; do! move=> ? _ <-. Qed.
-
 Lemma RZ R : ring_morph 0 1 +%R *%R (fun x y : R => x - y) -%R eq
                         0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
                         (fun n => (int_of_Z n)%:~R).
@@ -407,9 +404,10 @@ Fixpoint interp_PElist
     [::].
 
 Definition Rcorrect (R : comRingType) :=
+  let RE := Eq_ext +%R *%R -%R in
   ring_correct
-    (Eqsth R) (RE R) (Rth_ARth (Eqsth R) (RE R) (RR R)) (RZ R) (PN R)
-    (triv_div_th (Eqsth R) (RE R) (Rth_ARth (Eqsth R) (RE R) (RR R)) (RZ R)).
+    (Eqsth R) RE (Rth_ARth (Eqsth R) RE (RR R)) (RZ R) (PN R)
+    (triv_div_th (Eqsth R) RE (Rth_ARth (Eqsth R) RE (RR R)) (RZ R)).
 
 Lemma ring_correct (R : comRingType) (n : nat) (l : seq R)
                    (lpe : seq (RExpr R * RExpr R * PExpr Z * PExpr Z))
@@ -494,10 +492,10 @@ Qed.
 End PCond_facts.
 
 Definition Fcorrect F :=
+  let RE := Eq_ext +%R *%R -%R in
   Field_correct
-    (Eqsth F) (RE F) (congr1 GRing.inv)
-    (F2AF (Eqsth F) (RE F) (RF F)) (RZ F) (PN F)
-    (triv_div_th (Eqsth F) (RE F) (Rth_ARth (Eqsth F) (RE F) (RR F)) (RZ F)).
+    (Eqsth F) RE (congr1 GRing.inv) (F2AF (Eqsth F) RE (RF F)) (RZ F) (PN F)
+    (triv_div_th (Eqsth F) RE (Rth_ARth (Eqsth F) RE (RR F)) (RZ F)).
 
 Lemma field_correct (F : fieldType) (n : nat) (l : seq F)
                     (lpe : seq (RExpr F * RExpr F * PExpr Z * PExpr Z))
@@ -548,8 +546,9 @@ apply: (Fcorrect _ erefl erefl erefl Heq).
   move=> [[[{}re1 {}re2] {}pe1] {}pe2] lpe IHlpe; rewrite /= -!Rnorm_correct //.
   by move=> [-> ->] Hlpe [Hpe /(IHlpe Hlpe)] {IHlpe Hlpe} /=; case: lpe.
 by apply: Pcond_simpl_gen;
-  [ exact: RE | exact/F2AF/RF/RE | exact: RZ | exact: PN |
-    exact/triv_div_th/RZ/Rth_ARth/RR/RE/RE/Eqsth | move=> _ ->; exact/PCondP ].
+  [ exact: Eq_ext | exact/F2AF/RF/Eq_ext | exact: RZ | exact: PN |
+    exact/triv_div_th/RZ/Rth_ARth/RR/Eq_ext/Eq_ext/Eqsth |
+    move=> _ ->; exact/PCondP ].
 Qed.
 
 Lemma numField_correct (F : numFieldType) (n : nat) (l : seq F)
@@ -601,9 +600,9 @@ apply: (Fcorrect _ erefl erefl erefl Heq).
   move=> [[[{}re1 {}re2] {}pe1] {}pe2] lpe IHlpe; rewrite /= -!Rnorm_correct //.
   by move=> [-> ->] Hlpe [Hpe /(IHlpe Hlpe)] {IHlpe Hlpe} /=; case: lpe.
 apply: Pcond_simpl_complete;
-  [ exact: RE | exact/F2AF/RF/RE | exact: RZ | exact: PN |
-    exact/triv_div_th/RZ/Rth_ARth/RR/RE/RE/Eqsth | move=> x y /intr_inj; lia |
-    move=> _ ->; exact/PCondP ].
+  [ exact: Eq_ext | exact/F2AF/RF/Eq_ext | exact: RZ | exact: PN |
+    exact/triv_div_th/RZ/Rth_ARth/RR/Eq_ext/Eq_ext/Eqsth |
+    move=> x y /intr_inj; lia | move=> _ ->; exact/PCondP ].
 Qed.
 
 Ltac reflexivity_no_check :=
@@ -691,11 +690,6 @@ Ltac field_reflection := field_reflection_check.
 Strategy expand
          [addn_expand nat_of_pos_rec_expand nat_of_pos_expand nat_of_N_expand
           int_of_Z_expand Neval Reval Nnorm Rnorm Fnorm PEeval FEeval].
-
-Register Coq.Init.Logic.eq       as ring.eq.
-Register Coq.Init.Logic.eq_refl  as ring.erefl.
-Register Coq.Init.Logic.eq_sym   as ring.esym.
-Register Coq.Init.Logic.eq_trans as ring.etrans.
 
 Elpi Tactic ring.
 Elpi Accumulate File "theories/common.elpi".
