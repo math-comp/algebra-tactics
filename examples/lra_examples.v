@@ -101,8 +101,8 @@ Qed.
 
 Lemma test_exfalso x (xle2 : x <= 2%:R) (xge3 : x >= 3%:R) : bool.
 Proof.
-(* lra. *)
-Abort.
+lra.
+Qed.
 
 Lemma test_rat_constant x : 0 <= x -> 1 / 3 * x <= 2^-1 * x.
 Proof.

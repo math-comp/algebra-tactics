@@ -285,21 +285,30 @@ quote.hyps F [def _ _ _ _|Ctx] Type TypeF Type' TypeF' VM :- !,
   quote.hyps F Ctx Type TypeF Type' TypeF' VM.
 quote.hyps _ [] Type TypeF Type TypeF _.
 
+% [exfalso_if_not_prop In Out Bool] changes [In] to [False]
+% when [In] is not a [Prop] (and then set [Bool] to [true])
+pred exfalso_if_not_prop i:term, o:term, o:term.
+exfalso_if_not_prop Type Type {{ false }} :-
+  coq.typecheck Type {{ Prop }} ok.
+exfalso_if_not_prop _ {{ False }} {{ true }}.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Main tactic
 
 % This calls the Ltac1 tactic "lraF" with the following arguments:
-% - [Type'] a term of type [Prop], an implication with the goal
+% - [Efalso] a term of type [bool] indicating if the goal was changed to [False]
+% - [Type''] a term of type [Prop], an implication with the goal
 %   and selected hypotheses
-% - [TypeF'] the reified [Type'] as a [BFormula (Formula Q) Tauto.isProp]
+% - [TypeF'] the reified [Type''] as a [BFormula (Formula Q) Tauto.isProp]
 % - [VM''] a variable map, giving the interpretation to variables in [TypeF']
 %   it is of type [VarMap.t F] where [F] is the carrier for the detected
 %   [realFieldType]
 solve (goal Ctx _Trigger Type _Proof _Args as G) GL :-
+  exfalso_if_not_prop Type Type' Efalso,
   std.rev Ctx Ctx', !,
-  fstr Ctx' Type F, !,
-  quote F Type TypeF VM, !,
-  quote.hyps F Ctx' Type TypeF Type' TypeF' VM, !,
+  fstr Ctx' Type' F, !,
+  quote F Type' TypeF VM, !,
+  quote.hyps F Ctx' Type' TypeF Type'' TypeF' VM, !,
   std.assert-ok!
     (coq.typecheck TypeF' {{ BFormula (Formula Q) isProp }})
     "The reification produced an ill-typed result, this is a bug.",
@@ -308,5 +317,5 @@ solve (goal Ctx _Trigger Type _Proof _Args as G) GL :-
     {{ Internals.vm_of_list lp:VM' }}
     {{ VarMap.t lp:FS }}
     VM'',
-  (coq.ltac.call "lraF" [trm Type', trm TypeF', trm VM''] G GL;
+  (coq.ltac.call "lraF" [trm Efalso, trm Type'', trm TypeF', trm VM''] G GL;
    coq.ltac.fail 0).
