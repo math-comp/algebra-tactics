@@ -241,7 +241,8 @@ Definition vm_of_list T (l : list T) : VarMap.t T :=
 End Internals.
 
 (* Main tactic, called from the elpi parser (c.f., lra.elpi) *)
-Ltac lraF hyps_goal ff varmap :=
+Ltac lraF efalso hyps_goal ff varmap :=
+  match efalso with true => exfalso | _ => idtac end;
   (suff: hyps_goal by exact);
   let iff := fresh "__ff" in
   let ivarmap := fresh "__varmap" in
