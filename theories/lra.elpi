@@ -31,9 +31,13 @@ pred reduction-Z i:term, o:term.
 reduction-Z I O :- coq.reduction.vm.norm I {{ Z }} O, ground-Z O.
 
 pred nat->N i:term, o:term.
+nat->N {{ Init.Nat.of_num_uint lp:X }} XN :-
+  reduction-N {{ N.of_num_uint lp:X }} XN.
 nat->N {{ lp:X }} XN :- reduction-N {{ N.of_nat lp:X }} XN.
 
 pred nat->Z i:term, o:term.
+nat->Z {{ Init.Nat.of_num_uint lp:X }} XZ :-
+  reduction-Z {{ Z.of_num_uint lp:X }} XZ.
 nat->Z {{ lp:X }} XZ :- reduction-Z {{ Z.of_nat lp:X }} XZ.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
