@@ -41,138 +41,171 @@ nat->Z {{ Init.Nat.of_num_uint lp:X }} XZ :-
 nat->Z {{ lp:X }} XZ :- reduction-Z {{ Z.of_nat lp:X }} XZ.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Casts from realFieldType to various substructures
+% Sum type to contain either realDomainType or realFieldType
+% and casts from both to various substructures
 
-pred f->sort o:term, o:term.
-f->sort F T :- coq.unify-eq {{ Num.RealField.sort lp:F }} T ok.
+% ring or field
+kind rf type.
+type ring term -> rf.
+type field term -> rf.
 
-pred f->eq o:term, o:term.
-f->eq F T :- coq.unify-eq {{ Num.RealField.eqType lp:F }} T ok.
+pred rf->sort o:rf, o:term.
+rf->sort (field F) T :- coq.unify-eq {{ Num.RealField.sort lp:F }} T ok.
+rf->sort (ring R) T :- coq.unify-eq {{ Num.RealDomain.sort lp:R }} T ok.
 
-pred f->porder o:term, o:term.
-f->porder F T :- coq.unify-eq {{ Num.RealField.porderType lp:F }} T ok.
+pred rf->eq o:rf, o:term.
+rf->eq (field F) T :- coq.unify-eq {{ Num.RealField.eqType lp:F }} T ok.
+rf->eq (ring R) T :- coq.unify-eq {{ Num.RealDomain.eqType lp:R }} T ok.
 
-pred f->zmod o:term, o:term.
-f->zmod F T :- coq.unify-eq {{ Num.RealField.zmodType lp:F }} T ok.
+pred rf->porder o:rf, o:term.
+rf->porder (field F) T :- coq.unify-eq {{ Num.RealField.porderType lp:F }} T ok.
+rf->porder (ring R) T :- coq.unify-eq {{ Num.RealDomain.porderType lp:R }} T ok.
 
-pred f->ring o:term, o:term.
-f->ring F T :- coq.unify-eq {{ Num.RealField.ringType lp:F }} T ok.
+pred rf->zmod o:rf, o:term.
+rf->zmod (field F) T :- coq.unify-eq {{ Num.RealField.zmodType lp:F }} T ok.
+rf->zmod (ring R) T :- coq.unify-eq {{ Num.RealDomain.zmodType lp:R }} T ok.
 
-pred f->unitRing o:term, o:term.
-f->unitRing F T :-
+pred rf->ring o:rf, o:term.
+rf->ring (field F) T :- coq.unify-eq {{ Num.RealField.ringType lp:F }} T ok.
+rf->ring (ring R) T :- coq.unify-eq {{ Num.RealDomain.ringType lp:R }} T ok.
+
+pred rf->unitRing o:rf, o:term.
+rf->unitRing (field F) T :-
   coq.unify-eq {{ Num.RealField.unitRingType lp:F }} T ok.
+rf->unitRing (ring R) T :-
+  coq.unify-eq {{ Num.RealDomain.unitRingType lp:R }} T ok.
+
+% [field-mode] is true if we are on a realFieldType,
+% otherwise we are on a realDomainType.
+pred field-mode.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Parse goal (and hypotheses) to extract a realFieldType or realDomainType
 % from (in)equalities it contains
 
-% field structure from a term of type bool
-pred fstr.bool i:term, o:term.
-fstr.bool {{ _ ==> lp:Type }} F :- fstr.bool Type F.
-fstr.bool {{ lp:Type ==> _ }} F :- fstr.bool Type F.
-fstr.bool {{ ~~ lp:Type }} F :- fstr.bool Type F.
-fstr.bool {{ _ && lp:Type }} F :- fstr.bool Type F.
-fstr.bool {{ lp:Type && _ }} F :- fstr.bool Type F.
-fstr.bool {{ _ || lp:Type }} F :- fstr.bool Type F.
-fstr.bool {{ lp:Type || _ }} F :- fstr.bool Type F.
-fstr.bool {{ @Order.le _ lp:Ty _ _ }} F :- f->porder F Ty.
-fstr.bool {{ @Order.lt _ lp:Ty _ _ }} F :- f->porder F Ty.
+% ring or field structure from a term of type bool
+pred rfstr.bool i:term, o:rf.
+rfstr.bool {{ _ ==> lp:Type }} F :- rfstr.bool Type F.
+rfstr.bool {{ lp:Type ==> _ }} F :- rfstr.bool Type F.
+rfstr.bool {{ ~~ lp:Type }} F :- rfstr.bool Type F.
+rfstr.bool {{ _ && lp:Type }} F :- rfstr.bool Type F.
+rfstr.bool {{ lp:Type && _ }} F :- rfstr.bool Type F.
+rfstr.bool {{ _ || lp:Type }} F :- rfstr.bool Type F.
+rfstr.bool {{ lp:Type || _ }} F :- rfstr.bool Type F.
+rfstr.bool {{ @Order.le _ lp:Ty _ _ }} F :- field-mode,
+  rf->porder F Ty, F = field _.
+rfstr.bool {{ @Order.lt _ lp:Ty _ _ }} F :- field-mode,
+  rf->porder F Ty, F = field _.
+rfstr.bool {{ @Order.le _ lp:Ty _ _ }} R :- not field-mode,
+  rf->porder R Ty, R = ring _.
+rfstr.bool {{ @Order.lt _ lp:Ty _ _ }} R :- not field-mode,
+  rf->porder R Ty, R = ring _.
 
-% field structure from a term of type Prop
-pred fstr.prop i:term, o:term.
-fstr.prop {{ _ -> lp:Type }} F :- fstr.prop Type F.
-fstr.prop {{ lp:Type -> _ }} F :- fstr.prop Type F.
-fstr.prop {{ iff _ lp:Type }} F :- fstr.prop Type F.
-fstr.prop {{ iff lp:Type _ }} F :- fstr.prop Type F.
-fstr.prop {{ ~ lp:Type }} F :- fstr.prop Type F.
-fstr.prop {{ _ /\ lp:Type }} F :- fstr.prop Type F.
-fstr.prop {{ lp:Type /\ _ }} F :- fstr.prop Type F.
-fstr.prop {{ _ \/ lp:Type }} F :- fstr.prop Type F.
-fstr.prop {{ lp:Type \/ _ }} F :- fstr.prop Type F.
-fstr.prop {{ is_true lp:Type }} F :- fstr.bool Type F.
-fstr.prop {{ @eq bool _ lp:Type }} F :- fstr.bool Type F.
-fstr.prop {{ @eq bool lp:Type _ }} F :- fstr.bool Type F.
-fstr.prop {{ @eq lp:Ty _ _ }} F :- f->sort F Ty.
+% ring or field structure from a term of type Prop
+pred rfstr.prop i:term, o:rf.
+rfstr.prop {{ _ -> lp:Type }} F :- rfstr.prop Type F.
+rfstr.prop {{ lp:Type -> _ }} F :- rfstr.prop Type F.
+rfstr.prop {{ iff _ lp:Type }} F :- rfstr.prop Type F.
+rfstr.prop {{ iff lp:Type _ }} F :- rfstr.prop Type F.
+rfstr.prop {{ ~ lp:Type }} F :- rfstr.prop Type F.
+rfstr.prop {{ _ /\ lp:Type }} F :- rfstr.prop Type F.
+rfstr.prop {{ lp:Type /\ _ }} F :- rfstr.prop Type F.
+rfstr.prop {{ _ \/ lp:Type }} F :- rfstr.prop Type F.
+rfstr.prop {{ lp:Type \/ _ }} F :- rfstr.prop Type F.
+rfstr.prop {{ is_true lp:Type }} F :- rfstr.bool Type F.
+rfstr.prop {{ @eq bool _ lp:Type }} F :- rfstr.bool Type F.
+rfstr.prop {{ @eq bool lp:Type _ }} F :- rfstr.bool Type F.
+rfstr.prop {{ @eq lp:Ty _ _ }} F :- field-mode, rf->sort F Ty, F = field _.
+rfstr.prop {{ @eq lp:Ty _ _ }} R :- not field-mode, rf->sort R Ty, R = ring _.
 
-pred fstr.hyps i:list prop, o:term.
-fstr.hyps [decl _ _ H|_] F :- fstr.prop H F.
-fstr.hyps [_|Ctx] F :- fstr.hyps Ctx F.
+pred rfstr.hyps i:list prop, o:rf.
+rfstr.hyps [decl _ _ H|_] F :- rfstr.prop H F.
+rfstr.hyps [_|Ctx] F :- rfstr.hyps Ctx F.
 
-pred fstr i:list prop, i:term, o:term.
-fstr _ Type F :- fstr.prop Type F.
-fstr Ctx _ F :- fstr.hyps Ctx F.
-fstr _ _ _ :- coq.ltac.fail _ "Cannot find a realFieldType".
+pred rfstr i:list prop, i:term, o:rf.
+rfstr _ Type F :- field-mode => rfstr.prop Type F.
+rfstr _ Type R :- rfstr.prop Type R.
+rfstr Ctx _ F :- field-mode => rfstr.hyps Ctx F.
+rfstr Ctx _ R :- rfstr.hyps Ctx R.
+rfstr _ _ _ :- coq.ltac.fail _ "Cannot find a realDomainType".
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Reification procedure
 
-% [quote.cst F In Out] reifies rational constants
+% [quote.cstr F In Out] reifies integer constants
+% - [F] is a [realDomainType] or [realFieldType] instance,
+% - [In] is a term of type [F],
+% - [Out] is a reified constant of type [Z]
+pred quote.cstr i:rf, i:term, o:term.
+quote.cstr F {{ GRing.zero lp:Z }} {{ Z0 }} :- rf->zmod F Z.
+quote.cstr F {{ GRing.one lp:R }} {{ (Zpos 1) }} :- rf->ring F R.
+quote.cstr F {{ @GRing.natmul lp:Z (GRing.one lp:R) lp:X }} XZ :-
+  rf->zmod F Z, rf->ring F R, nat->Z X XZ.
+
+% [quote.cstf F In Out] reifies rational constants
 % - [F] is a [realFieldType] instance,
 % - [In] is a term of type [F],
 % - [Out] is a reified constant of type [Q]
-pred quote.cst i:term, i:term, o:term.
-quote.cst F {{ GRing.zero lp:Z }} {{ Qmake 0 1 }} :- f->zmod F Z.
-quote.cst F {{ GRing.one lp:R }} {{ Qmake 1 1 }} :- f->ring F R.
-quote.cst F {{ @GRing.natmul lp:Z (GRing.one lp:R) lp:X }} {{ Qmake lp:XZ 1 }} :-
-  f->zmod F Z, f->ring F R, nat->Z X XZ.
-quote.cst F {{ @GRing.inv lp:U (@GRing.natmul lp:Z (GRing.one lp:R) lp:X) }}
-    E' :- f->unitRing F U, f->zmod F Z, f->ring F R,
+pred quote.cstf i:rf, i:term, o:term.
+quote.cstf F {{ @GRing.inv lp:U (@GRing.natmul lp:Z (GRing.one lp:R) lp:X) }}
+    E' :- rf->unitRing F U, rf->zmod F Z, rf->ring F R,
   nat->N X XN, XN = {{ Npos lp:XP }}, !, E' = {{ Qmake 1 lp:XP }}.
 
 % [quote.expr F In Out VarMap] reifies arithmetic expressions
-% - [F] is a [realFieldType] instance,
+% - [F] is a [realDomainType] or [realFieldType] instance,
 % - [In] is a term of type [F],
 % - [Out] is a reified expression of type [PExpr Q]
 % - [VarMap] is a variable map, that is a list of terms of type [F].
-pred quote.expr i:term, i:term, o:term, o:list term.
-quote.expr F {{ lp:X : _ }} X' VM :- !, quote.expr F X X' VM.
-quote.expr F {{ @GRing.add lp:Z lp:E1 lp:E2 }} E' VM :- f->zmod F Z, !,
+pred quote.expr i:rf, i:term, o:term, o:list term.
+quote.expr F {{ @GRing.add lp:Z lp:E1 lp:E2 }} E' VM :- rf->zmod F Z, !,
   quote.expr F E1 E1' VM, !, quote.expr F E2 E2' VM, !,
   E' = {{ PEadd lp:E1' lp:E2' }}.
-quote.expr F {{ @GRing.opp lp:Z lp:E }} {{ PEopp lp:E' }} VM :- f->zmod F Z, !,
+quote.expr F {{ @GRing.opp lp:Z lp:E }} {{ PEopp lp:E' }} VM :- rf->zmod F Z, !,
   quote.expr F E E' VM.
-quote.expr F {{ @GRing.mul lp:R lp:E1 lp:E2 }} E' VM :- f->ring F R, !,
+quote.expr F {{ @GRing.mul lp:R lp:E1 lp:E2 }} E' VM :- rf->ring F R, !,
   quote.expr F E1 E1' VM, !, quote.expr F E2 E2' VM, !,
   E' = {{ PEmul lp:E1' lp:E2' }}.
 quote.expr F {{ @GRing.exp lp:R lp:E1 lp:X }} E' VM :-
-  f->ring F R, nat->N X XN, !,
+  rf->ring F R, nat->N X XN, !,
   quote.expr F E1 E1' VM, E' = {{ PEpow lp:E1' lp:XN }}.
-quote.expr F E {{ PEc lp:Q }} _ :- quote.cst F E Q.
+quote.expr F E {{ PEc (Qmake lp:Z 1) }} _ :- quote.cstr F E Z.
+quote.expr F E {{ PEc lp:Q }} _ :- F = field _, quote.cstf F E Q.
+quote.expr F {{ lp:X : _ }} X' VM :- !, quote.expr F X X' VM.
 quote.expr _ X Out VarMap :- !, mem VarMap X N, Out = {{ PEX lp:N }}.
 
 % [quote.bop2 F In Out VarMap] reifies boolean (in)equalities
-% - [F] is a [realFieldType] instance,
+% - [F] is a [realDomainType] or [realFieldType] instance,
 % - [In] is a term of type [bool],
 % - [Out] is a reified expression of type [Formula Q]
 % - [VarMap] is a variable map, that is a list of terms of type [F].
-pred quote.bop2 i:term, i:term, o:term, o:list term.
-quote.bop2 F {{ @Order.le _ lp:O lp:X lp:Y }} F' VM :- f->porder F O, !,
+pred quote.bop2 i:rf, i:term, o:term, o:list term.
+quote.bop2 F {{ @Order.le _ lp:O lp:X lp:Y }} F' VM :- rf->porder F O, !,
   quote.expr F X X' VM, !, quote.expr F Y Y' VM, !,
   F' = {{ Build_Formula lp:X' OpLe lp:Y' }}.
-quote.bop2 F {{ @Order.lt _ lp:O lp:X lp:Y }} F' VM :- f->porder F O, !,
+quote.bop2 F {{ @Order.lt _ lp:O lp:X lp:Y }} F' VM :- rf->porder F O, !,
   quote.expr F X X' VM, !, quote.expr F Y Y' VM, !,
   F' = {{ Build_Formula lp:X' OpLt lp:Y' }}.
-quote.bop2 F {{ @eqtype.eq_op lp:T lp:X lp:Y) }} F' VM :- f->eq F T, !,
+quote.bop2 F {{ @eqtype.eq_op lp:T lp:X lp:Y) }} F' VM :- rf->eq F T, !,
   quote.expr F X X' VM, !, quote.expr F Y Y' VM, !,
   F' = {{ Build_Formula lp:X' OpEq lp:Y' }}.
 
 % [quote.pop2 F In Out VarMap] reifies (in)equalities of type Prop
-% - [F] is a [realFieldType] instance,
+% - [F] is a [realDomainType] or [realFieldType] instance,
 % - [In] is a term of type [Prop],
 % - [Out] is a reified expression of type [Formula Q]
 % - [VarMap] is a variable map, that is a list of terms of type [F].
-pred quote.pop2 i:term, i:term, o:term, o:list term.
+pred quote.pop2 i:rf, i:term, o:term, o:list term.
 quote.pop2 F {{ is_true lp:E }} F' VM :- quote.bop2 F E F' VM.
-quote.pop2 F {{ @eq lp:T lp:X lp:Y) }} F' VM :- f->sort F T, !,
+quote.pop2 F {{ @eq lp:T lp:X lp:Y) }} F' VM :- rf->sort F T, !,
   quote.expr F X X' VM, !, quote.expr F Y Y' VM, !,
   F' = {{ Build_Formula lp:X' OpEq lp:Y' }}.
 
 % [quote.bool F In Out VarMap] reifies boolean formulas
-% - [F] is a [realFieldType] instance,
+% - [F] is a [realDomainType] or [realFieldType] instance,
 % - [In] is a term of type [bool],
 % - [Out] is a reified formula of type [BFormula (Formula Q) Tauto.isBool]
 % - [VarMap] is a variable map, that is a list of terms of type [F].
-pred quote.bool i:term, i:term, o:term, o:list term.
+pred quote.bool i:rf, i:term, o:term, o:list term.
 quote.bool F {{ lp:F1 ==> lp:F2 }} {{ IMPL lp:F1' None lp:F2' }} VM :- !,
   quote.bool F F1 F1' VM, !, quote.bool F F2 F2' VM.
 quote.bool F {{ lp:F1 && lp:F2 }} {{ AND lp:F1' lp:F2' }} VM :- !,
@@ -186,11 +219,11 @@ quote.bool F A {{ A Tauto.isBool lp:A' tt }} VM :- quote.bop2 F A A' VM.
 quote.bool _ X {{ X Tauto.isBool lp:X }} _.
 
 % [quote.prop F In Out VarMap] reifies formulas of type Prop
-% - [F] is a [realFieldType] instance,
+% - [F] is a [realDomainType] or [realFieldType] instance,
 % - [In] is a term of type [Prop],
 % - [Out] is a reified formula of type [BFormula (Formula Q) Tauto.isProp]
 % - [VarMap] is a variable map, that is a list of terms of type [F].
-pred quote.prop i:term, i:term, o:term, o:list term.
+pred quote.prop i:rf, i:term, o:term, o:list term.
 quote.prop F {{ lp:F1 -> lp:F2 }} {{ IMPL lp:F1' None lp:F2' }} VM :- !,
   quote.prop F F1 F1' VM, !, quote.prop F F2 F2' VM.
 quote.prop F {{ iff lp:F1 lp:F2 }} {{ IFF lp:F1' lp:F2' }} VM :- !,
@@ -260,15 +293,15 @@ simplify.prop {{ EQ lp:F1 lp:F2 }} {{ EQ lp:F1' lp:F2' }} :-
 simplify.prop X X.
 
 % [quote F In Out VarMap] reifies formulas of type Prop
-% - [F] is a [realFieldType] instance,
+% - [F] is a [realDomainType] or [realFieldType] instance,
 % - [In] is a term of type [Prop],
 % - [Out] is a reified formula of type [BFormula (Formula Q) Tauto.isProp]
 % - [VarMap] is a variable map, that is a list of terms of type [F].
-pred quote i:term, i:term, o:term, o:list term.
+pred quote i:rf, i:term, o:term, o:list term.
 quote F In Out' VM :- quote.prop F In Out VM, simplify.prop Out Out'.
 
 % [quote.hyps F Hyps Goal ReifiedGoal Out ReifiedOut VarMap] reifies hypotheses
-% - [F] is a [realFieldType] instance,
+% - [F] is a [realDomainType] or [realFieldType] instance,
 % - [Hyps] are hypotheses
 % - [Goal] is the goal, of type [Prop]
 % - [ReifiedGoal] is the refied goal as a [BFormula (Formula Q) Tauto.isProp]
@@ -277,7 +310,7 @@ quote F In Out' VM :- quote.prop F In Out VM, simplify.prop Out Out'.
 % - [ReifiedOut] is a reified version of [Out]
 %   as a [BFormula (Formula Q) Tauto.isProp]
 % - [VarMap] is a variable map, that is a list of terms of type [F].
-pred quote.hyps i:term, i:list prop, i:term, i:term, o:term, o:term, o:list term.
+pred quote.hyps i:rf, i:list prop, i:term, i:term, o:term, o:term, o:list term.
 quote.hyps F [decl _ _ H|Ctx] Type TypeF Type'' TypeF'' VM :-
   quote F H H' VM, not (H' = {{ X _ _ }}), !,
   quote.hyps F Ctx Type TypeF Type' TypeF' VM,
@@ -299,10 +332,11 @@ exfalso_if_not_prop _ {{ False }} {{ true }}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Main tactic
 
-% The tactic takes two arguments, a string [Tac]
-% that is the name of the Ltac1 tactic to call and a second argument [N],
+% The tactic takes three arguments, two strings [TacF] and [TacR]
+% that are the names of the Ltac1 tactic to call respactively
+% in the [realFieldType] and [realDomainType] case and a third argument [N],
 % passed unchanged as first argument to the previous tactic.
-% The tactic [Tac] will receive five arguments:
+% The tactics [TacF] or [TacR] will receive five arguments:
 % - [N] above
 % - [Efalso] a term of type [bool] indicating if the goal was changed to [False]
 % - [Type''] a term of type [Prop], an implication with the goal
@@ -310,20 +344,21 @@ exfalso_if_not_prop _ {{ False }} {{ true }}.
 % - [TypeF'] the reified [Type''] as a [BFormula (Formula Q) Tauto.isProp]
 % - [VM''] a variable map, giving the interpretation to variables in [TypeF']
 %   it is of type [VarMap.t F] where [F] is the carrier for the detected
-%   [realFieldType]
-solve (goal Ctx _Trigger Type _Proof [str Tac, N] as G) GL :-
+%   [realFieldType] or [realDomainType]
+solve (goal Ctx _Trigger Type _Proof [str TacF, str TacR, N] as G) GL :-
   exfalso_if_not_prop Type Type' Efalso,
   std.rev Ctx Ctx', !,
-  fstr Ctx' Type' F, !,
+  rfstr Ctx' Type' F, !,
   quote F Type' TypeF VM, !,
   quote.hyps F Ctx' Type' TypeF Type'' TypeF' VM, !,
   std.assert-ok!
     (coq.typecheck TypeF' {{ BFormula (Formula Q) isProp }})
     "The reification produced an ill-typed result, this is a bug.",
-  f->sort F FS, list-constant FS VM VM',
+  rf->sort F FS, list-constant FS VM VM',
   coq.reduction.vm.norm
     {{ Internals.vm_of_list lp:VM' }}
     {{ VarMap.t lp:FS }}
     VM'',
+  (if (F = field _) (Tac = TacF) (Tac = TacR)),
   (coq.ltac.call Tac [N, trm Efalso, trm Type'', trm TypeF', trm VM''] G GL;
    coq.ltac.fail 0).
