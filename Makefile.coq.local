@@ -1,1 +1,2 @@
-theories/ring.vo : $(wildcard theories/*.elpi)
+theories/ring.vo : theories/common.elpi theories/ring.elpi theories/field.elpi
+theories/lra.vo : theories/lra.elpi
