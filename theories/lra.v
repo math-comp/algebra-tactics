@@ -50,6 +50,30 @@ apply: mk_SOR_theory.
 - by apply/eqP; rewrite eq_sym oner_neq0.
 Qed.
 
+Definition pos_to_nat' p :=
+  if (p <=? 5000)%positive then Pos.to_nat p
+  else Init.Nat.of_num_uint (Pos.to_num_uint p).
+
+Lemma pos_to_nat_pos_to_nat' p : Pos.to_nat p = pos_to_nat' p.
+Proof.
+rewrite /pos_to_nat'; case: ifP => //= _.
+rewrite -positive_N_nat -DecimalPos.Unsigned.of_to.
+rewrite DecimalPos.Unsigned.of_uint_alt DecimalNat.Unsigned.of_uint_alt.
+by elim: Decimal.rev => // u IHu;
+  rewrite /DecimalPos.Unsigned.of_lu -/(DecimalPos.Unsigned.of_lu u);
+  rewrite ?Nnat.N2Nat.inj_add Nnat.N2Nat.inj_mul IHu.
+Qed.
+
+Definition int_of_Z' (z : Z) : int :=
+  match n with
+  | Z0 => 0
+  | Z.pos p => pos_to_nat' p
+  | Z.neg p => Negz (pos_to_nat' p).-1
+  end.
+
+Lemma int_of_Z_int_of_Z' n : int_of_Z n = int_of_Z' n.
+Proof. by case: n => //= p; rewrite pos_to_nat_pos_to_nat'. Qed.
+
 Lemma Pos_to_nat_gt0 p : 0 < (Pos.to_nat p)%:R :> R.
 Proof. rewrite ltr0n; exact/ssrnat.ltP/Pos2Nat.is_pos. Qed.
 
@@ -107,9 +131,9 @@ Variable F : realFieldType.
 
 Definition Q2F (x : Q) : F :=
   match x with
-  | Qmake n 1 => (int_of_Z n)%:~R
-  | Qmake 1 d => GRing.inv (int_of_Z (Zpos d))%:~R
-  | Qmake n d => (int_of_Z n)%:~R / (nat_of_pos d)%:R
+  | Qmake n 1 => (int_of_Z' n)%:~R
+  | Qmake 1 d => GRing.inv (int_of_Z' (Zpos d))%:~R
+  | Qmake n d => (int_of_Z' n)%:~R / (nat_of_pos d)%:R
   end.
 
 Definition Q2F' (x : Q) : F :=
@@ -118,8 +142,8 @@ Definition Q2F' (x : Q) : F :=
 Lemma Q2F_Q2F' x : Q2F x = Q2F' x.
 Proof.
 rewrite /Q2F/Q2F'.
-by case: x => -[|n|n] [p|p|] //; rewrite ?divr1//;
-  case: n; rewrite // mul1r;
+by case: x => -[|n|n] [p|p|] //; rewrite -int_of_Z_int_of_Z'// ?divr1//;
+  case: n; rewrite // -int_of_Z_int_of_Z' mul1r;
   rewrite zify_ssreflect.SsreflectZifyInstances.nat_of_posE.
 Qed.
 
@@ -262,3 +286,6 @@ Elpi Accumulate File "theories/lra.elpi".
 Elpi Typecheck.
 
 Tactic Notation "lra" := elpi lra "lraF".
+
+(* Avoid some stack overflows with large constants *)
+#[global] Opaque Init.Nat.of_num_uint.

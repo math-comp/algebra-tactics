@@ -169,8 +169,8 @@ Lemma vcgen_25 (n m jt j it i : F) :
   1 = -(2%:R) * i + it.
 Proof.
 move=> *.
-(* lra. *)
-Abort.
+lra.
+Qed.
 
 Lemma l1 x y z : `|x - z| <= `|x - y| + `|y - z|.
 Proof.
