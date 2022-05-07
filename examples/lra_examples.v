@@ -194,51 +194,51 @@ Qed.
 Goal forall x y, x = 0 -> x * y = 0.
 Proof.
 move=> *.
-(* nra. *)
-Abort.
+nra.
+Qed.
 
 Goal forall x y, 2%:R * x = 0 -> x * y = 0.
 Proof.
 move=> *.
-(* nra. *)
-Abort.
+nra.
+Qed.
 
 Goal forall x y, - x * x >= 0 -> x * y = 0.
 Proof.
 move=> *.
-(* nra. *)
-Abort.
+nra.
+Qed.
 
 Goal forall x, x * x >= 0.
 Proof.
 move=> *.
-(* nra. *)
-Abort.
+nra.
+Qed.
 
 Goal forall x, -x^+2 >= 0 -> x - 1 >= 0 -> False.
 Proof.
 move=> *.
-(* psatz 3. *)
-Abort.
+psatz 3.
+Qed.
 
 Goal forall x, -x^+2 >= 0 -> x - 1 >= 0 -> False.
 Proof.
 move=> *.
-(* nra. *)
-Abort.
+nra.
+Qed.
 
 Lemma motzkin' x y :
   (x^+2 + y^+2 + 1) * (x^+2 * y^+4 + x^+4*y^+2 + 1 - 3%:R * x^+2 * y^+2) >= 0.
 Proof.
 move=> *.
-(* psatz 3. *)
-Abort.
+psatz 3.
+Qed.
 
 Goal forall x, -x^+2 >= 0 -> x - 1 >= 0 -> False.
 Proof.
 move=> *.
-(* nra. *)
-Abort.
+nra.
+Qed.
 
 Goal 1 / (1 - 1) = 0 :> F.
 Proof.

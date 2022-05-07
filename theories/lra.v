@@ -264,8 +264,8 @@ Definition vm_of_list T (l : list T) : VarMap.t T :=
 
 End Internals.
 
-(* Main tactic, called from the elpi parser (c.f., lra.elpi) *)
-Ltac lraF efalso hyps_goal ff varmap :=
+(* Main tactics, called from the elpi parser (c.f., lra.elpi) *)
+Ltac tacF tac efalso hyps_goal ff varmap :=
   match efalso with true => exfalso | _ => idtac end;
   (suff: hyps_goal by exact);
   let iff := fresh "__ff" in
@@ -274,10 +274,15 @@ Ltac lraF efalso hyps_goal ff varmap :=
   let iprf := fresh "__prf" in
   pose (iff := ff);
   pose (ivarmap := varmap);
-  wlra_Q iwit ff;
+  tac iwit ff;
   pose (iprf := erefl true <: QTautoChecker iff iwit = true);
   change (eval_bf (Internals.Feval_formula (VarMap.find 0 ivarmap)) iff);
   exact (Internals.FTautoChecker_sound iprf (VarMap.find 0 ivarmap)).
+Ltac lraF n := let wlra_Q w f := wlra_Q w f in tacF wlra_Q.
+Ltac nraF n := let wnra_Q w f := wnra_Q w f in tacF wnra_Q.
+Ltac psatzF n :=
+  let sos_or_psatzn w f := wsos_Q w f || wpsatz_Q n w f in
+  tacF sos_or_psatzn.
 
 From elpi Require Import elpi.
 
@@ -285,7 +290,10 @@ Elpi Tactic lra.
 Elpi Accumulate File "theories/lra.elpi".
 Elpi Typecheck.
 
-Tactic Notation "lra" := elpi lra "lraF".
+Tactic Notation "lra" := elpi lra "lraF" 0.
+Tactic Notation "nra" := elpi lra "nraF" 0.
+Tactic Notation "psatz" integer(n) := elpi lra "psatzF" ltac_int:(n).
+Tactic Notation "psatz" := elpi lra "psatzF" (-1).
 
 (* Avoid some stack overflows with large constants *)
 #[global] Opaque Init.Nat.of_num_uint.
