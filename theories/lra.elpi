@@ -90,9 +90,14 @@ fstr.prop {{ @eq bool _ lp:Type }} F :- fstr.bool Type F.
 fstr.prop {{ @eq bool lp:Type _ }} F :- fstr.bool Type F.
 fstr.prop {{ @eq lp:Ty _ _ }} F :- f->sort F Ty.
 
-pred fstr i:term, o:term.
-fstr Type F :- fstr.prop Type F.
-fstr _ _ :- coq.ltac.fail _ "Cannot find a realFieldType".
+pred fstr.hyps i:list prop, o:term.
+fstr.hyps [decl _ _ H|_] F :- fstr.prop H F.
+fstr.hyps [_|Ctx] F :- fstr.hyps Ctx F.
+
+pred fstr i:list prop, i:term, o:term.
+fstr _ Type F :- fstr.prop Type F.
+fstr Ctx _ F :- fstr.hyps Ctx F.
+fstr _ _ _ :- coq.ltac.fail _ "Cannot find a realFieldType".
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Reification procedure
@@ -258,17 +263,43 @@ simplify.prop X X.
 pred quote i:term, i:term, o:term, o:list term.
 quote F In Out' VM :- quote.prop F In Out VM, simplify.prop Out Out'.
 
+% [quote.hyps F Hyps Goal ReifiedGoal Out ReifiedOut VarMap] reifies hypotheses
+% - [F] is a [realFieldType] instance,
+% - [Hyps] are hypotheses
+% - [Goal] is the goal, of type [Prop]
+% - [ReifiedGoal] is the refied goal as a [BFormula (Formula Q) Tauto.isProp]
+% - [Out] is a chain of implications including [Goal] and hypotheses in [Hyps]
+%   that have some arithmetic content
+% - [ReifiedOut] is a reified version of [Out]
+%   as a [BFormula (Formula Q) Tauto.isProp]
+% - [VarMap] is a variable map, that is a list of terms of type [F].
+pred quote.hyps i:term, i:list prop, i:term, i:term, o:term, o:term, o:list term.
+quote.hyps F [decl _ _ H|Ctx] Type TypeF Type'' TypeF'' VM :-
+  quote F H H' VM, not (H' = {{ X _ _ }}), !,
+  quote.hyps F Ctx Type TypeF Type' TypeF' VM,
+  Type'' = {{ lp:H -> lp:Type' }},
+  TypeF'' = {{ IMPL lp:H' None lp:TypeF' }}.
+quote.hyps F [decl _ _ _|Ctx] Type TypeF Type' TypeF' VM :- !,
+  quote.hyps F Ctx Type TypeF Type' TypeF' VM.
+quote.hyps F [def _ _ _ _|Ctx] Type TypeF Type' TypeF' VM :- !,
+  quote.hyps F Ctx Type TypeF Type' TypeF' VM.
+quote.hyps _ [] Type TypeF Type TypeF _.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Main tactic
 
 % This calls the Ltac1 tactic "lraF" with the following arguments:
-% - [TypeF'] the reified goal as a [BFormula (Formula Q) Tauto.isProp]
+% - [Type'] a term of type [Prop], an implication with the goal
+%   and selected hypotheses
+% - [TypeF'] the reified [Type'] as a [BFormula (Formula Q) Tauto.isProp]
 % - [VM''] a variable map, giving the interpretation to variables in [TypeF']
 %   it is of type [VarMap.t F] where [F] is the carrier for the detected
 %   [realFieldType]
-solve (goal _Ctx _Trigger Type _Proof _Args as G) GL :-
-  fstr Type F, !,
-  quote F Type TypeF' VM, !,
+solve (goal Ctx _Trigger Type _Proof _Args as G) GL :-
+  std.rev Ctx Ctx', !,
+  fstr Ctx' Type F, !,
+  quote F Type TypeF VM, !,
+  quote.hyps F Ctx' Type TypeF Type' TypeF' VM, !,
   std.assert-ok!
     (coq.typecheck TypeF' {{ BFormula (Formula Q) isProp }})
     "The reification produced an ill-typed result, this is a bug.",
@@ -277,5 +308,5 @@ solve (goal _Ctx _Trigger Type _Proof _Args as G) GL :-
     {{ Internals.vm_of_list lp:VM' }}
     {{ VarMap.t lp:FS }}
     VM'',
-  (coq.ltac.call "lraF" [trm TypeF', trm VM''] G GL;
+  (coq.ltac.call "lraF" [trm Type', trm TypeF', trm VM''] G GL;
    coq.ltac.fail 0).
