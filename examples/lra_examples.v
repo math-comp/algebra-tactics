@@ -21,8 +21,8 @@ Qed.
 Lemma test_realDomain (F : realDomainType) (x y : F) :
   x + 2%:R * y <= 3%:R -> 2%:R * x + y <= 3%:R -> x + y <= 2%:R.
 Proof.
-(* lra. *)
-Abort.
+lra.
+Qed.
 
 Section Tests.
 
