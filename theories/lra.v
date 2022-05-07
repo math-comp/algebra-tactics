@@ -241,7 +241,8 @@ Definition vm_of_list T (l : list T) : VarMap.t T :=
 End Internals.
 
 (* Main tactic, called from the elpi parser (c.f., lra.elpi) *)
-Ltac lraF ff varmap :=
+Ltac lraF hyps_goal ff varmap :=
+  (suff: hyps_goal by exact);
   let iff := fresh "__ff" in
   let ivarmap := fresh "__varmap" in
   let iwit := fresh "__wit" in
@@ -259,4 +260,4 @@ Elpi Tactic lra.
 Elpi Accumulate File "theories/lra.elpi".
 Elpi Typecheck.
 
-Tactic Notation "lra" := elpi lra.
+Tactic Notation "lra" := elpi lra "lraF".

@@ -126,8 +126,8 @@ Qed.
 Lemma plus_minus' x y : 0 = x + y -> 0 = x - y -> 0 = x /\ 0 = y.
 Proof.
 move=> *.
-(* lra. *)
-Abort.
+lra.
+Qed.
 
 Lemma cst_test : 5%:R^+5 = 5%:R * 5%:R * 5%:R * 5%:R * 5%:R :> F.
 Proof.
@@ -137,8 +137,8 @@ Qed.
 Goal forall x y, x <> x -> x > y.
 Proof.
 move=> *.
-(* lra. *)
-Abort.
+lra.
+Qed.
 
 Lemma binomial x y : (x + y)^+2 = x^+2 + 2%:R * x * y + y^+2.
 Proof.
