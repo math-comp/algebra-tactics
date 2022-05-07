@@ -299,7 +299,11 @@ exfalso_if_not_prop _ {{ False }} {{ true }}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Main tactic
 
-% This calls the Ltac1 tactic "lraF" with the following arguments:
+% The tactic takes two arguments, a string [Tac]
+% that is the name of the Ltac1 tactic to call and a second argument [N],
+% passed unchanged as first argument to the previous tactic.
+% The tactic [Tac] will receive five arguments:
+% - [N] above
 % - [Efalso] a term of type [bool] indicating if the goal was changed to [False]
 % - [Type''] a term of type [Prop], an implication with the goal
 %   and selected hypotheses
@@ -307,7 +311,7 @@ exfalso_if_not_prop _ {{ False }} {{ true }}.
 % - [VM''] a variable map, giving the interpretation to variables in [TypeF']
 %   it is of type [VarMap.t F] where [F] is the carrier for the detected
 %   [realFieldType]
-solve (goal Ctx _Trigger Type _Proof _Args as G) GL :-
+solve (goal Ctx _Trigger Type _Proof [str Tac, N] as G) GL :-
   exfalso_if_not_prop Type Type' Efalso,
   std.rev Ctx Ctx', !,
   fstr Ctx' Type' F, !,
@@ -321,5 +325,5 @@ solve (goal Ctx _Trigger Type _Proof _Args as G) GL :-
     {{ Internals.vm_of_list lp:VM' }}
     {{ VarMap.t lp:FS }}
     VM'',
-  (coq.ltac.call "lraF" [trm Efalso, trm Type'', trm TypeF', trm VM''] G GL;
+  (coq.ltac.call Tac [N, trm Efalso, trm Type'', trm TypeF', trm VM''] G GL;
    coq.ltac.fail 0).
