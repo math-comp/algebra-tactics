@@ -258,8 +258,8 @@ Qed.
 
 Goal ratr (1 / 2%:R) = 1 / 2%:R :> F.
 Proof.
-Fail lra.  (* TODO should work *)
-Abort.
+lra.
+Qed.
 
 Goal 1 ^+ (2 + 2) = 1 :> F.
 Proof.
