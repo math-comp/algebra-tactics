@@ -15,6 +15,163 @@ Local Open Scope ring_scope.
 
 Module Internals.
 
+Section MExpr.
+
+Implicit Types (R : ringType) (U : unitRingType) (F : fieldType).
+
+Inductive MExpr : ringType -> Type :=
+  | MEX R : R -> MExpr R
+  | MEint R : Z -> MExpr R
+  | MErat F : Q -> MExpr F
+  | MEadd R : MExpr R -> MExpr R -> MExpr R
+  | MEmul R : MExpr R -> MExpr R -> MExpr R
+  | MEopp R : MExpr R -> MExpr R
+  | MEpow R : MExpr R -> N -> MExpr R
+  | MEmorph R R' : {rmorphism R -> R'} -> MExpr R -> MExpr R'.
+
+Definition pos_to_nat' p :=
+  if (p <=? 5000)%positive then Pos.to_nat p
+  else Init.Nat.of_num_uint (Pos.to_num_uint p).
+
+Definition int_of_Z' (z : Z) : int :=
+  match z with
+  | Z0 => 0
+  | Z.pos p => pos_to_nat' p
+  | Z.neg p => Negz (pos_to_nat' p).-1
+  end.
+
+Definition Z2R {R} (x : Z) : R := (int_of_Z' x)%:~R.
+
+Definition Q2F {U} (x : Q) : U :=
+  match x with
+  | Qmake n 1 => (int_of_Z' n)%:~R
+  | Qmake 1 d => GRing.inv (int_of_Z' (Zpos d))%:~R
+  | Qmake n d => (int_of_Z' n)%:~R / (nat_of_pos d)%:R
+  end.
+
+Fixpoint Meval_expr R (e : MExpr R) : R :=
+  match e with
+  | MEX _ x => x
+  | MEint _ c => Z2R c
+  | MErat _ c => Q2F c
+  | MEadd _ e1 e2 => Meval_expr e1 + Meval_expr e2
+  | MEmul _ e1 e2 => Meval_expr e1 * Meval_expr e2
+  | MEopp _ e => - Meval_expr e
+  | MEpow _ e n => (Meval_expr e) ^+ (N.to_nat n)
+  | MEmorph _ _ f e => f (Meval_expr e)
+  end.
+
+Fixpoint Mnorm_expr R U (f : {rmorphism R -> U}) (e : MExpr R) : U :=
+  match e in MExpr R return {rmorphism R -> U} -> U with
+  | MEX _ x => fun f => f x
+  | MEint _ c => fun=> Z2R c
+  | MErat _ c => fun=> Q2F c
+  | MEadd _ e1 e2 => fun f => Mnorm_expr f e1 + Mnorm_expr f e2
+  | MEmul _ e1 e2 => fun f => Mnorm_expr f e1 * Mnorm_expr f e2
+  | MEopp _ e => fun f => - Mnorm_expr f e
+  | MEpow _ e n => fun f => (Mnorm_expr f e) ^+ (N.to_nat n)
+  | MEmorph _ _ g e => fun f => Mnorm_expr [rmorphism of f \o g] e
+  end f.
+
+Definition Q2F' {U} (x : Q) : U :=
+  (int_of_Z (Qnum x))%:~R / (nat_of_pos (Qden x))%:R.
+
+Lemma pos_to_nat_pos_to_nat' p : Pos.to_nat p = pos_to_nat' p.
+Proof.
+rewrite /pos_to_nat'; case: ifP => //= _.
+rewrite -positive_N_nat -DecimalPos.Unsigned.of_to.
+rewrite DecimalPos.Unsigned.of_uint_alt DecimalNat.Unsigned.of_uint_alt.
+by elim: Decimal.rev => // u IHu;
+  rewrite /DecimalPos.Unsigned.of_lu -/(DecimalPos.Unsigned.of_lu u);
+  rewrite ?Nnat.N2Nat.inj_add Nnat.N2Nat.inj_mul IHu.
+Qed.
+
+Lemma int_of_Z_int_of_Z' n : int_of_Z n = int_of_Z' n.
+Proof. by case: n => //= p; rewrite pos_to_nat_pos_to_nat'. Qed.
+
+Lemma Q2F_Q2F' {U} x : Q2F x = Q2F' x :> U.
+Proof.
+rewrite /Q2F/Q2F'.
+by case: x => -[|n|n] [p|p|] //; rewrite -int_of_Z_int_of_Z'// ?divr1//;
+  case: n; rewrite // -int_of_Z_int_of_Z' mul1r;
+  rewrite zify_ssreflect.SsreflectZifyInstances.nat_of_posE.
+Qed.
+
+Lemma Mnorm_expr_correct U (e : MExpr U) :
+  Meval_expr e = Mnorm_expr [rmorphism of idfun] e.
+Proof.
+suff: forall R (e : MExpr R) (f : {rmorphism R -> U}),
+    f (Meval_expr e) = Mnorm_expr f e.
+  by move=> /(_ _ e [rmorphism of idfun]).
+move=> R {}e.
+elim: e => {}R.
+- by [].
+- by move=> c f; rewrite rmorph_int.
+- by move=> c f; rewrite /= !Q2F_Q2F' rmorphM rmorph_int fmorphV rmorph_nat.
+- by move=> e1 IH1 e2 IH2 f; rewrite rmorphD IH1 IH2.
+- by move=> e1 IH1 e2 IH2 f; rewrite rmorphM IH1 IH2.
+- by move=> e IH f; rewrite /= rmorphN IH.
+- by move=> e IH n f; rewrite /= rmorphX IH.
+- by move=> R' g e IH f; apply: (IH [rmorphism of f \o g]).
+Qed.
+
+End MExpr.
+
+Section MFormula.
+
+Context {R : numDomainType}.
+
+Record MFormula := { Mlhs : MExpr R;  Mop : Op2;  Mrhs : MExpr R }.
+
+Definition Reval_pop2 (o : Op2) : R -> R -> Prop :=
+  match o with
+  | OpEq => eq
+  | OpNEq => fun x y => ~ x = y
+  | OpLe => fun x y => x <= y
+  | OpGe => fun x y => x >= y
+  | OpLt => fun x y => x < y
+  | OpGt => fun x y => x > y
+  end.
+
+Definition Reval_bop2 (o : Op2) : R -> R -> bool :=
+  match o with
+  | OpEq  => fun x y => x == y
+  | OpNEq => fun x y => x != y
+  | OpLe  => fun x y => x <= y
+  | OpGe  => fun x y => x >= y
+  | OpLt  => fun x y => x < y
+  | OpGt  => fun x y => x > y
+  end.
+
+Definition Reval_op2 (k : Tauto.kind) : Op2 -> R -> R -> Tauto.rtyp k :=
+  match k with isProp => Reval_pop2 | isBool => Reval_bop2 end.
+
+Definition Meval_formula (k : Tauto.kind) (ff : MFormula) :=
+  let (lhs,o,rhs) := ff in Reval_op2 k o (Meval_expr lhs) (Meval_expr rhs).
+
+Definition Mnorm_formula (k : Tauto.kind) (ff : MFormula) :=
+  let norm := Mnorm_expr [rmorphism of idfun] in
+  let (lhs,o,rhs) := ff in Reval_op2 k o (norm lhs) (norm rhs).
+
+Lemma Mnorm_formula_correct k (ff : MFormula) :
+  Meval_formula k ff = Mnorm_formula k ff.
+Proof. by case: ff => l o r /=; rewrite !Mnorm_expr_correct. Qed.
+
+Lemma Mnorm_bf_correct k (ff : BFormula MFormula k) :
+  eval_bf Meval_formula ff = eval_bf Mnorm_formula ff.
+Proof.
+elim: ff => // {k}.
+- by move=> k ff ?; exact: Mnorm_formula_correct.
+- by move=> k ff1 IH1 ff2 IH2; congr eAND.
+- by move=> k ff1 IH1 ff2 IH2; congr eOR.
+- by move=> k ff IH; congr eNOT.
+- by move=> k ff1 IH1 o ff2 IH2; congr eIMPL.
+- by move=> k ff1 IH1 ff2 IH2; congr eIFF.
+- by move=> ff1 IH1 ff2 IH2; congr eq.
+Qed.
+
+End MFormula.
+
 (* Define [Reval_formula] the semantics of [BFormula (Formula Z) Tauto.isProp]
    as arithmetic expressions on some [realDomainType].
    Then prove [RTautoChecker_sound] stating that [ZTautoChecker f w = true]
@@ -50,51 +207,25 @@ apply: mk_SOR_theory.
 - by apply/eqP; rewrite eq_sym oner_neq0.
 Qed.
 
-Definition pos_to_nat' p :=
-  if (p <=? 5000)%positive then Pos.to_nat p
-  else Init.Nat.of_num_uint (Pos.to_num_uint p).
-
-Lemma pos_to_nat_pos_to_nat' p : Pos.to_nat p = pos_to_nat' p.
-Proof.
-rewrite /pos_to_nat'; case: ifP => //= _.
-rewrite -positive_N_nat -DecimalPos.Unsigned.of_to.
-rewrite DecimalPos.Unsigned.of_uint_alt DecimalNat.Unsigned.of_uint_alt.
-by elim: Decimal.rev => // u IHu;
-  rewrite /DecimalPos.Unsigned.of_lu -/(DecimalPos.Unsigned.of_lu u);
-  rewrite ?Nnat.N2Nat.inj_add Nnat.N2Nat.inj_mul IHu.
-Qed.
-
-Definition int_of_Z' (z : Z) : int :=
-  match n with
-  | Z0 => 0
-  | Z.pos p => pos_to_nat' p
-  | Z.neg p => Negz (pos_to_nat' p).-1
-  end.
-
-Lemma int_of_Z_int_of_Z' n : int_of_Z n = int_of_Z' n.
-Proof. by case: n => //= p; rewrite pos_to_nat_pos_to_nat'. Qed.
-
-Definition Z2R (x : Z) : R := (int_of_Z' x)%:~R.
-
 Lemma Pos_to_nat_gt0 p : 0 < (Pos.to_nat p)%:R :> R.
 Proof. rewrite ltr0n; exact/ssrnat.ltP/Pos2Nat.is_pos. Qed.
 
 Lemma Pos_to_nat_neq0 p : (Pos.to_nat p)%:R != 0 :> R.
 Proof. by rewrite pnatr_eq0 -lt0n; apply/ssrnat.ltP/Pos2Nat.is_pos. Qed.
 
-Lemma Z2R_add x y : Z2R (x + y) = Z2R x + Z2R y.
+Lemma Z2R_add x y : Z2R (x + y) = Z2R x + Z2R y :> R.
 Proof. by rewrite /Z2R -!int_of_Z_int_of_Z' !rmorphD/=. Qed.
 
-Lemma Z2R_opp x : Z2R (- x) = - Z2R x.
+Lemma Z2R_opp x : Z2R (- x) = - Z2R x :> R.
 Proof. by rewrite /Z2R -!int_of_Z_int_of_Z' !rmorphN. Qed.
 
-Lemma Z2R_sub x y : Z2R (x - y) = Z2R x - Z2R y.
+Lemma Z2R_sub x y : Z2R (x - y) = Z2R x - Z2R y :> R.
 Proof. by rewrite Z2R_add Z2R_opp. Qed.
 
-Lemma Z2R_mul x y : Z2R (x * y) = Z2R x * Z2R y.
+Lemma Z2R_mul x y : Z2R (x * y) = Z2R x * Z2R y :> R.
 Proof. by rewrite /Z2R -!int_of_Z_int_of_Z' !rmorphM. Qed.
 
-Lemma Z2R_eq x y : Z.eqb x y = (Z2R x == Z2R y).
+Lemma Z2R_eq x y : Z.eqb x y = (Z2R x == Z2R y :> R).
 Proof.
 rewrite /Z2R -!int_of_Z_int_of_Z' eqr_int.
 apply/idP/idP; first by move=> /Z.eqb_spec ->.
@@ -110,7 +241,7 @@ case: x y => [|x|x] [|y|y] //.
   by apply/ssrnat.leP/Peano.le_pred; rewrite -Pos2Nat.inj_le.
 Qed.
 
-Lemma Z2R_le x y : Z.leb x y = true -> Z2R x <= Z2R y.
+Lemma Z2R_le x y : Z.leb x y = true -> Z2R x <= Z2R y :> R.
 Proof.
 rewrite /Z2R -!int_of_Z_int_of_Z' ler_int => /Z.leb_le; exact: le_int_of_Z.
 Qed.
@@ -148,29 +279,6 @@ Qed.
 Definition Reval_expr :=
   eval_pexpr +%R *%R (fun x y => x - y) -%R Z2R N.to_nat (@GRing.exp R).
 
-Definition Reval_pop2 (o : Op2) : R -> R -> Prop :=
-  match o with
-  | OpEq => eq
-  | OpNEq => fun x y  => ~ x = y
-  | OpLe => fun x y => x <= y
-  | OpGe => fun x y => x >= y
-  | OpLt => fun x y => x < y
-  | OpGt => fun x y => x > y
-  end.
-
-Definition Reval_bop2 (o : Op2) : R -> R -> bool :=
-  match o with
-  | OpEq  => fun x y => x == y
-  | OpNEq => fun x y => x != y
-  | OpLe  => fun x y => x <= y
-  | OpGe  => fun x y => x >= y
-  | OpLt  => fun x y => x < y
-  | OpGt  => fun x y => x > y
-  end.
-
-Definition Reval_op2 (k : Tauto.kind) : Op2 -> R -> R -> Tauto.rtyp k :=
-  match k with isProp => Reval_pop2 | isBool => Reval_bop2 end.
-
 Definition Reval_formula (e : PolEnv R) (k : Tauto.kind) (ff : Formula Z) :=
   let (lhs,o,rhs) := ff in Reval_op2 k o (Reval_expr e lhs) (Reval_expr e rhs).
 
@@ -188,7 +296,7 @@ Lemma Reval_formula_compat env b f :
 Proof. by case: f => lhs op rhs; case: b => //=; rewrite pop2_bop2. Qed.
 
 Definition Reval_nformula :=
-  eval_nformula 0 +%R *%R eq (fun x y => x <= y) (fun x y => x < y) Z2R.
+  eval_nformula 0 +%R *%R eq (fun x y => x <= y) (fun x y => x < y) (@Z2R R).
 
 Definition ZTautoChecker (f : BFormula (Formula Z) Tauto.isProp)
     (w: list (Psatz Z)) : bool :=
@@ -229,31 +337,13 @@ Section RealField.
 
 Variable F : realFieldType.
 
-Definition Q2F (x : Q) : F :=
-  match x with
-  | Qmake n 1 => (int_of_Z' n)%:~R
-  | Qmake 1 d => GRing.inv (int_of_Z' (Zpos d))%:~R
-  | Qmake n d => (int_of_Z' n)%:~R / (nat_of_pos d)%:R
-  end.
-
-Definition Q2F' (x : Q) : F :=
-  (int_of_Z (Qnum x))%:~R / (nat_of_pos (Qden x))%:R.
-
-Lemma Q2F_Q2F' x : Q2F x = Q2F' x.
-Proof.
-rewrite /Q2F/Q2F'.
-by case: x => -[|n|n] [p|p|] //; rewrite -int_of_Z_int_of_Z'// ?divr1//;
-  case: n; rewrite // -int_of_Z_int_of_Z' mul1r;
-  rewrite zify_ssreflect.SsreflectZifyInstances.nat_of_posE.
-Qed.
-
-Lemma Q2F0 : Q2F 0 = 0.
+Lemma Q2F0 : Q2F 0 = 0 :> F.
 Proof. by rewrite Q2F_Q2F' /Q2F'/= mul0r. Qed.
 
-Lemma Q2F1 : Q2F 1 = 1.
+Lemma Q2F1 : Q2F 1 = 1 :> F.
 Proof. by rewrite Q2F_Q2F' /Q2F'/= Pos2Nat.inj_1 divrr// unitr1. Qed.
 
-Lemma Q2F_add x y : Q2F (x + y) = Q2F x + Q2F y.
+Lemma Q2F_add x y : Q2F (x + y) = Q2F x + Q2F y :> F.
 Proof.
 rewrite !Q2F_Q2F' /Q2F'/= rmorphD/= !rmorphM/= nat_of_mul_pos intrD.
 rewrite !intrM natrM mulrDl [(int_of_Z (Qnum y))%:~R * _]mulrC -!mulf_div.
@@ -261,18 +351,18 @@ rewrite !zify_ssreflect.SsreflectZifyInstances.nat_of_posE -!pmulrn.
 by rewrite !divff ?Pos_to_nat_neq0// mulr1 mul1r.
 Qed.
 
-Lemma Q2F_opp x : Q2F (- x) = - Q2F x.
+Lemma Q2F_opp x : Q2F (- x) = - Q2F x :> F.
 Proof. by rewrite !Q2F_Q2F' /Q2F'/= rmorphN/= mulrNz mulNr. Qed.
 
-Lemma Q2F_sub x y : Q2F (x - y) = Q2F x - Q2F y.
+Lemma Q2F_sub x y : Q2F (x - y) = Q2F x - Q2F y :> F.
 Proof. by rewrite Q2F_add Q2F_opp. Qed.
 
-Lemma Q2F_mul x y : Q2F (x * y) = Q2F x * Q2F y.
+Lemma Q2F_mul x y : Q2F (x * y) = Q2F x * Q2F y :> F.
 Proof.
 by rewrite !Q2F_Q2F' /Q2F'/= rmorphM/= nat_of_mul_pos intrM natrM mulf_div.
 Qed.
 
-Lemma Q2F_eq x y : Qeq_bool x y = (Q2F x == Q2F y).
+Lemma Q2F_eq x y : Qeq_bool x y = (Q2F x == Q2F y :> F).
 Proof.
 rewrite !Q2F_Q2F' /Q2F'.
 rewrite !zify_ssreflect.SsreflectZifyInstances.nat_of_posE.
@@ -283,7 +373,7 @@ apply/idP/idP.
   by rewrite /Qeq -[LHS]int_of_ZK -[RHS]int_of_ZK rmorphM/= eq !rmorphM.
 Qed.
 
-Lemma Q2F_le x y : Qle_bool x y = true -> Q2F x <= Q2F y.
+Lemma Q2F_le x y : Qle_bool x y = true -> Q2F x <= Q2F y :> F.
 Proof.
 rewrite !Q2F_Q2F' /Q2F' Qle_bool_iff => /le_int_of_Z; rewrite !rmorphM/= => le.
 rewrite !zify_ssreflect.SsreflectZifyInstances.nat_of_posE.
@@ -332,7 +422,7 @@ Lemma Feval_formula_compat env b f :
 Proof. by case: f => lhs op rhs; case: b => //=; rewrite pop2_bop2. Qed.
 
 Definition Feval_nformula :=
-  eval_nformula 0 +%R *%R eq (fun x y => x <= y) (fun x y => x < y) Q2F.
+  eval_nformula 0 +%R *%R eq (fun x y => x <= y) (fun x y => x < y) (@Q2F F).
 
 Lemma FTautoChecker_sound f w : QTautoChecker f w = true ->
   forall env, eval_bf (Feval_formula env) f.
@@ -437,17 +527,21 @@ End Internals.
 
 (* Main tactics, called from the elpi parser (c.f., lra.elpi) *)
 
-Ltac tacF tac efalso hyps_goal ff varmap :=
+Ltac tacF tac efalso hyps_goal rff ff varmap :=
   match efalso with true => exfalso | _ => idtac end;
   (suff: hyps_goal by exact);
+  let irff := fresh "__rff" in
   let iff := fresh "__ff" in
   let ivarmap := fresh "__varmap" in
   let iwit := fresh "__wit" in
   let iprf := fresh "__prf" in
+  pose (irff := rff);
   pose (iff := ff);
   pose (ivarmap := varmap);
   tac iwit ff;
   pose (iprf := erefl true <: QTautoChecker iff iwit = true);
+  change (eval_bf Internals.Meval_formula irff);
+  rewrite Internals.Mnorm_bf_correct;
   change (eval_bf (Internals.Feval_formula (VarMap.find 0 ivarmap)) iff);
   exact (Internals.FTautoChecker_sound iprf (VarMap.find 0 ivarmap)).
 Ltac lraF n := let wlra_Q w f := wlra_Q w f in tacF wlra_Q.
@@ -456,20 +550,24 @@ Ltac psatzF n :=
   let sos_or_psatzn w f := wsos_Q w f || wpsatz_Q n w f in
   tacF sos_or_psatzn.
 
-Ltac tacR tac efalso hyps_goal ff varmap :=
+Ltac tacR tac efalso hyps_goal rff ff varmap :=
   match efalso with true => exfalso | _ => idtac end;
   (suff: hyps_goal by exact);
+  let irff := fresh "__rff" in
   let iff := fresh "__ff" in
   let ivarmap := fresh "__varmap" in
   let iwit := fresh "__wit" in
   let iprf := fresh "__prf" in
   match eval vm_compute in (Internals.BFormula_Q2Z ff) with
   | Some ?f =>
+      pose (irff := rff);
       pose (iff := f);
       pose (ivarmap := varmap);
       tac iwit ff;
       let tr := Internals.seq_Psatz_Q2Z in
       pose (iprf := erefl true <: Internals.ZTautoChecker iff (tr iwit) = true);
+      change (eval_bf Internals.Meval_formula irff);
+      rewrite Internals.Mnorm_bf_correct;
       change (eval_bf (Internals.Reval_formula (VarMap.find 0 ivarmap)) iff);
       exact (Internals.RTautoChecker_sound iprf (VarMap.find 0 ivarmap))
   | _ => fail  (* should never happen, the parser only parses int constants *)
