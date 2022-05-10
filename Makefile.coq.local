@@ -1,2 +1,2 @@
 theories/ring.vo : theories/common.elpi theories/ring.elpi theories/field.elpi
-theories/lra.vo : theories/lra.elpi
+theories/lra.vo : theories/lra.elpi theories/compat815.elpi

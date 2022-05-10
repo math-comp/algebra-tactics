@@ -1,3 +1,4 @@
+From elpi Require Import elpi.
 Require Import DecimalNat DecimalPos List QArith.
 From Coq.micromega Require Import OrderedRing RingMicromega QMicromega EnvRing.
 From Coq.micromega Require Import Refl Tauto Lqa.
@@ -498,10 +499,11 @@ Fixpoint Pol_Q2Z (p : Pol Q) : Pol Z * positive := match p with
 Fixpoint Psatz_Q2Z (l : seq positive) (p : Psatz Q) : Psatz Z * positive :=
   match p with
   | PsatzC (Qmake n d) => (PsatzC n, d)
-  | PsatzLet p1 p2 =>
-      let (p1, n1) := Psatz_Q2Z l p1 in
-      let (p2, n2) := Psatz_Q2Z (n1 :: l) p2 in
-      (PsatzLet p1 p2, n2)
+  (* Add support for PsatzLet once 8.16 becomes the minimum Coq version *)
+  (* | PsatzLet p1 p2 => *)
+  (*     let (p1, n1) := Psatz_Q2Z l p1 in *)
+  (*     let (p2, n2) := Psatz_Q2Z (n1 :: l) p2 in *)
+  (*     (PsatzLet p1 p2, n2) *)
   | PsatzIn n => (PsatzIn _ n, nth 1%positive l n)
   | PsatzSquare p => let (p, n) := Pol_Q2Z p in (PsatzSquare p, Pos.mul n n)
   | PsatzMulC p1 p2 =>
@@ -517,17 +519,124 @@ Fixpoint Psatz_Q2Z (l : seq positive) (p : Psatz Q) : Psatz Z * positive :=
       let (p2, n2) := Psatz_Q2Z l p2 in
       let mulc c p := PsatzMulE (PsatzC (Zpos c)) p in
       (PsatzAdd (mulc n2 p1) (mulc n1 p2), Pos.mul n1 n2)
-  | PsatzZ => (PsatzZ _, 1%positive)
+  | _ => (PsatzZ _, 1%positive)
+  (* replace previous line by the following once 8.16 becomes the minimum Coq *)
+  (* | PsatzZ => (PsatzZ _, 1%positive) *)
   end.
 
 Definition seq_Psatz_Q2Z : seq (Psatz Q) -> seq (Psatz Z) :=
   map (fun p => fst (Psatz_Q2Z [::] p)).
 
+(* BEGIN compat Coq <= 8.15 *)
+(* This should be removed when algebra-tactics requires Coq >= 8.16
+   (also remove all the translation to Q in lra.elpi) *)
+
+(* Dummy function to feed micromega with formulas whose variables are in Q *)
+Definition R2Q {R : ringType} (_ : R) : Q := 0%Q.
+
+(* As a small optimization, micromega postprocesses formulas
+   to abstract parts that are not used in the proof.
+   In practice, algebraic parts of the formulas [A] are replaced
+   by propositions [X], see vcgen_25 in ../examples/lra_examples.v
+   for an example (most of the hypotheses are unused there).
+   We thus need to postprocess our own reified formulas to avoid
+   the witness produced by micromega to become out of sync. *)
+Let BF C k := BFormula (Formula C) k.
+Fixpoint abstract {C} (eval : forall k, BF C k -> rtyp k) {k} (aff : BF Q k) :
+    BF C k -> BF C k :=
+  match aff in GFormula k1 return BF C k1 -> BF C k1 with
+  | IMPL _ aff1 _ aff2
+  | AND _ aff1 aff2
+  | OR _ aff1 aff2
+  | IFF _ aff1 aff2 =>
+      fun ff =>
+        match
+          ff in GFormula k2
+          return (BF C k2 -> BF C k2) -> (BF C k2 -> BF C k2) -> BF C k2
+        with
+        | IMPL _ ff1 _ ff2 => fun a1 a2 => IMPL (a1 ff1) None (a2 ff2)
+        | AND _ ff1 ff2 => fun a1 a2 => AND (a1 ff1) (a2 ff2)
+        | OR _ ff1 ff2 => fun a1 a2 => OR (a1 ff1) (a2 ff2)
+        | IFF _ ff1 ff2 => fun a1 a2 => IFF (a1 ff1) (a2 ff2)
+        | TT _ => fun _ _ => TT _
+        | FF _ => fun _ _=> FF _
+        | X _ t => fun _ _ => X _ t
+        | A _ t a => fun _ _ => A _ t a
+        | NOT _ g2 => fun _ _ => NOT g2
+        | EQ g2 g3 => fun _ _ => EQ g2 g3
+        end (abstract eval aff1) (abstract eval aff2)
+  | X _ _ => fun ff => X _ (eval _ ff)
+  | TT _ | FF _ | A _ _ _ | NOT _ _ | EQ _ _ => id
+  end.
+
+(* Coq < 8.16 *)
+Ltac tac_compat tac fQ eval f :=
+  match eval hnf in (ltac:(tac) : fQ) with
+  | QTautoChecker_sound ?aff ?wit _ _ =>
+      let iaff := fresh "__aff" in
+      let iff := fresh "__ff" in
+      let iwit := fresh "__wit" in
+      pose (iaff := aff);
+      pose (iff := abstract eval iaff f);
+      pose (iwit := wit)
+  end.
+
+(* Coq >= 8.16 *)
+Ltac tac_ltac1 tac ff f :=
+  let iff := fresh "__ff" in
+  let iwit := fresh "__wit" in
+  pose (iff := f);
+  tac iwit ff.
+
+Ltac wlra_Q_compat _ := tac_compat lra.
+
+(* The tactic notation wlra_Q doesn't exist in Coq < 8.16, we thus declare
+   a tactic with the same name to avoid compilation errors
+   (this doesn't mask the tactic notation when it exists). *)
+Set Warnings "-unusable-identifier".
+Ltac wlra_Q w f := idtac.
+Set Warnings "unusable-identifier".
+Ltac wlra_Q_ltac1 _ := let wlra_Q w f := wlra_Q w f in tac_ltac1 wlra_Q.
+
+Ltac wnra_Q_compat _ := tac_compat nra.
+
+Set Warnings "-unusable-identifier".
+Ltac wnra_Q w f := idtac.
+Set Warnings "unusable-identifier".
+Ltac wnra_Q_ltac1 _ := let wnra_Q w f := wnra_Q w f in tac_ltac1 wnra_Q.
+
+Ltac wpsatz_Q_compat n := let psatz := psatz Q n in tac_compat psatz.
+
+Set Warnings "-unusable-identifier".
+Ltac wsos_Q w f := idtac.
+Ltac wpsatz_Q n w f := idtac.
+Set Warnings "unusable-identifier".
+Ltac wpsatz_Q_ltac1 n :=
+  let psatz w f := wsos_Q w f || wpsatz_Q n w f in tac_ltac1 psatz.
+
 End Internals.
+
+Elpi Tactic compat815.
+Elpi Accumulate File "theories/compat815.elpi".
+Elpi Typecheck.
+
+(* Elpi will call the first or second tactic depending on Coq version *)
+Tactic Notation "wlra_Q" ident(w) constr(ff) constr(fQ) constr(env) constr(f) :=
+  elpi compat815 "Internals.wlra_Q_compat" "Internals.wlra_Q_ltac1"
+       0 ltac_term:(ff) ltac_term:(fQ) ltac_term:(env) ltac_term:(f).
+Tactic Notation "wnra_Q" ident(w) constr(ff) constr(fQ) constr(env) constr(f) :=
+  elpi compat815 "Internals.wnra_Q_compat" "Internals.wnra_Q_ltac1"
+       0 ltac_term:(ff) ltac_term:(fQ) ltac_term:(env) ltac_term:(f).
+Tactic Notation "wpsatz_Q" int_or_var(n)
+       ident(w) constr(ff) constr(fQ) constr(env) constr(f) :=
+  elpi compat815 "Internals.wpsatz_Q_compat" "Internals.wpsatz_Q_ltac1"
+       ltac_int:(n) ltac_term:(ff) ltac_term:(fQ) ltac_term:(env) ltac_term:(f).
+
+(* END compat Coq <= 8.15 *)
 
 (* Main tactics, called from the elpi parser (c.f., lra.elpi) *)
 
-Ltac tacF tac efalso hyps_goal rff ff varmap :=
+Ltac tacF tac efalso hyps_goal rff ff ffQ varmap :=
   match efalso with true => exfalso | _ => idtac end;
   (suff: hyps_goal by exact);
   let irff := fresh "__rff" in
@@ -536,21 +645,20 @@ Ltac tacF tac efalso hyps_goal rff ff varmap :=
   let iwit := fresh "__wit" in
   let iprf := fresh "__prf" in
   pose (irff := rff);
-  pose (iff := ff);
   pose (ivarmap := varmap);
-  tac iwit ff;
+  tac iwit ff ffQ
+      (eval_bf (Internals.Feval_formula (VarMap.find 0 ivarmap))) ff;
   pose (iprf := erefl true <: QTautoChecker iff iwit = true);
   change (eval_bf Internals.Meval_formula irff);
   rewrite Internals.Mnorm_bf_correct;
   change (eval_bf (Internals.Feval_formula (VarMap.find 0 ivarmap)) iff);
   exact (Internals.FTautoChecker_sound iprf (VarMap.find 0 ivarmap)).
-Ltac lraF n := let wlra_Q w f := wlra_Q w f in tacF wlra_Q.
-Ltac nraF n := let wnra_Q w f := wnra_Q w f in tacF wnra_Q.
+Ltac lraF n := let wlra_Q w ff fQ e f := wlra_Q w ff fQ e f in tacF wlra_Q.
+Ltac nraF n := let wnra_Q w ff fQ e f := wnra_Q w ff fQ e f in tacF wnra_Q.
 Ltac psatzF n :=
-  let sos_or_psatzn w f := wsos_Q w f || wpsatz_Q n w f in
-  tacF sos_or_psatzn.
+  let wpsatz_Q w ff fQ e f := wpsatz_Q n w ff fQ e f in tacF wpsatz_Q.
 
-Ltac tacR tac efalso hyps_goal rff ff varmap :=
+Ltac tacR tac efalso hyps_goal rff ff ffQ varmap :=
   match efalso with true => exfalso | _ => idtac end;
   (suff: hyps_goal by exact);
   let irff := fresh "__rff" in
@@ -561,9 +669,9 @@ Ltac tacR tac efalso hyps_goal rff ff varmap :=
   match eval vm_compute in (Internals.BFormula_Q2Z ff) with
   | Some ?f =>
       pose (irff := rff);
-      pose (iff := f);
       pose (ivarmap := varmap);
-      tac iwit ff;
+      tac iwit ff ffQ
+          (eval_bf (Internals.Reval_formula (VarMap.find 0 ivarmap))) f;
       let tr := Internals.seq_Psatz_Q2Z in
       pose (iprf := erefl true <: Internals.ZTautoChecker iff (tr iwit) = true);
       change (eval_bf Internals.Meval_formula irff);
@@ -572,13 +680,10 @@ Ltac tacR tac efalso hyps_goal rff ff varmap :=
       exact (Internals.RTautoChecker_sound iprf (VarMap.find 0 ivarmap))
   | _ => fail  (* should never happen, the parser only parses int constants *)
   end.
-Ltac lraR n := let wlra_Q w f := wlra_Q w f in tacR wlra_Q.
-Ltac nraR n := let wnra_Q w f := wnra_Q w f in tacR wnra_Q.
+Ltac lraR n := let wlra_Q w ff fQ e f := wlra_Q w ff fQ e f in tacR wlra_Q.
+Ltac nraR n := let wnra_Q w ff fQ e f := wnra_Q w ff fQ e f in tacR wnra_Q.
 Ltac psatzR n :=
-  let sos_or_psatzn w f := wsos_Q w f || wpsatz_Q n w f in
-  tacF sos_or_psatzn.
-
-From elpi Require Import elpi.
+  let wpsatz_Q w ff fQ e f := wpsatz_Q n w ff fQ e f in tacR wpsatz_Q.
 
 Elpi Tactic lra.
 Elpi Accumulate File "theories/lra.elpi".
