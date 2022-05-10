@@ -142,23 +142,28 @@ rfstr _ _ _ :- coq.ltac.fail _ "Cannot find a realDomainType".
 % - [In] is a term of type [V],
 % - [OutM] is a reified constant of type [MExpr V]
 % - [Out] is a reified constant of type [PExpr Q]
-pred quote.cstr i:term, i:term, o:term, o:term.
-quote.cstr V {{ GRing.zero lp:Z }} OutM Out :- ring->zmod V Z,
-  OutM = {{ @Internals.MEint lp:V Z0 }}, Out = {{ PEc (Qmake Z0 1) }}.
-quote.cstr V {{ GRing.one lp:V' }} OutM Out :- coq.unify-eq V V' ok,
-  OutM = {{ @Internals.MEint lp:V (Zpos 1) }}, Out = {{ PEc (Qmake 1 1) }}.
-quote.cstr V {{ @GRing.natmul lp:Z (GRing.one lp:V') lp:X }} OutM Out :-
+% - [OutQ] the reified [Out] as a [Q] (for <= 8.15 compat)
+pred quote.cstr i:term, i:term, o:term, o:term, o:term.
+quote.cstr V {{ GRing.zero lp:Z }} OutM Out OutQ :- ring->zmod V Z,
+  OutM = {{ @Internals.MEint lp:V Z0 }}, Out = {{ PEc (Qmake Z0 1) }},
+  OutQ = {{ Qmake Z0 1 }}.
+quote.cstr V {{ GRing.one lp:V' }} OutM Out OutQ :- coq.unify-eq V V' ok,
+  OutM = {{ @Internals.MEint lp:V (Zpos 1) }}, Out = {{ PEc (Qmake 1 1) }},
+  OutQ = {{ Qmake 1 1 }}.
+quote.cstr V {{ @GRing.natmul lp:Z (GRing.one lp:V') lp:X }} OutM Out OutQ :-
   ring->zmod V Z, coq.unify-eq V V' ok, nat->Z X XZ,
-  OutM = {{ @Internals.MEint lp:V lp:XZ }}, Out = {{ PEc (Qmake lp:XZ 1) }}.
+  OutM = {{ @Internals.MEint lp:V lp:XZ }}, Out = {{ PEc (Qmake lp:XZ 1) }},
+  OutQ = {{ Qmake lp:XZ 1 }}.
 
 % [quote.cstf V In OutM Out] reifies rational constants
 % - [V] is a [ringType] instance,
 % - [In] is a term of type [V],
 % - [OutM] is a reified constant of type [MExpr V]
 % - [Out] is a reified constant of type [PExpr Q]
-pred quote.cstf i:term, i:term, o:term, o:term.
+% - [OutQ] the reified [Out] as a [Q] (for <= 8.15 compat)
+pred quote.cstf i:term, i:term, o:term, o:term, o:term.
 quote.cstf V {{ @GRing.inv lp:U (@GRing.natmul lp:Z (GRing.one lp:V') lp:X) }}
-    OutM Out :- unitRing->ring U V, ring->zmod V Z, coq.unify-eq V V' ok,
+    OutM Out XQ :- unitRing->ring U V, ring->zmod V Z, coq.unify-eq V V' ok,
   nat->N X XN, XN = {{ Npos lp:XP }}, XQ = {{ Qmake 1 lp:XP }},
   field->unitRing F U,
   OutM = {{ @Internals.MErat lp:F lp:XQ }}, Out = {{ PEc lp:XQ }}.
@@ -169,109 +174,135 @@ quote.cstf V {{ @GRing.inv lp:U (@GRing.natmul lp:Z (GRing.one lp:V') lp:X) }}
 % - [In] is a term of type [V],
 % - [OutM] is a reified expression of type [MExpr V]
 % - [Out] is a reified expression of type [PExpr Q]
+% - [OutQ] the reified [Out] as a [Prop] about [Q] (for <= 8.15 compat)
 % - [VM] is a variable map, that is a list of terms of type [V].
-pred quote.expr i:term, i:(term -> term), i:term, o:term, o:term, o:list term.
-quote.expr V F {{ @GRing.add lp:Z lp:In1 lp:In2 }} OutM Out VM :-
+pred quote.expr i:term, i:(term -> term), i:term,
+    o:term, o:term, o:term, o:list term.
+quote.expr V F {{ @GRing.add lp:Z lp:In1 lp:In2 }} OutM Out OutQ VM :-
   ring->zmod V Z, !,
-  quote.expr V F In1 OutM1 Out1 VM, !, quote.expr V F In2 OutM2 Out2 VM, !,
+  quote.expr V F In1 OutM1 Out1 OutQ1 VM, !,
+  quote.expr V F In2 OutM2 Out2 OutQ2 VM, !,
   OutM = {{ @Internals.MEadd lp:V lp:OutM1 lp:OutM2 }},
-  Out = {{ PEadd lp:Out1 lp:Out2 }}.
-quote.expr V F {{ @GRing.mul lp:V' lp:In1 lp:In2 }} OutM Out VM :-
+  Out = {{ PEadd lp:Out1 lp:Out2 }},
+  OutQ = {{ (lp:OutQ1 + lp:OutQ2)%Q }}.
+quote.expr V F {{ @GRing.mul lp:V' lp:In1 lp:In2 }} OutM Out OutQ VM :-
   coq.unify-eq V V' ok, !,
-  quote.expr V F In1 OutM1 Out1 VM, !, quote.expr V F In2 OutM2 Out2 VM, !,
+  quote.expr V F In1 OutM1 Out1 OutQ1 VM, !,
+  quote.expr V F In2 OutM2 Out2 OutQ2 VM, !,
   OutM = {{ @Internals.MEmul lp:V lp:OutM1 lp:OutM2 }},
-  Out = {{ PEmul lp:Out1 lp:Out2 }}.
-quote.expr V F {{ @GRing.opp lp:Z lp:In1 }} OutM Out VM :-
+  Out = {{ PEmul lp:Out1 lp:Out2 }},
+  OutQ = {{ (lp:OutQ1 * lp:OutQ2)%Q }}.
+quote.expr V F {{ @GRing.opp lp:Z lp:In1 }} OutM Out OutQ VM :-
   ring->zmod V Z, !,
-  quote.expr V F In1 OutM1 Out1 VM, !,
-  OutM = {{ @Internals.MEopp lp:V lp:OutM1 }}, Out = {{ PEopp lp:Out1 }}.
-quote.expr V F {{ @GRing.exp lp:V' lp:In1 lp:X }} OutM Out VM :-
+  quote.expr V F In1 OutM1 Out1 OutQ1 VM, !,
+  OutM = {{ @Internals.MEopp lp:V lp:OutM1 }}, Out = {{ PEopp lp:Out1 }},
+  OutQ = {{ (- lp:OutQ1)%Q }}.
+quote.expr V F {{ @GRing.exp lp:V' lp:In1 lp:X }} OutM Out OutQ VM :-
   coq.unify-eq V V' ok, nat->N X XN, !,
-  quote.expr V F In1 OutM1 Out1 VM, !,
+  quote.expr V F In1 OutM1 Out1 OutQ1 VM, !,
   OutM = {{ @Internals.MEpow lp:V lp:OutM1 lp:XN }},
-  Out = {{ PEpow lp:Out1 lp:XN }}.
-quote.expr V _ In OutM Out _ :- quote.cstr V In OutM Out.
-quote.expr V _ In OutM Out _ :- field-mode, quote.cstf V In OutM Out.
-quote.expr V F In {{ @Internals.MEmorph lp:U lp:V lp:G lp:OutM }} Out VM :-
+  Out = {{ PEpow lp:Out1 lp:XN }},
+  nat->Z X XZ, OutQ = {{ (lp:OutQ1 ^ lp:XZ)%Q }}.
+quote.expr V _ In OutM Out OutQ _ :- quote.cstr V In OutM Out OutQ.
+quote.expr V _ In OutM Out OutQ _ :- field-mode, quote.cstf V In OutM Out OutQ.
+quote.expr V F In {{ @Internals.MEmorph lp:U lp:V lp:G lp:OutM }} Out OutQ VM :-
   coq.unify-eq
     {{ @GRing.RMorphism.apply lp:U lp:V lp:Ph lp:G lp:In1 }} In ok, !,
   quote.expr U (x\ F {{ @GRing.RMorphism.apply lp:U lp:V lp:Ph lp:G lp:x }})
-    In1 OutM Out VM.
-quote.expr V F In {{ @Internals.MEX lp:V lp:In }} {{ PEX lp:N }} VM :- !,
-  mem VM (F In) N.
+    In1 OutM Out OutQ VM.
+quote.expr V F In {{ @Internals.MEX lp:V lp:In }} {{ PEX lp:N }} OutQ VM :- !,
+  FIn = F In,
+  mem VM FIn N,
+  OutQ = {{ @Internals.R2Q lp:V lp:FIn }}.
 
 % [quote.exprw F In OutM Out VM] reifies arithmetic expressions
 % - [F] is a [realDomainType] or [realFieldType] instance,
 % - [In] is a term of type [F],
 % - [OutM] is a reified expression of type [MExpr F]
 % - [Out] is a reified expression of type [PExpr Q]
+% - [OutQ] the reified [Out] as a [Prop] about [Q] (for <= 8.15 compat)
 % - [VM] is a variable map, that is a list of terms of type [F].
-pred quote.exprw i:rf, i:term, o:term, o:term, o:list term.
-quote.exprw F In OutM Out VM :- F = field _, !,
-  field-mode => quote.expr { rf->ring F } (x\ x) In OutM Out VM.
-quote.exprw F In OutM Out VM :- F = ring _, !,
-  quote.expr { rf->ring F } (x\ x) In OutM Out VM.
+pred quote.exprw i:rf, i:term, o:term, o:term, o:term, o:list term.
+quote.exprw F In OutM Out OutQ VM :- F = field _, !,
+  field-mode => quote.expr { rf->ring F } (x\ x) In OutM Out OutQ VM.
+quote.exprw F In OutM Out OutQ VM :- F = ring _, !,
+  quote.expr { rf->ring F } (x\ x) In OutM Out OutQ VM.
 
 % [quote.bop2 F In OutM Out VM] reifies boolean (in)equalities
 % - [F] is a [realDomainType] or [realFieldType] instance,
 % - [In] is a term of type [bool],
 % - [OutM] is a reified expression of type [MFormula]
 % - [Out] is a reified expression of type [Formula Q]
+% - [OutQ] the reified [Out] as a [Prop] about [Q] (for <= 8.15 compat)
 % - [VM] is a variable map, that is a list of terms of type [F].
-pred quote.bop2 i:rf, i:term, o:term, o:term, o:list term.
-quote.bop2 F {{ @Order.le _ lp:O lp:X lp:Y }} OutM Out VM :- rf->porder F O, !,
-  quote.exprw F X XM' X' VM, !, quote.exprw F Y YM' Y' VM, !,
+pred quote.bop2 i:rf, i:term, o:term, o:term, o:term, o:list term.
+quote.bop2 F {{ @Order.le _ lp:O lp:X lp:Y }} OutM Out OutQ VM :-
+  rf->porder F O, !,
+  quote.exprw F X XM' X' XQ' VM, !, quote.exprw F Y YM' Y' YQ' VM, !,
   OutM = {{ Internals.Build_MFormula lp:XM' OpLe lp:YM' }},
-  Out = {{ Build_Formula lp:X' OpLe lp:Y' }}.
-quote.bop2 F {{ @Order.lt _ lp:O lp:X lp:Y }} OutM Out VM :- rf->porder F O, !,
-  quote.exprw F X XM' X' VM, !, quote.exprw F Y YM' Y' VM, !,
+  Out = {{ Build_Formula lp:X' OpLe lp:Y' }},
+  OutQ = {{ (lp:XQ' <= lp:YQ')%Q }}.
+quote.bop2 F {{ @Order.lt _ lp:O lp:X lp:Y }} OutM Out OutQ VM :-
+  rf->porder F O, !,
+  quote.exprw F X XM' X' XQ' VM, !, quote.exprw F Y YM' Y' YQ' VM, !,
   OutM = {{ Internals.Build_MFormula lp:XM' OpLt lp:YM' }},
-  Out = {{ Build_Formula lp:X' OpLt lp:Y' }}.
-quote.bop2 F {{ @eqtype.eq_op lp:T lp:X lp:Y) }} OutM Out VM :- rf->eq F T, !,
-  quote.exprw F X XM' X' VM, !, quote.exprw F Y YM' Y' VM, !,
+  Out = {{ Build_Formula lp:X' OpLt lp:Y' }},
+  OutQ = {{ (lp:XQ' < lp:YQ')%Q }}.
+quote.bop2 F {{ @eqtype.eq_op lp:T lp:X lp:Y) }} OutM Out OutQ VM :-
+  rf->eq F T, !,
+  quote.exprw F X XM' X' XQ' VM, !, quote.exprw F Y YM' Y' YQ' VM, !,
   OutM = {{ Internals.Build_MFormula lp:XM' OpEq lp:YM' }},
-  Out = {{ Build_Formula lp:X' OpEq lp:Y' }}.
+  Out = {{ Build_Formula lp:X' OpEq lp:Y' }},
+  OutQ = {{ (lp:XQ' == lp:YQ')%Q }}.
 
 % [quote.pop2 F In OutM Out VM] reifies (in)equalities of type Prop
 % - [F] is a [realDomainType] or [realFieldType] instance,
 % - [In] is a term of type [Prop],
 % - [OutM] is a reified expression of type [MFormula]
 % - [Out] is a reified expression of type [Formula Q]
+% - [OutQ] the reified [Out] as a [Prop] about [Q] (for <= 8.15 compat)
 % - [VM] is a variable map, that is a list of terms of type [F].
-pred quote.pop2 i:rf, i:term, o:term, o:term, o:list term.
-quote.pop2 F {{ is_true lp:E }} OutM Out VM :- quote.bop2 F E OutM Out VM.
-quote.pop2 F {{ @eq lp:T lp:X lp:Y) }} OutM Out VM :- rf->sort F T, !,
-  quote.exprw F X XM' X' VM, !, quote.exprw F Y YM' Y' VM, !,
+pred quote.pop2 i:rf, i:term, o:term, o:term, o:term, o:list term.
+quote.pop2 F {{ is_true lp:E }} OutM Out OutQ VM :-
+  quote.bop2 F E OutM Out OutQ VM.
+quote.pop2 F {{ @eq lp:T lp:X lp:Y) }} OutM Out OutQ VM :- rf->sort F T, !,
+  quote.exprw F X XM' X' XQ' VM, !, quote.exprw F Y YM' Y' YQ' VM, !,
   OutM = {{ Internals.Build_MFormula lp:XM' OpEq lp:YM' }},
-  Out = {{ Build_Formula lp:X' OpEq lp:Y' }}.
+  Out = {{ Build_Formula lp:X' OpEq lp:Y' }},
+  OutQ = {{ (lp:XQ' == lp:YQ')%Q }}.
 
 % [quote.bool F In OutM Out VM] reifies boolean formulas
 % - [F] is a [realDomainType] or [realFieldType] instance,
 % - [In] is a term of type [bool],
 % - [OutM] is a reified formula of type [BFormula MFormula Tauto.isBool]
 % - [Out] is a reified formula of type [BFormula (Formula Q) Tauto.isBool]
+% - [OutQ] the reified [Out] as a [Prop] about [Q] (for <= 8.15 compat)
 % - [VM] is a variable map, that is a list of terms of type [F].
-pred quote.bool i:rf, i:term, o:term, o:term, o:list term.
-quote.bool F {{ lp:F1 ==> lp:F2 }} OutM Out VM :- !,
-  quote.bool F F1 OutM1 Out1 VM, !, quote.bool F F2 OutM2 Out2 VM, !,
+pred quote.bool i:rf, i:term, o:term, o:term, o:term, o:list term.
+quote.bool F {{ lp:F1 ==> lp:F2 }} OutM Out OutQ VM :- !,
+  quote.bool F F1 OutM1 Out1 OutQ1 VM, !, quote.bool F F2 OutM2 Out2 OutQ2 VM,
   OutM = {{ IMPL lp:OutM1 None lp:OutM2 }},
-  Out = {{ IMPL lp:Out1 None lp:Out2 }}.
-quote.bool F {{ lp:F1 && lp:F2 }} OutM Out VM :- !,
-  quote.bool F F1 OutM1 Out1 VM, !, quote.bool F F2 OutM2 Out2 VM, !,
-  OutM = {{ AND lp:OutM1 lp:OutM2 }}, Out = {{ AND lp:Out1 lp:Out2 }}.
-quote.bool F {{ lp:F1 || lp:F2 }} OutM Out VM :- !,
-  quote.bool F F1 OutM1 Out1 VM, !, quote.bool F F2 OutM2 Out2 VM, !,
-  OutM = {{ OR lp:OutM1 lp:OutM2 }}, Out = {{ OR lp:Out1 lp:Out2 }}.
-quote.bool F {{ ~~ lp:F1 }} OutM Out VM :- !, quote.bool F F1 OutM1 Out1 VM, !,
-  OutM = {{ NOT lp:OutM1 }}, Out = {{ NOT lp:Out1 }}.
-quote.bool _ {{ true }} OutM Out _ :- !,
-  OutM = {{ TT Tauto.isBool }}, Out = {{ TT Tauto.isBool }}.
-quote.bool _ {{ false }} OutM Out _ :- !,
-  OutM = {{ FF Tauto.isBool }}, Out = {{ FF Tauto.isBool }}.
-quote.bool F In OutM Out VM :- quote.bop2 F In OutM' Out' VM,
+  Out = {{ IMPL lp:Out1 None lp:Out2 }},
+  OutQ = {{ lp:OutQ1 -> lp:OutQ2 }}.
+quote.bool F {{ lp:F1 && lp:F2 }} OutM Out OutQ VM :- !,
+  quote.bool F F1 OutM1 Out1 OutQ1 VM, !, quote.bool F F2 OutM2 Out2 OutQ2 VM,
+  OutM = {{ AND lp:OutM1 lp:OutM2 }}, Out = {{ AND lp:Out1 lp:Out2 }},
+  OutQ = {{ lp:OutQ1 /\ lp:OutQ2 }}.
+quote.bool F {{ lp:F1 || lp:F2 }} OutM Out OutQ VM :- !,
+  quote.bool F F1 OutM1 Out1 OutQ1 VM, !, quote.bool F F2 OutM2 Out2 OutQ2 VM,
+  OutM = {{ OR lp:OutM1 lp:OutM2 }}, Out = {{ OR lp:Out1 lp:Out2 }},
+  OutQ = {{ lp:OutQ1 \/ lp:OutQ2 }}.
+quote.bool F {{ ~~ lp:F1 }} OutM Out OutQ VM :- !,
+  quote.bool F F1 OutM1 Out1 OutQ1 VM, !,
+  OutM = {{ NOT lp:OutM1 }}, Out = {{ NOT lp:Out1 }}, OutQ = {{ ~ lp:OutQ1 }}.
+quote.bool _ {{ true }} OutM Out OutQ _ :- !,
+  OutM = {{ TT Tauto.isBool }}, Out = {{ TT Tauto.isBool }}, OutQ = {{ True }}.
+quote.bool _ {{ false }} OutM Out OutQ _ :- !,
+  OutM = {{ FF Tauto.isBool }}, Out = {{ FF Tauto.isBool }}, OutQ = {{ False }}.
+quote.bool F In OutM Out OutQ VM :- quote.bop2 F In OutM' Out' OutQ VM,
   OutM = {{ A Tauto.isBool lp:OutM' tt }},
   Out = {{ A Tauto.isBool lp:Out' tt }}.
-quote.bool _ In OutM Out _ :-
+quote.bool _ In OutM Out In _ :-
   OutM = {{ X Tauto.isBool lp:In }}, Out = {{ X Tauto.isBool lp:In }}.
 
 % [quote.prop F In OutM Out VM] reifies formulas of type Prop
@@ -279,38 +310,46 @@ quote.bool _ In OutM Out _ :-
 % - [In] is a term of type [Prop],
 % - [OutM] is a reified formula of type [BFormula MFormula Tauto.isProp]
 % - [Out] is a reified formula of type [BFormula (Formula Q) Tauto.isProp]
+% - [OutQ] the reified [Out] as a [Prop] about [Q] (for <= 8.15 compat)
 % - [VM] is a variable map, that is a list of terms of type [F].
-pred quote.prop i:rf, i:term, o:term, o:term, o:list term.
-quote.prop F {{ lp:F1 -> lp:F2 }} OutM Out VM :- !,
-  quote.prop F F1 OutM1 Out1 VM, !, quote.prop F F2 OutM2 Out2 VM, !,
+pred quote.prop i:rf, i:term, o:term, o:term, o:term, o:list term.
+quote.prop F {{ lp:F1 -> lp:F2 }} OutM Out OutQ VM :- !,
+  quote.prop F F1 OutM1 Out1 OutQ1 VM, !, quote.prop F F2 OutM2 Out2 OutQ2 VM,
   OutM = {{ IMPL lp:OutM1 None lp:OutM2 }},
-  Out = {{ IMPL lp:Out1 None lp:Out2 }}.
-quote.prop F {{ iff lp:F1 lp:F2 }} OutM Out VM :- !,
-  quote.prop F F1 OutM1 Out1 VM, !, quote.prop F F2 OutM2 Out2 VM, !,
-  OutM = {{ IFF lp:OutM1 lp:OutM2 }}, Out = {{ IFF lp:Out1 lp:Out2 }}.
-quote.prop F {{ lp:F1 /\ lp:F2 }} OutM Out VM :- !,
-  quote.prop F F1 OutM1 Out1 VM, !, quote.prop F F2 OutM2 Out2 VM, !,
-  OutM = {{ AND lp:OutM1 lp:OutM2 }}, Out = {{ AND lp:Out1 lp:Out2 }}.
-quote.prop F {{ lp:F1 \/ lp:F2 }} OutM Out VM :- !,
-  quote.prop F F1 OutM1 Out1 VM, !, quote.prop F F2 OutM2 Out2 VM, !,
-  OutM = {{ OR lp:OutM1 lp:OutM2 }}, Out = {{ OR lp:Out1 lp:Out2 }}.
-quote.prop F {{ ~ lp:F1 }} OutM Out VM :- !, quote.prop F F1 OutM1 Out1 VM, !,
-  OutM = {{ NOT lp:OutM1 }}, Out = {{ NOT lp:Out1 }}.
-quote.prop _ {{ True }} OutM Out _ :- !,
-  OutM = {{ TT Tauto.isProp }}, Out = {{ TT Tauto.isProp }}.
-quote.prop _ {{ False }} OutM Out _ :- !,
-  OutM = {{ FF Tauto.isProp }}, Out = {{ FF Tauto.isProp }}.
-quote.prop F {{ is_true lp:In1 }} OutM Out VM :- !,
-  quote.bool F In1 OutM1 Out1 VM, !,
+  Out = {{ IMPL lp:Out1 None lp:Out2 }},
+  OutQ = {{ lp:OutQ1 -> lp:OutQ2 }}.
+quote.prop F {{ iff lp:F1 lp:F2 }} OutM Out OutQ VM :- !,
+  quote.prop F F1 OutM1 Out1 OutQ1 VM, !, quote.prop F F2 OutM2 Out2 OutQ2 VM,
+  OutM = {{ IFF lp:OutM1 lp:OutM2 }}, Out = {{ IFF lp:Out1 lp:Out2 }},
+  OutQ = {{ iff lp:OutQ1 lp:OutQ2 }}.
+quote.prop F {{ lp:F1 /\ lp:F2 }} OutM Out OutQ VM :- !,
+  quote.prop F F1 OutM1 Out1 OutQ1 VM, !, quote.prop F F2 OutM2 Out2 OutQ2 VM,
+  OutM = {{ AND lp:OutM1 lp:OutM2 }}, Out = {{ AND lp:Out1 lp:Out2 }},
+  OutQ = {{ lp:OutQ1 /\ lp:OutQ2 }}.
+quote.prop F {{ lp:F1 \/ lp:F2 }} OutM Out OutQ VM :- !,
+  quote.prop F F1 OutM1 Out1 OutQ1 VM, !, quote.prop F F2 OutM2 Out2 OutQ2 VM,
+  OutM = {{ OR lp:OutM1 lp:OutM2 }}, Out = {{ OR lp:Out1 lp:Out2 }},
+  OutQ = {{ lp:OutQ1 \/ lp:OutQ2 }}.
+quote.prop F {{ ~ lp:F1 }} OutM Out OutQ VM :- !,
+  quote.prop F F1 OutM1 Out1 OutQ1 VM, !,
+  OutM = {{ NOT lp:OutM1 }}, Out = {{ NOT lp:Out1 }}, OutQ = {{ ~ lp:OutQ1 }}.
+quote.prop _ {{ True }} OutM Out OutQ _ :- !,
+  OutM = {{ TT Tauto.isProp }}, Out = {{ TT Tauto.isProp }}, OutQ = {{ True }}.
+quote.prop _ {{ False }} OutM Out OutQ _ :- !,
+  OutM = {{ FF Tauto.isProp }}, Out = {{ FF Tauto.isProp }}, OutQ = {{ False }}.
+quote.prop F {{ is_true lp:In1 }} OutM Out OutQ VM :- !,
+  quote.bool F In1 OutM1 Out1 OutQ1 VM, !,
   OutM = {{ EQ lp:OutM1 (TT Tauto.isBool) }},
-  Out = {{ EQ lp:Out1 (TT Tauto.isBool) }}.
-quote.prop F {{ @eq bool lp:In1 lp:In2 }} OutM Out VM :- !,
-  quote.bool F In1 OutM1 Out1 VM, !, quote.bool F In2 OutM2 Out2 VM,
-  OutM = {{ EQ lp:OutM1 lp:OutM2 }}, Out = {{ EQ lp:Out1 lp:Out2 }}.
-quote.prop F In OutM Out VM :- quote.pop2 F In OutM' Out' VM,
+  Out = {{ EQ lp:Out1 (TT Tauto.isBool) }},
+  OutQ = {{ lp:OutQ1 }}.
+quote.prop F {{ @eq bool lp:In1 lp:In2 }} OutM Out OutQ VM :- !,
+  quote.bool F In1 OutM1 Out1 OutQ1 VM, !, quote.bool F In2 OutM2 Out2 OutQ2 VM,
+  OutM = {{ EQ lp:OutM1 lp:OutM2 }}, Out = {{ EQ lp:Out1 lp:Out2 }},
+  OutQ = {{ lp:OutQ1 <-> lp:OutQ2 }}.
+quote.prop F In OutM Out OutQ VM :- quote.pop2 F In OutM' Out' OutQ VM,
   OutM = {{ A Tauto.isProp lp:OutM' tt }},
   Out = {{ A Tauto.isProp lp:Out' tt }}.
-quote.prop _ In OutM Out _ :-
+quote.prop _ In OutM Out In _ :-
   OutM = {{ X Tauto.isProp lp:In }}, Out = {{ X Tauto.isProp lp:In }}.
 
 % [simplify.bool In Out] reduces a boolean formula to [X _]
@@ -368,10 +407,12 @@ simplify.prop X X.
 % - [In] is a term of type [Prop],
 % - [OutM] is a reified formula of type [BFormula MFormula Tauto.isProp]
 % - [Out] is a reified formula of type [BFormula (Formula Q) Tauto.isProp]
+% - [OutQ] the reified [Out] as a [Prop] about [Q] (for <= 8.15 compat)
 % - [VM] is a variable map, that is a list of terms of type [F].
-pred quote i:rf, i:term, o:term, o:term, o:list term.
-quote F In OutM' Out' VM :-
-  quote.prop F In OutM Out VM, simplify.prop OutM OutM', simplify.prop Out Out'.
+pred quote i:rf, i:term, o:term, o:term, o:term, o:list term.
+quote F In OutM' Out' OutQ VM :-
+  quote.prop F In OutM Out OutQ VM,
+  simplify.prop OutM OutM', simplify.prop Out Out'.
 
 % [quote.hyps F Hyps Goal ReifiedGoal Out ReifiedOut VM] reifies hypotheses
 % - [F] is a [realDomainType] or [realFieldType] instance,
@@ -379,26 +420,32 @@ quote F In OutM' Out' VM :-
 % - [Goal] is the goal, of type [Prop]
 % - [ReifiedGoalM] is the refied goal as a [BFormula MFormula Tauto.isProp]
 % - [ReifiedGoal] is the refied goal as a [BFormula (Formula Q) Tauto.isProp]
+% - [ReifiedGoalQ] the reified goal as a [Prop] about [Q] (for <= 8.15 compat)
 % - [Out] is a chain of implications including [Goal] and hypotheses in [Hyps]
 %   that have some arithmetic content
 % - [ReifiedOutM] is a reified version of [Out]
 %   as a [BFormula MFormula Tauto.isProp]
 % - [ReifiedOut] is a reified version of [Out]
 %   as a [BFormula (Formula Q) Tauto.isProp]
+% - [ReifiedOutQ] the [ReifiedOut] as a [Prop] about [Q] (for <= 8.15 compat)
 % - [VM] is a variable map, that is a list of terms of type [F].
-pred quote.hyps i:rf, i:list prop, i:term, i:term, i:term,
-  o:term, o:term, o:term, o:list term.
-quote.hyps F [decl _ _ H|Ctx] Type TypeFM TypeF Type'' TypeFM'' TypeF'' VM :-
-  quote F H HM' H' VM, not (H' = {{ X _ _ }}), !,
-  quote.hyps F Ctx Type TypeFM TypeF Type' TypeFM' TypeF' VM,
+pred quote.hyps i:rf, i:list prop, i:term, i:term, i:term, i:term,
+  o:term, o:term, o:term, o:term, o:list term.
+quote.hyps F [decl _ _ H|Ctx] Type TypeFM TypeF TypeFQ
+    Type'' TypeFM'' TypeF'' TypeFQ'' VM :-
+  quote F H HM' H' HQ' VM, not (H' = {{ X _ _ }}), !,
+  quote.hyps F Ctx Type TypeFM TypeF TypeFQ Type' TypeFM' TypeF' TypeFQ' VM,
   Type'' = {{ lp:H -> lp:Type' }},
   TypeFM'' = {{ IMPL lp:HM' None lp:TypeFM' }},
-  TypeF'' = {{ IMPL lp:H' None lp:TypeF' }}.
-quote.hyps F [decl _ _ _|Ctx] Type TypeFM TypeF Type' TypeFM' TypeF' VM :- !,
-  quote.hyps F Ctx Type TypeFM TypeF Type' TypeFM' TypeF' VM.
-quote.hyps F [def _ _ _ _|Ctx] Type TypeFM TypeF Type' TypeFM' TypeF' VM :- !,
-  quote.hyps F Ctx Type TypeFM TypeF Type' TypeFM' TypeF' VM.
-quote.hyps _ [] Type TypeFM TypeF Type TypeFM TypeF _.
+  TypeF'' = {{ IMPL lp:H' None lp:TypeF' }},
+  TypeFQ'' = {{ lp:HQ' -> lp:TypeFQ' }}.
+quote.hyps F [decl _ _ _|Ctx] Type TypeFM TypeF TypeFQ
+    Type' TypeFM' TypeF' TypeFQ' VM :- !,
+  quote.hyps F Ctx Type TypeFM TypeF TypeFQ Type' TypeFM' TypeF' TypeFQ' VM.
+quote.hyps F [def _ _ _ _|Ctx] Type TypeFM TypeF TypeFQ
+    Type' TypeFM' TypeF' TypeFQ' VM :- !,
+  quote.hyps F Ctx Type TypeFM TypeF TypeFQ Type' TypeFM' TypeF' TypeFQ' VM.
+quote.hyps _ [] Type TypeFM TypeF TypeFQ Type TypeFM TypeF TypeFQ _.
 
 % [exfalso_if_not_prop In Out Bool] changes [In] to [False]
 % when [In] is not a [Prop] (and then set [Bool] to [true])
@@ -414,13 +461,14 @@ exfalso_if_not_prop _ {{ False }} {{ true }}.
 % that are the names of the Ltac1 tactic to call respactively
 % in the [realFieldType] and [realDomainType] case and a third argument [N],
 % passed unchanged as first argument to the previous tactic.
-% The tactics [TacF] or [TacR] will receive six arguments:
+% The tactics [TacF] or [TacR] will receive seven arguments:
 % - [N] above
 % - [Efalso] a term of type [bool] indicating if the goal was changed to [False]
 % - [Type''] a term of type [Prop], an implication with the goal
 %   and selected hypotheses
 % - [TypeFM'] the reified [Type''] as a [BFormula MFormula Tauto.isProp]
 % - [TypeF'] the reified [Type''] as a [BFormula (Formula Q) Tauto.isProp]
+% - [TypeFQ'] the reified [Type''] as a [Prop] about [Q] (for <= 8.15 compat)
 % - [VM''] a variable map, giving the interpretation to variables in [TypeF']
 %   it is of type [VarMap.t F] where [F] is the carrier for the detected
 %   [realFieldType] or [realDomainType]
@@ -428,8 +476,9 @@ solve (goal Ctx _Trigger Type _Proof [str TacF, str TacR, N] as G) GL :-
   exfalso_if_not_prop Type Type' Efalso,
   std.rev Ctx Ctx', !,
   rfstr Ctx' Type' F, !,
-  quote F Type' TypeFM TypeF VM, !,
-  quote.hyps F Ctx' Type' TypeFM TypeF Type'' TypeFM' TypeF' VM, !,
+  quote F Type' TypeFM TypeF TypeFQ VM, !,
+  quote.hyps F Ctx' Type' TypeFM TypeF TypeFQ Type'' TypeFM' TypeF' TypeFQ' VM,
+  !,
   rf->numDomain F NDF,
   std.assert-ok!
     (coq.typecheck TypeFM' {{ BFormula (@Internals.MFormula lp:NDF) isProp }})
@@ -444,5 +493,6 @@ solve (goal Ctx _Trigger Type _Proof [str TacF, str TacR, N] as G) GL :-
     VM'',
   (if (F = field _) (Tac = TacF) (Tac = TacR)),
   (coq.ltac.call
-     Tac [N, trm Efalso, trm Type'', trm TypeFM', trm TypeF', trm VM''] G GL;
+     Tac [N, trm Efalso, trm Type'', trm TypeFM', trm TypeF', trm TypeFQ',
+          trm VM''] G GL;
    coq.ltac.fail 0).
