@@ -219,8 +219,10 @@ Qed.
 Goal forall x, -x^+2 >= 0 -> x - 1 >= 0 -> False.
 Proof.
 move=> *.
-psatz 3.
-Qed.
+(* Requires CSDP *)
+(* psatz 3. *)
+(* Qed. *)
+Abort.
 
 Goal forall x, -x^+2 >= 0 -> x - 1 >= 0 -> False.
 Proof.
@@ -232,8 +234,10 @@ Lemma motzkin' x y :
   (x^+2 + y^+2 + 1) * (x^+2 * y^+4 + x^+4*y^+2 + 1 - 3%:R * x^+2 * y^+2) >= 0.
 Proof.
 move=> *.
-psatz 3.
-Qed.
+(* Requires CSDP *)
+(* psatz 3. *)
+(* Qed. *)
+Abort.
 
 Goal forall x, -x^+2 >= 0 -> x - 1 >= 0 -> False.
 Proof.
