@@ -363,11 +363,19 @@ Proof.
 by rewrite !Q2F_Q2F' /Q2F'/= rmorphM/= nat_of_mul_pos intrM natrM mulf_div.
 Qed.
 
+(* TODO: remove once we require MathComp >= 1.13 *)
+Lemma eqr_div (U : fieldType) (x y z t : U) :
+  y != 0 -> t != 0 -> (x / y == z / t) = (x * t == z * y).
+Proof.
+move=> yD0 tD0; rewrite -[x in RHS](divfK yD0) -[z in RHS](divfK tD0) mulrAC.
+by apply/eqP/eqP => [->|/(mulIf yD0)/(mulIf tD0)].
+Qed.
+
 Lemma Q2F_eq x y : Qeq_bool x y = (Q2F x == Q2F y :> F).
 Proof.
 rewrite !Q2F_Q2F' /Q2F'.
 rewrite !zify_ssreflect.SsreflectZifyInstances.nat_of_posE.
-rewrite GRing.eqr_div ?Pos_to_nat_neq0// !pmulrn -!intrM eqr_int.
+rewrite eqr_div ?Pos_to_nat_neq0// !pmulrn -!intrM eqr_int.
 apply/idP/idP.
 - by move=> /Qeq_bool_eq/(f_equal int_of_Z); rewrite 2!rmorphM => ->.
 - move=> /eqP eq; apply: Qeq_eq_bool.
