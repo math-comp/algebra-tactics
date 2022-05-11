@@ -4,6 +4,7 @@ examples/ring_examples_check.v
 examples/ring_examples_no_check.v
 examples/from_sander.v
 examples/zmodule.v
+examples/lra_examples.v
 
 -R examples mathcomp.algebra_tactics.examples
 -arg -w -arg -notation-overridden
