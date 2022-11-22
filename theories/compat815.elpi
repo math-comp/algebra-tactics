@@ -1,7 +1,0 @@
-solve (goal _Ctx _Trigger _Type _Proof
-       [str Tac815, str Tac816, N, F, FQ, E, F'] as G) GL :-
-  coq.version _Str _Major Minor _Patch,
-  (if (Minor i< 16)
-     (coq.ltac.call Tac815 [N, FQ, E, F'] G GL)
-     (coq.ltac.call Tac816 [N, F, F'] G GL);
-   coq.ltac.fail 0).
