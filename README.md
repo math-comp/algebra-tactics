@@ -12,28 +12,29 @@ Follow the instructions on https://github.com/coq-community/templates to regener
 
 
 
-This library provides `ring` and `field` tactics for Mathematical Components,
-that work with any `comRingType` and `fieldType` instances, respectively.
-Their instance resolution is done through canonical structure inference.
-Therefore, they work with abstract rings and do not require `Add Ring` and
-`Add Field` commands. Another key feature of this library is that they
-automatically push down ring morphisms and additive functions to leaves of
-ring/field expressions before normalization to the Horner form.
+This library provides `ring`, `field`, and `lra` tactics for Mathematical
+Components, that work with any `comRingType`, `fieldType`, and
+`realDomainType` or `realFieldType` instances, respectively. Their instance
+resolution is done through canonical structure inference.  Therefore, they
+work with abstract rings and do not require `Add Ring` and `Add Field`
+commands. Another key feature of this library is that they automatically push
+down ring morphisms and additive functions to leaves of ring/field expressions
+before applying the proof procedures.
 
 ## Meta
 
 - Author(s):
   - Kazuhiko Sakaguchi (initial)
 - License: [CeCILL-B Free Software License Agreement](CeCILL-B)
-- Compatible Coq versions: 8.13 or later
+- Compatible Coq versions: 8.16 or later
 - Additional dependencies:
-  - [MathComp](https://math-comp.github.io) ssreflect 1.12 or later
+  - [MathComp](https://math-comp.github.io) ssreflect 1.15 or later
   - [MathComp](https://math-comp.github.io) algebra
   - [Mczify](https://github.com/math-comp/mczify) 1.1.0 or later
-  - [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.10.1 or later
+  - [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.15.0 or later
 - Coq namespace: `mathcomp.algebra_tactics`
 - Related publication(s):
-  - [Reflexive tactics for algebra, revisited](https://arxiv.org/abs/2202.04330) 
+  - [Reflexive tactics for algebra, revisited](https://drops.dagstuhl.de/opus/volltexte/2022/16738/) doi:[10.4230/LIPIcs.ITP.2022.29](https://doi.org/10.4230/LIPIcs.ITP.2022.29)
 
 ## Building and installation instructions
 
