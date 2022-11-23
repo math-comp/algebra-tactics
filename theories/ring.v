@@ -2,7 +2,8 @@ From Coq Require Import ZArith ZifyClasses Ring Ring_polynom Field_theory.
 From elpi Require Export elpi.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
-From mathcomp Require Import ssrZ zify.
+From mathcomp.zify Require Import ssrZ zify.
+From mathcomp.algebra_tactics Require Import common.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -15,35 +16,6 @@ Local Open Scope ring_scope.
 Module Import Internals.
 
 Implicit Types (V : zmodType) (R : ringType) (F : fieldType).
-
-(* In reified syntax trees, constants must be represented by binary integers  *)
-(* `N` and `Z`. For the fine-grained control of conversion, we provide        *)
-(* transparent (immediately expanding) versions of `N -> nat` and  `Z -> int` *)
-(* conversions.                                                               *)
-
-Definition addn_expand := Eval compute in addn.
-
-Fixpoint nat_of_pos_rec_expand (p : positive) (a : nat) : nat :=
-  match p with
-  | p0~1 => addn_expand a (nat_of_pos_rec_expand p0 (addn_expand a a))
-  | p0~0 => nat_of_pos_rec_expand p0 (addn_expand a a)
-  | 1 => a
-  end%positive.
-
-Definition nat_of_pos_expand (p : positive) : nat := nat_of_pos_rec_expand p 1.
-
-Definition nat_of_N_expand (n : N) : nat :=
-  if n is N.pos p then nat_of_pos_expand p else 0%N.
-
-Definition int_of_Z_expand (n : Z) : int :=
-  match n with
-    | Z0 => Posz 0
-    | Zpos p => Posz (nat_of_pos_expand p)
-    | Zneg p => Negz (nat_of_pos_expand p).-1
-  end.
-
-Lemma nat_of_N_expandE : nat_of_N_expand = nat_of_N. Proof. by []. Qed.
-Lemma int_of_Z_expandE : int_of_Z_expand = int_of_Z. Proof. by []. Qed.
 
 (* Pushing down morphisms in ring and field expressions by reflection         *)
 
@@ -363,36 +335,6 @@ End Fnorm.
 
 (* Normalizing ring and field expressions to the Horner form by reflection    *)
 
-Lemma RZ R : ring_morph 0 1 +%R *%R (fun x y : R => x - y) -%R eq
-                        0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
-                        (fun n => (int_of_Z n)%:~R).
-Proof.
-split=> //= [x y | x y | x y | x | x y /Z.eqb_eq -> //].
-- by rewrite !rmorphD.
-- by rewrite !rmorphB.
-- by rewrite !rmorphM.
-- by rewrite !rmorphN.
-Qed.
-
-Lemma PN R : @power_theory R 1 *%R eq N id (fun x n => x ^+ nat_of_N n).
-Proof.
-split => r [] //=; elim=> //= p <-.
-- by rewrite Pos2Nat.inj_xI ?exprS -exprD addnn -mul2n.
-- by rewrite Pos2Nat.inj_xO ?exprS -exprD addnn -mul2n.
-Qed.
-
-Lemma RR (R : comRingType) :
-  @ring_theory R 0 1 +%R *%R (fun x y => x - y) -%R eq.
-Proof.
-exact/mk_rt/subrr/(fun _ _ => erefl)/mulrDl/mulrA/mulrC/mul1r/addrA/addrC/add0r.
-Qed.
-
-Lemma RF F : @field_theory F 0 1 +%R *%R (fun x y => x - y) -%R
-                           (fun x y => x / y) GRing.inv eq.
-Proof.
-by split=> // [||x /eqP]; [exact: RR | exact/eqP/oner_neq0 | exact: mulVf].
-Qed.
-
 Fixpoint interp_PElist
     R R_of_Z zero opp add sub one mul exp
     (l : seq R) (lpe : list (RExpr R * RExpr R * PExpr Z * PExpr Z)) : seq R :=
@@ -468,9 +410,9 @@ Let F_of_Z n : F :=
 
 (* The following two lemmas should be immediate consequences of parametricity *)
 Lemma PEvalE l e :
-  PEeval 0 1 +%R *%R (fun x y => x - y) -%R F_of_Z N.to_nat (@GRing.exp F) l e =
+  PEeval 0 1 +%R *%R (fun x y => x - y) -%R F_of_Z nat_of_N (@GRing.exp F) l e =
   PEeval 0 1 +%R *%R (fun x y => x - y) -%R (fun n => (int_of_Z n)%:~R)
-         N.to_nat (@GRing.exp F) l e.
+         nat_of_N (@GRing.exp F) l e.
 Proof.
 elim: e => //= [| ? -> ? -> | ? -> ? -> | ? -> ? -> | ? -> | ? ->] //.
 by case=> [|[p|p|]|[p|p|]]; rewrite //= nmulrn; congr intmul; lia.
@@ -479,9 +421,9 @@ Qed.
 Lemma PCondP l le :
   reflect
     (PCond' True not and 0 1 +%R *%R (fun x y : F => x - y) -%R eq
-            (fun n0 : Z => (int_of_Z n0)%:~R) N.to_nat (@GRing.exp F) l le)
+            (fun n0 : Z => (int_of_Z n0)%:~R) nat_of_N (@GRing.exp F) l le)
     (PCond' true negb andb 0 1 +%R *%R (fun x y : F => x - y) -%R eq_op
-            F_of_Z N.to_nat (@GRing.exp F) l le).
+            F_of_Z nat_of_N (@GRing.exp F) l le).
 Proof.
 elim: le => [/=|e1 /= [|e2 le] IH].
 - exact: ReflectT.
@@ -530,7 +472,7 @@ Lemma field_correct (F : fieldType) (n : nat) (l : seq F)
       Peq Z.eqb (norm_subst' (PEmul (num nfe1) (denum nfe2)))
                 (norm_subst' (PEmul (num nfe2) (denum nfe1))) /\
       is_true_ (PCond' true negb_ andb_
-                       zero one add mul sub opp Feqb F_of_Z N.to_nat exp l'
+                       zero one add mul sub opp Feqb F_of_Z nat_of_N exp l'
                        (Fapp (Fcons00 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
                                       (triv_div 0 1 Z.eqb))
                              (condition nfe1 ++ condition nfe2) [::]))) ->
@@ -584,7 +526,7 @@ Lemma numField_correct (F : numFieldType) (n : nat) (l : seq F)
       Peq Z.eqb (norm_subst' (PEmul (num nfe1) (denum nfe2)))
                 (norm_subst' (PEmul (num nfe2) (denum nfe1))) /\
       is_true_ (PCond' true negb_ andb_
-                       zero one add mul sub opp Feqb F_of_Z N.to_nat exp l'
+                       zero one add mul sub opp Feqb F_of_Z nat_of_N exp l'
                        (Fapp (Fcons2 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
                                      (triv_div 0 1 Z.eqb))
                              (condition nfe1 ++ condition nfe2) [::]))) ->
@@ -688,8 +630,9 @@ Ltac field_reflection_no_check F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
 Ltac field_reflection := field_reflection_check.
 
 Strategy expand
-         [addn_expand nat_of_pos_rec_expand nat_of_pos_expand nat_of_N_expand
-          int_of_Z_expand Neval Reval Nnorm Rnorm Fnorm PEeval FEeval].
+  [addn_expand nat_of_pos_rec_expand nat_of_pos_expand nat_of_N_expand
+   int_of_Z_expand Z_of_N_expand nat_of_large_nat N_of_large_nat Z_of_large_nat
+   Neval Reval Nnorm Rnorm Fnorm PEeval FEeval].
 
 Elpi Tactic ring.
 Elpi Accumulate File "theories/common.elpi".

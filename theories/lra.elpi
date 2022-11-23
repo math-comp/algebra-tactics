@@ -39,18 +39,54 @@ z-constant N {{ lib:num.Z.Zpos lp:T }} :-
   var N, !, positive-constant N T.
 
 pred ground-pos i:term.
-ground-pos {{ xH }}.
+ground-pos {{ xH }} :- !.
 ground-pos {{ xO lp:P }} :- !, ground-pos P.
 ground-pos {{ xI lp:P }} :- !, ground-pos P.
 
 pred ground-N i:term.
-ground-N {{ N0 }}.
+ground-N {{ N0 }} :- !.
 ground-N {{ Npos lp:P }} :- !, ground-pos P.
 
 pred ground-Z i:term.
-ground-Z {{ Z0 }}.
+ground-Z {{ Z0 }} :- !.
 ground-Z {{ Zpos lp:P }} :- !, ground-pos P.
 ground-Z {{ Zneg lp:P }} :- !, ground-pos P.
+
+pred ground-decimal i:term.
+ground-decimal {{ Decimal.Nil }} :- !.
+ground-decimal {{ Decimal.D0 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D1 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D2 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D3 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D4 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D5 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D6 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D7 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D8 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D9 lp:D }} :- !, ground-decimal D.
+
+pred ground-hexadecimal i:term.
+ground-hexadecimal {{ Hexadecimal.Nil }} :- !.
+ground-hexadecimal {{ Hexadecimal.D0 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D1 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D2 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D3 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D4 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D5 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D6 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D7 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D8 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D9 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.Da lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.Db lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.Dc lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.Dd lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.De lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.Df lp:D }} :- !, ground-hexadecimal D.
+
+pred ground-uint i:term.
+ground-uint {{ Number.UIntDecimal lp:D }} :- !, ground-decimal D.
+ground-uint {{ Number.UIntHexadecimal lp:D }} :- !, ground-hexadecimal D.
 
 pred reduction-pos i:term, o:term.
 reduction-pos I O :- coq.reduction.vm.norm I {{ positive }} O, ground-pos O.
@@ -62,17 +98,17 @@ pred reduction-Z i:term, o:term.
 reduction-Z I O :- coq.reduction.vm.norm I {{ Z }} O, ground-Z O.
 
 pred nat->N i:term, o:term.
-nat->N {{ Init.Nat.of_num_uint lp:X }} XN :- !,
+nat->N {{ Nat.of_num_uint lp:X }} XN :- !,
   reduction-N {{ N.of_num_uint lp:X }} XN.
 nat->N X XN :- !, reduction-N {{ N.of_nat lp:X }} XN.
 
 pred nat->Z i:term, o:term.
-nat->Z {{ Init.Nat.of_num_uint lp:X }} XZ :- !,
+nat->Z {{ Nat.of_num_uint lp:X }} XZ :- !,
   reduction-Z {{ Z.of_num_uint lp:X }} XZ.
 nat->Z X XZ :- !, reduction-Z {{ Z.of_nat lp:X }} XZ.
 
 pred nat->NZ i:term, o:term, o:term.
-nat->NZ {{ Init.Nat.of_num_uint lp:X }} XN XZ :- !,
+nat->NZ {{ Nat.of_num_uint lp:X }} XN XZ :- !,
   reduction-N {{ N.of_num_uint lp:X }} XN, reduction-Z {{ Z.of_N lp:XN }} XZ.
 nat->NZ X XN XZ :- !,
   reduction-N {{ N.of_nat lp:X }} XN, reduction-Z {{ Z.of_N lp:XN }} XZ.
@@ -201,6 +237,55 @@ rfstr _ _ _ _ :- coq.ltac.fail _ "Cannot find a realDomainType".
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Reification procedure
 
+% [coqZ] represents Coq terms of type [Z]. Since we often have to take their
+% multiplicative inverse (of type [Q]), we expose the head constructor in the
+% Elpi level.
+kind coqZ type.
+type coqZ0 coqZ.
+type coqZpos term -> coqZ.
+type coqZneg term -> coqZ.
+
+pred coqZ->N o:coqZ, o:term.
+coqZ->N coqZ0 {{ N0 }} :- !.
+coqZ->N (coqZpos P) {{ Npos lp:P }} :- !.
+
+pred coqZ->Z o:coqZ, o:term.
+coqZ->Z coqZ0 {{ Z0 }} :- !.
+coqZ->Z (coqZpos P) {{ Zpos lp:P }} :- !.
+coqZ->Z (coqZneg P) {{ Zneg lp:P }} :- !.
+
+pred coqZ->Q i:bool, i:coqZ, o:term.
+coqZ->Q _ coqZ0 {{ Qmake 0 1 }} :- !.
+coqZ->Q ff (coqZpos P) {{ Qmake (Zpos lp:P) 1 }} :- !.
+coqZ->Q ff (coqZneg P) {{ Qmake (Zneg lp:P) 1 }} :- !.
+coqZ->Q tt (coqZpos P) {{ Qmake 1 lp:P }} :- !.
+coqZ->Q tt (coqZneg P) {{ Qmake (-1) lp:P }} :- !.
+
+% [quote.nat In OutM Out] reifies natural number constant [In] of type [nat] to
+% a term [OutM] of type [large_nat] and [Out] of type [coqZ].
+pred quote.nat i:term, o:term, o:coqZ.
+quote.nat {{ Nat.of_num_uint lp:X }} {{ large_nat_uint lp:X }} Out :-
+  ground-uint X, !,
+  coq.reduction.vm.norm {{ N.of_num_uint lp:X }} {{ N }} XN, !,
+  coqZ->N Out XN.
+quote.nat X {{ large_nat_N lp:XN }} Out :-
+  reduction-N {{ N.of_nat lp:X }} XN, !, coqZ->N Out XN.
+
+% [quote.int In OutM Out] reifies integer constant [In] of type [int] to a term
+% [OutM] of type [large_int] and [Out] of type [coqZ].
+pred quote.int i:term, o:term, o:coqZ.
+quote.int {{ Posz (Nat.of_num_uint lp:X) }} {{ large_int_Pos lp:X }} Out :-
+  ground-uint X, !,
+  coq.reduction.vm.norm {{ N.of_num_uint lp:X }} {{ N }} XN, !, coqZ->N Out XN.
+quote.int {{ Posz lp:N }} {{ large_int_Z lp:NZ }} Out :-
+  reduction-Z {{ Z.of_nat lp:N }} NZ, !, coqZ->Z Out NZ.
+quote.int {{ Negz (Nat.of_num_uint lp:X) }} {{ large_int_Neg lp:X }}
+          (coqZneg P) :-
+  ground-uint X, !,
+  coq.reduction.vm.norm {{ N.succ_pos (N.of_num_uint lp:X) }} {{ positive }} P.
+quote.int {{ Negz lp:N }} {{ large_int_Z (Zneg lp:P) }} (coqZneg P) :-
+  reduction-pos {{ N.succ_pos (N.of_nat lp:N) }} P, !.
+
 % [quote.cstr Inv In OutM Out] reifies integer constants
 % - [Inv] is a Boolean flag indicating that [Out] should represent the
 %   multiplicative inverse of [In],
@@ -208,26 +293,13 @@ rfstr _ _ _ _ :- coq.ltac.fail _ "Cannot find a realDomainType".
 % - [OutM] is a reified constant of type [RExpr V],
 % - [Out] is a reified constant of type [Q]
 pred quote.cstr i:bool, i:term, o:term, o:term.
-quote.cstr ff {{ Posz lp:N }} {{ RintC lp:Z }} {{ Qmake lp:Z 1 }} :- !,
-  nat->Z N Z.
-quote.cstr tt {{ Posz lp:N }} {{ RintC lp:Z }} Out :- !,
-  nat->Z N Z, !,
-  if (Z = {{ Zpos lp:P }}) (Out = {{ Qmake 1 lp:P }}) (Out = {{ Qmake 0 1 }}).
-quote.cstr ff {{ Negz lp:N }} {{ RintC lp:Z }} {{ Qmake lp:Z 1 }} :- !,
-  int->Z {{ Negz lp:N }} Z.
-quote.cstr tt {{ Negz lp:N }} {{ RintC lp:Z }} {{ Qmake -1 lp:P }} :- !,
-  int->Z {{ Negz lp:N }} Z, !, Z = {{ Zneg lp:P }}.
+quote.cstr Inv In {{ RintC lp:OutM }} Out' :-
+  quote.int In OutM Out, !, coqZ->Q Inv Out Out'.
 quote.cstr _ {{ Z0 }} {{ RZC Z0 }} {{ Qmake 0 1 }} :- !.
-quote.cstr ff {{ Zpos lp:P }} {{ RZC (Zpos lp:P') }}
-           {{ Qmake (Zpos lp:P') 1 }} :- !,
-  reduction-pos P P'.
-quote.cstr tt {{ Zpos lp:P }} {{ RZC (Zpos lp:P') }} {{ Qmake 1 lp:P' }} :- !,
-  reduction-pos P P'.
-quote.cstr ff {{ Zneg lp:P }} {{ RZC (Zneg lp:P') }}
-           {{ Qmake (Zneg lp:P') 1 }} :- !,
-  reduction-pos P P'.
-quote.cstr tt {{ Zneg lp:P }} {{ RZC (Zneg lp:P') }} {{ Qmake -1 lp:P' }} :- !,
-  reduction-pos P P'.
+quote.cstr Inv {{ Zpos lp:P }} {{ RZC (Zpos lp:P') }} Out :- !,
+  reduction-pos P P', coqZ->Q Inv (coqZpos P') Out.
+quote.cstr Inv {{ Zneg lp:P }} {{ RZC (Zneg lp:P') }} Out :- !,
+  reduction-pos P P', coqZ->Q Inv (coqZneg P') Out.
 
 % [quote.expr Inv R F TR Morph In OutM Out VM] reifies arithmetic expressions
 % - [Inv] is a Boolean flag indicating that [Out] should represent the
@@ -262,15 +334,13 @@ quote.expr ff R F TR Morph {{ @GRing.add lp:V lp:In1 lp:In2 }}
   quote.expr ff R F TR Morph In1 OutM1 Out1 VM, !,
   quote.expr ff R F TR Morph In2 OutM2 Out2 VM.
 % (_ *+ _)%R
-quote.expr Inv R F TR Morph {{ @GRing.natmul lp:V lp:In1 lp:X }}
-           {{ @RMuln lp:R lp:OutM1 lp:XN }}
-           {{ PEmul lp:Out1 (PEc lp:Out2) }} VM :-
-  ring->zmod R V, nat->NZ X XN XZ,
+quote.expr Inv R F TR Morph {{ @GRing.natmul lp:V lp:In1 lp:In2 }}
+           {{ @RMuln lp:R lp:OutM1 lp:OutM2 }}
+           {{ PEmul lp:Out1 (PEc lp:Out2') }} VM :-
+  ring->zmod R V, quote.nat In2 OutM2 Out2,
   !,
   quote.expr Inv R F TR Morph In1 OutM1 Out1 VM, !,
-  if (Inv = ff) (Out2 = {{ Qmake lp:XZ 1 }})
-     (if (XZ = {{ Zpos lp:XP }})
-         (Out2 = {{ Qmake 1 lp:XP }}) (Out2 = {{ Qmake 0 1 }})).
+  coqZ->Q Inv Out2 Out2'.
 % (_ *~ _)%R
 quote.expr Inv R F TR Morph {{ @intmul lp:V lp:In1 lp:In2 }}
            {{ @RMulz lp:R lp:OutM1 lp:OutM2 }} {{ PEmul lp:Out1 lp:Out2 }} VM :-
@@ -290,11 +360,13 @@ quote.expr Inv R F TR Morph {{ @GRing.mul lp:R' lp:In1 lp:In2 }}
   quote.expr Inv R F TR Morph In1 OutM1 Out1 VM, !,
   quote.expr Inv R F TR Morph In2 OutM2 Out2 VM.
 % (_ ^+ _)%R
-quote.expr Inv R F TR Morph {{ @GRing.exp lp:R' lp:In lp:X }}
-           {{ @RExpn lp:R lp:OutM lp:XN }} {{ PEpow lp:Out lp:XN }} VM :-
-  coq.unify-eq R R' ok, nat->N X XN,
+quote.expr Inv R F TR Morph {{ @GRing.exp lp:R' lp:In1 lp:In2 }}
+           {{ @RExpn lp:R lp:OutM1 lp:OutM2 }}
+           {{ PEpow lp:Out1 lp:Out2' }} VM :-
+  coq.unify-eq R R' ok, quote.nat In2 OutM2 Out2,
   !,
-  quote.expr Inv R F TR Morph In OutM Out VM.
+  quote.expr Inv R F TR Morph In1 OutM1 Out1 VM, !,
+  coqZ->N Out2 Out2'.
 % _^-1
 quote.expr Inv R (some F) TR Morph {{ @GRing.inv lp:R' lp:In }}
            {{ @RInv lp:F lp:OutM }} Out VM :-
