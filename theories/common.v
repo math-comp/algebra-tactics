@@ -13,6 +13,8 @@ Local Open Scope ring_scope.
 
 Implicit Types (R : ringType) (F : fieldType).
 
+(* Some basic facts about `Decimal.uint` and `Hexadecimal.uint`               *)
+
 Fixpoint N_of_uint_acc (d : Decimal.uint) (acc : N) : N :=
   match d with
   | Decimal.Nil => acc
@@ -130,7 +132,8 @@ Lemma nat_of_N_expandE : nat_of_N_expand = nat_of_N. Proof. by []. Qed.
 Lemma int_of_Z_expandE : int_of_Z_expand = int_of_Z. Proof. by []. Qed.
 Lemma Z_of_N_expandE : Z_of_N_expand = Z.of_N. Proof. by []. Qed.
 
-(******************************************************************************)
+(* Data types for reifying `nat` and `int` constants, including large ones    *)
+(* that uses `Number.uint`                                                    *)
 
 Variant large_nat := large_nat_N of N | large_nat_uint of Number.uint.
 
@@ -194,7 +197,7 @@ by case: n => [n|[d|d]|[d|d]] //=; rewrite -(uint_N_nat, hex_uint_N_nat);
   rewrite /Z.of_uint /N.of_uint /Z.of_hex_uint /N.of_hex_uint; lia.
 Qed.
 
-(******************************************************************************)
+(* Embedding of rational numbers `Q` in a generic `unitRingType`              *)
 
 Definition R_of_Q {R : unitRingType} (x : Q) : R :=
   (int_of_Z (Qnum x))%:~R / (Pos.to_nat (Qden x))%:R.
@@ -240,7 +243,8 @@ case: x => [|n|n]; rewrite /R_of_Q ?mul0r ?invr0 ?mul1r ?mulN1r ?invrN //=.
 by congr (- _%:R^-1); lia.
 Qed.
 
-(******************************************************************************)
+(* Some instances required to adapt `ring`, `field`, and `lra` tactics to     *)
+(* MathComp                                                                   *)
 
 Lemma RZ R : ring_morph 0 1 +%R *%R (fun x y : R => x - y) -%R eq
                         0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
