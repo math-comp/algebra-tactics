@@ -1,2 +1,3 @@
-theories/ring.vo : theories/common.elpi theories/ring.elpi theories/field.elpi
-theories/lra.vo : theories/lra.elpi
+theories/ring.vo : theories/common.elpi theories/ring.elpi \
+                   theories/ring_tac.elpi theories/field_tac.elpi
+theories/lra.vo : theories/common.elpi theories/lra.elpi

@@ -1,40 +1,53 @@
-From Coq Require Import ZArith ZifyClasses Ring Ring_polynom Field_theory.
 From elpi Require Export elpi.
+From Coq Require Import ZArith Ring Ring_polynom Field_theory.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
 From mathcomp.zify Require Import ssrZ zify.
 From mathcomp.algebra_tactics Require Import common.
 
+Import GRing.Theory.
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GRing.Theory.
-
 Local Open Scope ring_scope.
 
 Module Import Internals.
+
+Definition quote_icstr_helper (n : int) : bool * N :=
+  match n with
+  | Posz n => (true, N.of_nat n)
+  | Negz n => (false, N.of_nat n)
+  end.
+
+Definition quote_Z_pow_helper (n : Z) : option N :=
+  match n with
+  | Zpos n => Some (Npos n)
+  | Z0 => Some N0
+  | _ => None
+  end.
 
 Implicit Types (V : zmodType) (R : ringType) (F : fieldType).
 
 (* Pushing down morphisms in ring and field expressions by reflection         *)
 
 Inductive NExpr : Type :=
-  | NC    of N
+  | NC    of large_nat
   | NX    of nat
   | NAdd  of NExpr & NExpr
   | NSucc of NExpr
   | NMul  of NExpr & NExpr
-  | NExp  of NExpr & N.
+  | NExp  of NExpr & large_nat.
 
 Fixpoint Neval (e : NExpr) : nat :=
   match e with
-    | NC n => nat_of_N_expand n
-    | NX x => x
-    | NAdd e1 e2 => Neval e1 + Neval e2
-    | NSucc e => S (Neval e)
-    | NMul e1 e2 => Neval e1 * Neval e2
-    | NExp e1 n => Neval e1 ^ nat_of_N_expand n
+  | NC n => nat_of_large_nat n
+  | NX x => x
+  | NAdd e1 e2 => Neval e1 + Neval e2
+  | NSucc e => S (Neval e)
+  | NMul e1 e2 => Neval e1 * Neval e2
+  | NExp e1 n => Neval e1 ^ nat_of_large_nat n
   end.
 
 Inductive RExpr : ringType -> Type :=
@@ -53,9 +66,9 @@ Inductive RExpr : ringType -> Type :=
   | RMul R : RExpr R -> RExpr R -> RExpr R
   | RZMul : RExpr [ringType of Z] -> RExpr [ringType of Z] ->
             RExpr [ringType of Z]
-  | RExpn R : RExpr R -> N -> RExpr R
-  | RExpPosz (R : unitRingType) : RExpr R -> N -> RExpr R
-  | RExpNegz F : RExpr F -> N -> RExpr F
+  | RExpn R : RExpr R -> large_nat -> RExpr R
+  | RExpPosz (R : unitRingType) : RExpr R -> large_nat -> RExpr R
+  | RExpNegz F : RExpr F -> large_nat -> RExpr F
   | RZExp : RExpr [ringType of Z] -> Z -> RExpr [ringType of Z]
   | RInv F : RExpr F -> RExpr F
   | RMorph R' R : {rmorphism R' -> R} -> RExpr R' -> RExpr R
@@ -77,38 +90,38 @@ Scheme RExpr_ind' := Induction for RExpr Sort Prop
 
 Fixpoint Reval R (e : RExpr R) : R :=
   match e with
-    | RX _ x => x
-    | R0 _ => 0%R
-    | ROpp _ e1 => - Reval e1
-    | RZOpp e1 => Z.opp (Reval e1)
-    | RAdd _ e1 e2 => Reval e1 + Reval e2
-    | RZAdd e1 e2 => Z.add (Reval e1) (Reval e2)
-    | RZSub e1 e2 => Z.sub (Reval e1) (Reval e2)
-    | RMuln _ e1 e2 => Reval e1 *+ Neval e2
-    | RMulz _ e1 e2 => Reval e1 *~ Reval e2
-    | R1 _ => 1%R
-    | RMul _ e1 e2 => Reval e1 * Reval e2
-    | RZMul e1 e2 => Z.mul (Reval e1) (Reval e2)
-    | RExpn _ e1 n => Reval e1 ^+ nat_of_N_expand n
-    | RExpPosz _ e1 n => Reval e1 ^ Posz (nat_of_N_expand n)
-    | RExpNegz _ e1 n => Reval e1 ^ Negz (nat_of_N_expand n)
-    | RZExp e1 n => Z.pow (Reval e1) n
-    | RInv _ e1 => (Reval e1)^-1
-    | RMorph _ _ f e1 => f (Reval e1)
-    | RMorph' _ _ f e1 => f (ZMeval e1)
-    | RPosz e1 => Posz (Neval e1)
-    | RNegz e2 => Negz (Neval e2)
-    | RZC x => x
+  | RX _ x => x
+  | R0 _ => 0%R
+  | ROpp _ e1 => - Reval e1
+  | RZOpp e1 => Z.opp (Reval e1)
+  | RAdd _ e1 e2 => Reval e1 + Reval e2
+  | RZAdd e1 e2 => Z.add (Reval e1) (Reval e2)
+  | RZSub e1 e2 => Z.sub (Reval e1) (Reval e2)
+  | RMuln _ e1 e2 => Reval e1 *+ Neval e2
+  | RMulz _ e1 e2 => Reval e1 *~ Reval e2
+  | R1 _ => 1%R
+  | RMul _ e1 e2 => Reval e1 * Reval e2
+  | RZMul e1 e2 => Z.mul (Reval e1) (Reval e2)
+  | RExpn _ e1 n => Reval e1 ^+ nat_of_large_nat n
+  | RExpPosz _ e1 n => Reval e1 ^ Posz (nat_of_large_nat n)
+  | RExpNegz _ e1 n => Reval e1 ^ Negz (nat_of_large_nat n)
+  | RZExp e1 n => Z.pow (Reval e1) n
+  | RInv _ e1 => (Reval e1)^-1
+  | RMorph _ _ f e1 => f (Reval e1)
+  | RMorph' _ _ f e1 => f (ZMeval e1)
+  | RPosz e1 => Posz (Neval e1)
+  | RNegz e2 => Negz (Neval e2)
+  | RZC x => x
   end
 with ZMeval V (e : ZMExpr V) : V :=
   match e with
-    | ZMX _ x => x
-    | ZM0 _ => 0%R
-    | ZMOpp _ e1 => - ZMeval e1
-    | ZMAdd _ e1 e2 => ZMeval e1 + ZMeval e2
-    | ZMMuln _ e1 e2 => ZMeval e1 *+ Neval e2
-    | ZMMulz _ e1 e2 => ZMeval e1 *~ Reval e2
-    | ZMMorph _ _ f e1 => f (ZMeval e1)
+  | ZMX _ x => x
+  | ZM0 _ => 0%R
+  | ZMOpp _ e1 => - ZMeval e1
+  | ZMAdd _ e1 e2 => ZMeval e1 + ZMeval e2
+  | ZMMuln _ e1 e2 => ZMeval e1 *+ Neval e2
+  | ZMMulz _ e1 e2 => ZMeval e1 *~ Reval e2
+  | ZMMorph _ _ f e1 => f (ZMeval e1)
   end.
 
 Fixpoint interp_RElist
@@ -129,62 +142,61 @@ Variables (exp : R' -> N -> R') (expE : exp = (fun x n => x ^+ nat_of_N n)).
 
 Fixpoint Nnorm (e : NExpr) : R' :=
   match e with
-    | NC N0 => R_of_Z Z0
-    | NC (Npos n) => R_of_Z (Zpos n)
-    | NX x => x%:~R
-    | NAdd e1 e2 => add (Nnorm e1) (Nnorm e2)
-    | NSucc e1 => add one (Nnorm e1)
-    | NMul e1 e2 => mul (Nnorm e1) (Nnorm e2)
-    | NExp e1 n => exp (Nnorm e1) n
+  | NC n => R_of_Z (Z_of_large_nat n)
+  | NX x => x%:~R
+  | NAdd e1 e2 => add (Nnorm e1) (Nnorm e2)
+  | NSucc e1 => add one (Nnorm e1)
+  | NMul e1 e2 => mul (Nnorm e1) (Nnorm e2)
+  | NExp e1 n => exp (Nnorm e1) (N_of_large_nat n)
   end.
 
 Lemma Nnorm_correct (e : NExpr) : (Neval e)%:R = Nnorm e.
 Proof.
 elim: e => //=.
-- by case; rewrite R_of_ZE.
+- by move=> n; rewrite R_of_ZE large_nat_Z_int.
 - by move=> e1 IHe1 e2 IHe2; rewrite addE natrD IHe1 IHe2.
 - by move=> e IHe; rewrite addE oneE mulrS IHe.
 - by move=> e1 IHe1 e2 IHe2; rewrite mulE natrM IHe1 IHe2.
-- by move=> e1 IHe1 e2; rewrite expE natrX IHe1.
+- by move=> e1 IHe1 e2; rewrite expE natrX IHe1 large_nat_N_nat.
 Qed.
 
 Fixpoint Rnorm R (f : {rmorphism R -> R'}) (e : RExpr R) : R' :=
   match e in RExpr R return {rmorphism R -> R'} -> R' with
-    | RX _ x => fun f => f x
-    | R0 _ => fun => zero
-    | ROpp _ e1 => fun f => opp (Rnorm f e1)
-    | RZOpp e1 => fun f => opp (Rnorm f e1)
-    | RAdd _ e1 e2 => fun f => add (Rnorm f e1) (Rnorm f e2)
-    | RZAdd e1 e2 => fun f => add (Rnorm f e1) (Rnorm f e2)
-    | RZSub e1 e2 => fun f => sub (Rnorm f e1) (Rnorm f e2)
-    | RMuln _ e1 e2 => fun f => mul (Rnorm f e1) (Nnorm e2)
-    | RMulz _ e1 e2 => fun f =>
-        mul (Rnorm f e1) (Rnorm [rmorphism of intmul 1] e2)
-    | R1 _ => fun => one
-    | RMul _ e1 e2 => fun f => mul (Rnorm f e1) (Rnorm f e2)
-    | RZMul e1 e2 => fun f => mul (Rnorm f e1) (Rnorm f e2)
-    | RExpn _ e1 n => fun f => exp (Rnorm f e1) n
-    | RExpPosz _ e1 n => fun f => exp (Rnorm f e1) n
-    | RExpNegz _ _ _ => fun _ => f (Reval e)
-    | RZExp e1 (Z.neg _) => fun f => zero
-    | RZExp e1 n => fun f => exp (Rnorm f e1) (Z.to_N n)
-    | RInv _ _ => fun _ => f (Reval e)
-    | RMorph _ _ g e1 => fun f => Rnorm [rmorphism of f \o g] e1
-    | RMorph' _ _ g e1 => fun f => RZMnorm [additive of f \o g] e1
-    | RPosz e1 => fun => Nnorm e1
-    | RNegz e1 => fun => opp (add one (Nnorm e1))
-    | RZC x => fun => R_of_Z x
+  | RX _ x => fun f => f x
+  | R0 _ => fun => zero
+  | ROpp _ e1 => fun f => opp (Rnorm f e1)
+  | RZOpp e1 => fun f => opp (Rnorm f e1)
+  | RAdd _ e1 e2 => fun f => add (Rnorm f e1) (Rnorm f e2)
+  | RZAdd e1 e2 => fun f => add (Rnorm f e1) (Rnorm f e2)
+  | RZSub e1 e2 => fun f => sub (Rnorm f e1) (Rnorm f e2)
+  | RMuln _ e1 e2 => fun f => mul (Rnorm f e1) (Nnorm e2)
+  | RMulz _ e1 e2 => fun f =>
+      mul (Rnorm f e1) (Rnorm [rmorphism of intmul 1] e2)
+  | R1 _ => fun => one
+  | RMul _ e1 e2 => fun f => mul (Rnorm f e1) (Rnorm f e2)
+  | RZMul e1 e2 => fun f => mul (Rnorm f e1) (Rnorm f e2)
+  | RExpn _ e1 n => fun f => exp (Rnorm f e1) (N_of_large_nat n)
+  | RExpPosz _ e1 n => fun f => exp (Rnorm f e1) (N_of_large_nat n)
+  | RExpNegz _ _ _ => fun _ => f (Reval e)
+  | RZExp e1 (Z.neg _) => fun f => zero
+  | RZExp e1 n => fun f => exp (Rnorm f e1) (Z.to_N n)
+  | RInv _ _ => fun _ => f (Reval e)
+  | RMorph _ _ g e1 => fun f => Rnorm [rmorphism of f \o g] e1
+  | RMorph' _ _ g e1 => fun f => RZMnorm [additive of f \o g] e1
+  | RPosz e1 => fun => Nnorm e1
+  | RNegz e1 => fun => opp (add one (Nnorm e1))
+  | RZC x => fun => R_of_Z x
   end f
 with RZMnorm V (f : {additive V -> R'}) (e : ZMExpr V) : R' :=
   match e in ZMExpr V return {additive V -> R'} -> R' with
-    | ZMX _ x => fun f => f x
-    | ZM0 _ => fun => zero
-    | ZMOpp _ e1 => fun f => opp (RZMnorm f e1)
-    | ZMAdd _ e1 e2 => fun f => add (RZMnorm f e1) (RZMnorm f e2)
-    | ZMMuln _ e1 e2 => fun f => mul (RZMnorm f e1) (Nnorm e2)
-    | ZMMulz _ e1 e2 => fun f =>
-        mul (RZMnorm f e1) (Rnorm [rmorphism of intmul 1] e2)
-    | ZMMorph _ _ g e1 => fun f => RZMnorm [additive of f \o g] e1
+  | ZMX _ x => fun f => f x
+  | ZM0 _ => fun => zero
+  | ZMOpp _ e1 => fun f => opp (RZMnorm f e1)
+  | ZMAdd _ e1 e2 => fun f => add (RZMnorm f e1) (RZMnorm f e2)
+  | ZMMuln _ e1 e2 => fun f => mul (RZMnorm f e1) (Nnorm e2)
+  | ZMMulz _ e1 e2 => fun f =>
+      mul (RZMnorm f e1) (Rnorm [rmorphism of intmul 1] e2)
+  | ZMMorph _ _ g e1 => fun f => RZMnorm [additive of f \o g] e1
   end f.
 
 Fixpoint norm_RElist
@@ -212,8 +224,8 @@ move: f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> R f; rewrite rmorph1 oneE.
 - by move=> R e1 IHe1 e2 IHe2 f; rewrite rmorphM IHe1 IHe2 mulE.
 - by move=> e1 IHe1 e2 IHe2 f; rewrite rmorphM IHe1 IHe2 mulE.
-- by move=> R e1 IHe1 e2 f; rewrite rmorphX IHe1 expE.
-- by move=> R e1 IHe1 e2 f; rewrite rmorphX IHe1 expE.
+- by move=> R e1 IHe1 e2 f; rewrite rmorphX IHe1 expE large_nat_N_nat.
+- by move=> R e1 IHe1 e2 f; rewrite rmorphX IHe1 expE large_nat_N_nat.
 - move=> e1 IHe1 [|n|n] f; rewrite !(zeroE, expE, rmorph0, rmorph1) //=.
   rewrite -IHe1 -rmorphX; congr (f _); lia.
 - by move=> R S g e1 IHe1 f; rewrite -IHe1.
@@ -252,41 +264,42 @@ Let Nnorm_correct := (Nnorm_correct F_of_ZE addE oneE mulE expE).
 
 Fixpoint Fnorm R (f : {rmorphism R -> F}) (e : RExpr R) : F :=
   match e in RExpr R return {rmorphism R -> F} -> F with
-    | RX _ x => fun f => f x
-    | R0 _ => fun => zero
-    | ROpp _ e1 => fun f => opp (Fnorm f e1)
-    | RZOpp e1 => fun f => opp (Fnorm f e1)
-    | RAdd _ e1 e2 => fun f => add (Fnorm f e1) (Fnorm f e2)
-    | RZAdd e1 e2 => fun f => add (Fnorm f e1) (Fnorm f e2)
-    | RZSub e1 e2 => fun f => sub (Fnorm f e1) (Fnorm f e2)
-    | RMuln _ e1 e2 => fun f => mul (Fnorm f e1) (Nnorm e2)
-    | RMulz _ e1 e2 => fun f =>
-        mul (Fnorm f e1) (Fnorm [rmorphism of intmul 1] e2)
-    | R1 _ => fun => one
-    | RMul _ e1 e2 => fun f => mul (Fnorm f e1) (Fnorm f e2)
-    | RZMul e1 e2 => fun f => mul (Fnorm f e1) (Fnorm f e2)
-    | RExpn _ e1 n => fun f => exp (Fnorm f e1) n
-    | RExpPosz _ e1 n => fun f => exp (Fnorm f e1) n
-    | RExpNegz _ e1 n => fun f => inv (exp (Fnorm f e1) (N.succ n))
-    | RZExp e1 (Z.neg _) => fun f => zero
-    | RZExp e1 n => fun f => exp (Fnorm f e1) (Z.to_N n)
-    | RInv _ e1 => fun f => inv (Fnorm f e1)
-    | RMorph _ _ g e1 => fun f => Fnorm [rmorphism of f \o g] e1
-    | RMorph' _ _ g e1 => fun f => FZMnorm [additive of f \o g] e1
-    | RPosz e1 => fun => Nnorm e1
-    | RNegz e1 => fun => opp (add one (Nnorm e1))
-    | RZC x => fun => F_of_Z x
+  | RX _ x => fun f => f x
+  | R0 _ => fun => zero
+  | ROpp _ e1 => fun f => opp (Fnorm f e1)
+  | RZOpp e1 => fun f => opp (Fnorm f e1)
+  | RAdd _ e1 e2 => fun f => add (Fnorm f e1) (Fnorm f e2)
+  | RZAdd e1 e2 => fun f => add (Fnorm f e1) (Fnorm f e2)
+  | RZSub e1 e2 => fun f => sub (Fnorm f e1) (Fnorm f e2)
+  | RMuln _ e1 e2 => fun f => mul (Fnorm f e1) (Nnorm e2)
+  | RMulz _ e1 e2 => fun f =>
+      mul (Fnorm f e1) (Fnorm [rmorphism of intmul 1] e2)
+  | R1 _ => fun => one
+  | RMul _ e1 e2 => fun f => mul (Fnorm f e1) (Fnorm f e2)
+  | RZMul e1 e2 => fun f => mul (Fnorm f e1) (Fnorm f e2)
+  | RExpn _ e1 n => fun f => exp (Fnorm f e1) (N_of_large_nat n)
+  | RExpPosz _ e1 n => fun f => exp (Fnorm f e1) (N_of_large_nat n)
+  | RExpNegz _ e1 n => fun f =>
+      inv (exp (Fnorm f e1) (N.succ (N_of_large_nat n)))
+  | RZExp e1 (Z.neg _) => fun f => zero
+  | RZExp e1 n => fun f => exp (Fnorm f e1) (Z.to_N n)
+  | RInv _ e1 => fun f => inv (Fnorm f e1)
+  | RMorph _ _ g e1 => fun f => Fnorm [rmorphism of f \o g] e1
+  | RMorph' _ _ g e1 => fun f => FZMnorm [additive of f \o g] e1
+  | RPosz e1 => fun => Nnorm e1
+  | RNegz e1 => fun => opp (add one (Nnorm e1))
+  | RZC x => fun => F_of_Z x
   end f
 with FZMnorm V (f : {additive V -> F}) (e : ZMExpr V) : F :=
   match e in ZMExpr V return {additive V -> F} -> F with
-    | ZMX _ x => fun f => f x
-    | ZM0 _ => fun => zero
-    | ZMOpp _ e1 => fun f => opp (FZMnorm f e1)
-    | ZMAdd _ e1 e2 => fun f => add (FZMnorm f e1) (FZMnorm f e2)
-    | ZMMuln _ e1 e2 => fun f => mul (FZMnorm f e1) (Nnorm e2)
-    | ZMMulz _ e1 e2 => fun f =>
-        mul (FZMnorm f e1) (Fnorm [rmorphism of intmul 1] e2)
-    | ZMMorph _ _ g e1 => fun f => FZMnorm [additive of f \o g] e1
+  | ZMX _ x => fun f => f x
+  | ZM0 _ => fun => zero
+  | ZMOpp _ e1 => fun f => opp (FZMnorm f e1)
+  | ZMAdd _ e1 e2 => fun f => add (FZMnorm f e1) (FZMnorm f e2)
+  | ZMMuln _ e1 e2 => fun f => mul (FZMnorm f e1) (Nnorm e2)
+  | ZMMulz _ e1 e2 => fun f =>
+      mul (FZMnorm f e1) (Fnorm [rmorphism of intmul 1] e2)
+  | ZMMorph _ _ g e1 => fun f => FZMnorm [additive of f \o g] e1
   end f.
 
 Lemma Fnorm_correct_rec R (f : {rmorphism R -> F}) (e : RExpr R) :
@@ -307,10 +320,10 @@ move: f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> R f; rewrite rmorph1 oneE.
 - by move=> R e1 IHe1 e2 IHe2 f; rewrite rmorphM IHe1 IHe2 mulE.
 - by move=> e1 IHe1 e2 IHe2 f; rewrite rmorphM IHe1 IHe2 mulE.
-- by move=> R e1 IHe1 e2 f; rewrite rmorphX IHe1 expE.
-- by move=> R e1 IHe1 n f; rewrite rmorphX IHe1 expE.
+- by move=> R e1 IHe1 e2 f; rewrite rmorphX IHe1 expE large_nat_N_nat.
+- by move=> R e1 IHe1 n f; rewrite rmorphX IHe1 expE large_nat_N_nat.
 - move=> R e1 IHe1 n f; rewrite fmorphV rmorphX IHe1 invE expE.
-  rewrite nat_of_N_expandE; congr (_ ^- _); lia.
+  by rewrite Nnat.N2Nat.inj_succ large_nat_N_nat.
 - move=> e1 IHe1 [|n|n] f; rewrite ?(zeroE, oneE, expE, rmorph0, rmorph1) //=.
   rewrite -IHe1 -rmorphX; congr (f _); lia.
 - by move=> F' e1 IHe1 f; rewrite fmorphV IHe1 invE.
@@ -629,14 +642,17 @@ Ltac field_reflection_no_check F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
 
 Ltac field_reflection := field_reflection_check.
 
-Strategy expand
-  [addn_expand nat_of_pos_rec_expand nat_of_pos_expand nat_of_N_expand
-   int_of_Z_expand Z_of_N_expand nat_of_large_nat N_of_large_nat Z_of_large_nat
-   Neval Reval Nnorm Rnorm Fnorm PEeval FEeval].
+Strategy expand [addn_expand nat_of_pos_rec_expand nat_of_pos_expand].
+Strategy expand [nat_of_N_expand int_of_Z_expand Z_of_N_expand].
+Strategy expand [nat_of_large_nat N_of_large_nat Z_of_large_nat].
+Strategy expand [int_of_large_int Z_of_large_int].
+
+Strategy expand [Neval Reval Nnorm Rnorm Fnorm PEeval FEeval].
 
 Elpi Tactic ring.
 Elpi Accumulate File "theories/common.elpi".
 Elpi Accumulate File "theories/ring.elpi".
+Elpi Accumulate File "theories/ring_tac.elpi".
 Elpi Typecheck.
 
 Tactic Notation "ring" := elpi ring.
@@ -647,7 +663,8 @@ Tactic Notation "#[" attributes(A) "]" "ring" ":" ne_constr_list(L) :=
 
 Elpi Tactic field.
 Elpi Accumulate File "theories/common.elpi".
-Elpi Accumulate File "theories/field.elpi".
+Elpi Accumulate File "theories/ring.elpi".
+Elpi Accumulate File "theories/field_tac.elpi".
 Elpi Typecheck.
 
 Tactic Notation "field" := elpi field.

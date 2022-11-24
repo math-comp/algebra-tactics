@@ -1,8 +1,8 @@
 From elpi Require Import elpi.
-From Coq Require Import QArith.
-From Coq.micromega Require Import OrderedRing RingMicromega QMicromega EnvRing.
-From Coq.micromega Require Import Tauto Lqa.
-From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint.
+From Coq Require Import QArith Ring.
+From Coq.micromega Require Import RingMicromega QMicromega EnvRing Tauto Lqa.
+From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
+From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
 From mathcomp.zify Require Import ssrZ zify.
 From mathcomp.algebra_tactics Require Import common.
 
@@ -491,11 +491,15 @@ Definition seq_Psatz_Q2Z : seq (Psatz Q) -> seq (Psatz Z) :=
 
 End Internals.
 
-Strategy expand
-  [addn_expand nat_of_pos_rec_expand nat_of_pos_expand nat_of_N_expand
-   int_of_Z_expand Z_of_N_expand nat_of_large_nat N_of_large_nat Z_of_large_nat
-   Reval_expr Rnorm_expr Fnorm_expr Reval_pop2 Reval_bop2 Reval_op2
-   Reval_formula Rnorm_formula Fnorm_formula Reval_PFormula Feval_PFormula].
+Strategy expand [addn_expand nat_of_pos_rec_expand nat_of_pos_expand].
+Strategy expand [nat_of_N_expand int_of_Z_expand Z_of_N_expand].
+Strategy expand [nat_of_large_nat N_of_large_nat Z_of_large_nat].
+Strategy expand [int_of_large_int Z_of_large_int].
+
+Strategy expand [Reval_expr Rnorm_expr Fnorm_expr].
+Strategy expand [Reval_pop2 Reval_bop2 Reval_op2].
+Strategy expand [Reval_formula Rnorm_formula Fnorm_formula].
+Strategy expand [Reval_PFormula Feval_PFormula].
 
 (* Main tactics, called from the elpi parser (c.f., lra.elpi) *)
 
@@ -549,6 +553,7 @@ Ltac psatzR n :=
   tacF sos_or_psatzn.
 
 Elpi Tactic lra.
+Elpi Accumulate File "theories/common.elpi".
 Elpi Accumulate File "theories/lra.elpi".
 Elpi Typecheck.
 
