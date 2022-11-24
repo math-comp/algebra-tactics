@@ -1,5 +1,6 @@
-theories/ring.v
+theories/common.v
 theories/lra.v
+theories/ring.v
 
 -R theories mathcomp.algebra_tactics
 -arg -w -arg -notation-overridden

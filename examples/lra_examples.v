@@ -109,6 +109,11 @@ Proof.
 lra.
 Qed.
 
+Lemma test_rfstr (x : rat) : (x <= 2%:R) || true = true.
+Proof.
+lra.
+Qed.
+
 End Tests.
 
 (* Examples from the test suite of Coq *)
@@ -155,8 +160,8 @@ Lemma vcgen_25 (n m jt j it i : F) :
   1 * it + -(2%:R) * i + -(1%:R) = 0 ->
   1 * jt + -(2%:R) * j + -(1%:R) = 0 ->
   1 * n + -(10%:R) = 0 ->
-  0 <= (* -(4028%:R)  * i + *) 6222%:R * j + 705%:R * m + -(16674%:R) ->
-  0 <= -(418%:R) * i + 651%:R * j + 94 %:R * m (* + -(1866%:R) *) ->
+  0 <= -(4028%:R)  * i + 6222%:R * j + 705%:R * m + -(16674%:R) ->
+  0 <= -(418%:R) * i + 651%:R * j + 94 %:R * m + -(1866%:R) ->
   0 <= -(209%:R) * i + 302%:R * j + 47%:R * m + -(839%:R) ->
   0 <= -(1%:R) * i + 1 * j + -(1%:R) ->
   0 <= -(1%:R) * j + 1 * m + 0 ->
@@ -167,7 +172,6 @@ Lemma vcgen_25 (n m jt j it i : F) :
   0 <= 1  * i + 0 ->
   0 <= 121%:R  * i + 810%:R * j + -(7465%:R) * m + 64350%:R ->
   1 = -(2%:R) * i + it.
-  (* some constants commented out because they are very slow to parse *)
 Proof.
 move=> *.
 lra.

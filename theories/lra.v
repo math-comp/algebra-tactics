@@ -1,10 +1,10 @@
 From elpi Require Import elpi.
-Require Import DecimalNat DecimalPos List QArith.
-From Coq.micromega Require Import OrderedRing RingMicromega QMicromega EnvRing.
-From Coq.micromega Require Import Tauto Lqa.
-From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint.
+From Coq Require Import QArith Ring.
+From Coq.micromega Require Import RingMicromega QMicromega EnvRing Tauto Lqa.
+From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
+From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
 From mathcomp.zify Require Import ssrZ zify.
-From mathcomp.algebra_tactics Require ring.
+From mathcomp.algebra_tactics Require Import common.
 
 Import Order.TTheory GRing.Theory Num.Theory.
 
@@ -18,65 +18,20 @@ Module Import Internals.
 
 Implicit Types (k : kind) (R S : ringType) (F : fieldType).
 
-Definition R_of_Q {R : unitRingType} (x : Q) : R :=
-  (int_of_Z (Qnum x))%:~R / (Pos.to_nat (Qden x))%:R.
-
-Lemma R_of_Q0 (R : unitRingType) : R_of_Q 0 = 0 :> R.
-Proof. by rewrite /R_of_Q mul0r. Qed.
-
-Lemma R_of_Q1 (R : unitRingType) : R_of_Q 1 = 1 :> R.
-Proof. by rewrite /R_of_Q divr1. Qed.
-
-Lemma R_of_Q_add (F : numFieldType) x y :
-  R_of_Q (x + y) = R_of_Q x + R_of_Q y :> F.
-Proof.
-rewrite /R_of_Q /= addf_div ?pnatr_eq0; try lia.
-by rewrite !pmulrn -!intrM -!intrD; congr (_%:~R / _%:~R); lia.
-Qed.
-
-Lemma R_of_Q_opp (R : unitRingType) x : R_of_Q (- x) = - R_of_Q x :> R.
-Proof. by rewrite /R_of_Q !rmorphN mulNr. Qed.
-
-Lemma R_of_Q_sub (F : numFieldType) x y :
-  R_of_Q (x - y) = R_of_Q x - R_of_Q y :> F.
-Proof. by rewrite R_of_Q_add R_of_Q_opp. Qed.
-
-Lemma R_of_Q_mul (F : fieldType) x y :
-  R_of_Q (x * y) = R_of_Q x * R_of_Q y :> F.
-Proof.
-by rewrite /R_of_Q /= mulrACA -invfM -intrM -natrM; congr (_%:~R / _%:R); lia.
-Qed.
-
-Lemma R_of_Q_inv (F : numFieldType) x : R_of_Q (/ x) = (R_of_Q x)^-1 :> F.
-Proof.
-case: x => [[|n|n] d]; rewrite /R_of_Q ?mul0r ?invr0 //= invf_div //=.
-apply/eqP; rewrite eqr_div ?pnatr_eq0 ?intr_eq0; try lia.
-rewrite -intrM -natrM pmulrn; apply/eqP; congr _%:~R.
-by rewrite !NegzE mulrNN !prednK; lia. (* FIXME *)
-Qed.
-
-Lemma R_of_Q_invZ (R : unitRingType) x :
-  R_of_Q (/ (x # 1)) = (int_of_Z x)%:~R^-1 :> R.
-Proof.
-case: x => [|n|n]; rewrite /R_of_Q ?mul0r ?invr0 ?mul1r ?mulN1r ?invrN //=.
-by congr (- _%:R^-1); lia.
-Qed.
-
 Inductive RExpr : ringType -> Type :=
   | RX R : R -> RExpr R
   | R0 R : RExpr R
   | ROpp R : RExpr R -> RExpr R
   | RAdd R : RExpr R -> RExpr R -> RExpr R
-  (* | RMuluint R : RExpr R -> Number.uint -> RExpr R *)
-  | RMuln R : RExpr R -> N -> RExpr R (* TODO: support nat expressions *)
+  (* TODO: support nat expressions: *)
+  | RMuln R : RExpr R -> large_nat -> RExpr R
   | RMulz R : RExpr R -> RExpr [ringType of int] -> RExpr R
   | R1 R : RExpr R
   | RMul R : RExpr R -> RExpr R -> RExpr R
-  (* | RExpuint R : RExpr R -> Number.uint -> RExpr R *)
-  | RExpn R : RExpr R -> N -> RExpr R
+  | RExpn R : RExpr R -> large_nat -> RExpr R
   | RInv F : RExpr F -> RExpr F
   | RMorph R R' : {rmorphism R -> R'} -> RExpr R -> RExpr R'
-  | RintC : Z -> RExpr [ringType of int]
+  | RintC : large_int -> RExpr [ringType of int]
   | RZC : Z -> RExpr [ringType of Z].
 
 Fixpoint Reval_expr R (e : RExpr R) : R :=
@@ -85,14 +40,14 @@ Fixpoint Reval_expr R (e : RExpr R) : R :=
   | R0 _ => 0%R
   | ROpp _ e => - Reval_expr e
   | RAdd _ e1 e2 => Reval_expr e1 + Reval_expr e2
-  | RMuln _ e n => Reval_expr e *+ N.to_nat n
+  | RMuln _ e n => Reval_expr e *+ nat_of_large_nat n
   | RMulz _ e1 e2 => Reval_expr e1 *~ Reval_expr e2
   | R1 _ => 1%R
   | RMul _ e1 e2 => Reval_expr e1 * Reval_expr e2
-  | RExpn _ e n => Reval_expr e ^+ N.to_nat n
+  | RExpn _ e n => Reval_expr e ^+ nat_of_large_nat n
   | RInv _  e => (Reval_expr e)^-1
   | RMorph _ _ f e => f (Reval_expr e)
-  | RintC x => int_of_Z x
+  | RintC x => int_of_large_int x
   | RZC x => x
   end.
 
@@ -117,15 +72,16 @@ Fixpoint Rnorm_expr R (f : {rmorphism R -> R'}) (e : RExpr R) : R' :=
   | R0 _ => fun=> R_of_Z 0
   | ROpp _ e => fun f => opp (Rnorm_expr f e)
   | RAdd _ e1 e2 => fun f => add (Rnorm_expr f e1) (Rnorm_expr f e2)
-  | RMuln _ e n => fun f => mul (Rnorm_expr f e) (R_of_Z (Z.of_N n))
+  | RMuln _ e n => fun f => mul (Rnorm_expr f e) (R_of_Z (Z_of_large_nat n))
   | RMulz _ e1 e2 =>
       fun f => mul (Rnorm_expr f e1) (Rnorm_expr [rmorphism of intmul 1] e2)
   | R1 _ => fun=> R_of_Z 1
   | RMul _ e1 e2 => fun f => mul (Rnorm_expr f e1) (Rnorm_expr f e2)
-  | RExpn _ e1 n => fun f => exp (Rnorm_expr f e1) n
+  | RExpn _ e1 n => fun f => exp (Rnorm_expr f e1) (N_of_large_nat n)
   | RInv _ _ => fun=> f (Reval_expr e)
   | RMorph _ _ g e => fun f => Rnorm_expr [rmorphism of f \o g] e
-  | RintC x | RZC x => fun=> R_of_Z x
+  | RintC x => fun=> R_of_Z (Z_of_large_int x)
+  | RZC x => fun=> R_of_Z x
   end f.
 
 Lemma Rnorm_expr_correct_rec R (f : {rmorphism R -> R'}) (e : RExpr R) :
@@ -135,13 +91,14 @@ move: f; elim: e => {R} //=.
 - by move=> R f; rewrite R_of_ZE rmorph0.
 - by move=> R e IHe f; rewrite oppE rmorphN IHe.
 - by move=> R e1 IHe1 e2 IHe2 f; rewrite addE rmorphD IHe1 IHe2.
-- by move=> R e IHe n f; rewrite mulE R_of_ZE rmorphMn -mulr_natr IHe; case: n.
+- move=> R e IHe n f.
+  by rewrite mulE R_of_ZE rmorphMn -mulr_natr IHe large_nat_Z_int.
 - by move=> R e1 IHe1 e2 IHe2 f; rewrite mulE rmorphMz -mulrzr IHe1 IHe2.
 - by move=> R f; rewrite R_of_ZE rmorph1.
 - by move=> R e1 IHe1 e2 IHe2 f; rewrite mulE rmorphM IHe1 IHe2.
-- by move=> R e IHe n f; rewrite expE rmorphX IHe.
+- by move=> R e IHe n f; rewrite expE rmorphX IHe large_nat_N_nat.
 - by move=> R S g e IHe f; rewrite -IHe.
-- by move=> x f; rewrite R_of_ZE -(rmorph_int f) intz.
+- by move=> x f; rewrite R_of_ZE -(rmorph_int f) intz large_int_Z_int.
 - by move=> x f; rewrite R_of_ZE -(rmorph_int f); congr (f _); lia.
 Qed.
 
@@ -233,49 +190,8 @@ Section RealDomain.
 
 Variable R : realDomainType.
 
-Lemma Rsor : @SOR R 0 1 +%R *%R (fun x y => x - y) -%R eq Order.le Order.lt.
-Proof.
-apply: mk_SOR_theory.
-- exact: RelationClasses.eq_equivalence.
-- by move=> x _ <- y _ <-.
-- by move=> x _ <- y _ <-.
-- by move=> x _ <-.
-- by move=> x _ <- y _ <-.
-- by move=> x _ <- y _ <-.
-- exact: ring.Internals.RR.
-- by [].
-- by move=> x y xley ylex; apply: le_anti; rewrite xley ylex.
-- by move=> x y z; apply: le_trans.
-- move=> x y; rewrite lt_neqAle; split.
-  + by move=> /andP[/eqP yneqx ->]; split.
-  + by move=> [-> /eqP ->].
-- move=> x y; case: (ltgtP x y) => [xlty|yltx|<-].
-  + by left.
-  + by right; right.
-  + by right; left.
-- by move=> x y z; rewrite ler_add2l.
-- exact: mulr_gt0.
-- by apply/eqP; rewrite eq_sym oner_neq0.
-Qed.
-
-Lemma Rpower : power_theory 1 *%R eq N.to_nat (@GRing.exp R).
-Proof.
-apply: mkpow_th => x n; case: n => [//|p]; elim: p => [p|p|//] /= IHp.
-- by rewrite Pos2Nat.inj_xI exprS multE mulnC exprM expr2 IHp.
-- by rewrite Pos2Nat.inj_xO multE mulnC exprM expr2 IHp.
-Qed.
-
-Lemma RSORaddon :
-  @SORaddon R 0 1 +%R *%R (fun x y => x - y) -%R eq (fun x y => x <= y) (* ring elements *)
-  Z Z0 (Zpos 1) Z.add Z.mul Z.sub Z.opp Z.eqb Z.leb (* coefficients *)
-  (fun n => (int_of_Z n)%:~R) nat N.to_nat (@GRing.exp R).
-Proof.
-apply: mk_SOR_addon.
-- exact: ring.Internals.RZ.
-- exact: Rpower.
-- by move=> x y ? /intr_inj; lia.
-- by move=> x y; rewrite ler_int; lia.
-Qed.
+Notation Rsor := (Rsor R).
+Notation RSORaddon := (RSORaddon R).
 
 Definition ZTautoChecker (f : BFormula (Formula Z) isProp) (w: list (Psatz Z)) :
     bool :=
@@ -340,17 +256,21 @@ Fixpoint Fnorm_expr R (f : {rmorphism R -> F}) (e : RExpr R) (invb : bool) :
       fun f => add (Fnorm_expr f e1 false) (Fnorm_expr f e2 false)
   | RMuln _ e n, _ => fun f =>
       mul (Fnorm_expr f e invb)
-        (if invb then F_of_Q (Qinv (Z.of_N n # 1)) else F_of_Q (Z_of_N n # 1))
+        (if invb then
+           F_of_Q (Qinv (Z_of_large_nat n # 1))
+         else F_of_Q (Z_of_large_nat n # 1))
   | RMulz _ e1 e2, _ => fun f =>
       mul (Fnorm_expr f e1 invb) (Fnorm_expr [rmorphism of intmul 1] e2 invb)
   | R1 _, _ => fun=> F_of_Q 1
   | RMul _ e1 e2, _ =>
       fun f => mul (Fnorm_expr f e1 invb) (Fnorm_expr f e2 invb)
-  | RExpn _ e1 n, _ => fun f => exp (Fnorm_expr f e1 invb) n
+  | RExpn _ e1 n, _ => fun f => exp (Fnorm_expr f e1 invb) (N_of_large_nat n)
   | RInv _ e, _ => fun f => Fnorm_expr f e (negb invb)
   | RMorph _ _ g e, _ => fun f => Fnorm_expr [rmorphism of f \o g] e invb
-  | RintC x, false | RZC x, false => fun=> F_of_Q (x # 1)
-  | RintC x, true | RZC x, true => fun=> F_of_Q (Qinv (x # 1))
+  | RintC x, false => fun=> F_of_Q (Z_of_large_int x # 1)
+  | RintC x, true => fun=> F_of_Q (Qinv (Z_of_large_int x # 1))
+  | RZC x, false => fun=> F_of_Q (x # 1)
+  | RZC x, true => fun=> F_of_Q (Qinv (x # 1))
   | _, true => fun=> inv (f (Reval_expr e))
   end f.
 
@@ -367,7 +287,7 @@ move: f; elim: e => {R} //=.
   by rewrite addE invE rmorphD IHe1 IHe2.
 - move=> R e IHe n f; move: (IHe f) => [{}IHe IHe'].
   rewrite mulE F_of_QE rmorphMn -mulr_natr invfM IHe' IHe R_of_Q_invZ.
-  by rewrite /R_of_Q divr1; case: n.
+  by rewrite /R_of_Q divr1 large_nat_Z_int.
 - move=> R e1 IHe1 e2 IHe2 f.
   move: (IHe1 f) (IHe2 [rmorphism of intr]) => [{}IHe1 IHe1'] [{}IHe2 IHe2'].
   by rewrite mulE rmorphMz -mulrzr invfM IHe1' IHe1 IHe2' IHe2.
@@ -376,12 +296,12 @@ move: f; elim: e => {R} //=.
   move: (IHe1 f) (IHe2 f) => [{}IHe1 IHe1'] [{}IHe2 IHe2'].
   by rewrite mulE rmorphM invfM IHe1' IHe1 IHe2' IHe2.
 - move=> R e IHe n f; case: (IHe f) => {}IHe IHe'.
-  by rewrite expE rmorphX -exprVn IHe' IHe.
+  by rewrite expE rmorphX -exprVn IHe' IHe large_nat_N_nat.
 - move=> R e IHe f; case: (IHe f) => {}IHe IHe'.
   by rewrite fmorphV invrK IHe' IHe.
 - by move=> R S g e IHe f; case: (IHe [rmorphism of f \o g]); split.
-- move=> x f.
-  by rewrite F_of_QE R_of_Q_invZ /R_of_Q divr1 /= -(rmorph_int f) intz.
+- move=> x f; rewrite F_of_QE R_of_Q_invZ /R_of_Q divr1 /= -(rmorph_int f).
+  by rewrite intz large_int_Z_int.
 - move=> x f; rewrite F_of_QE R_of_Q_invZ /R_of_Q divr1 /= -(rmorph_int f).
   by split; [congr (f _) | congr (f _)^-1]; lia.
 Qed.
@@ -456,45 +376,8 @@ Section RealField.
 
 Variable F : realFieldType.
 
-Lemma R_of_Q_eq x y : Qeq_bool x y = (R_of_Q x == R_of_Q y :> F).
-Proof.
-rewrite /Qeq_bool /R_of_Q /= eqr_div ?pnatr_eq0; try lia.
-rewrite !pmulrn -!intrM eqr_int -!/(int_of_Z (Z.pos _)) -!rmorphM /=.
-by rewrite (can_eq int_of_ZK); apply/idP/eqP => /Zeq_is_eq_bool.
-Qed.
-
-Lemma R_of_Q_le x y : Qle_bool x y = (R_of_Q x <= R_of_Q y :> F).
-Proof.
-rewrite /Qle_bool /R_of_Q /=.
-rewrite ler_pdivr_mulr ?ltr0n; last lia.
-rewrite mulrAC ler_pdivl_mulr ?ltr0n; last lia.
-rewrite !pmulrn -!intrM ler_int; lia.
-Qed.
-
-Lemma FQ : ring_morph 0 1 +%R *%R (fun x y : F => x - y) -%R eq
-                      0%Q 1%Q Qplus Qmult Qminus Qopp Qeq_bool R_of_Q.
-Proof.
-apply: mkmorph.
-- exact: R_of_Q0.
-- exact: R_of_Q1.
-- exact: R_of_Q_add.
-- exact: R_of_Q_sub.
-- exact: R_of_Q_mul.
-- exact: R_of_Q_opp.
-- by move=> x y; rewrite R_of_Q_eq => /eqP.
-Qed.
-
-Lemma FSORaddon :
-  @SORaddon F 0 1 +%R *%R (fun x y => x - y) -%R eq (fun x y => x <= y) (* ring elements *)
-  Q 0%Q 1%Q Qplus Qmult Qminus Qopp Qeq_bool Qle_bool (* coefficients *)
-  R_of_Q nat N.to_nat (@GRing.exp F).
-Proof.
-apply: mk_SOR_addon.
-- exact: FQ.
-- exact: Rpower.
-- by move=> x y; rewrite R_of_Q_eq => /eqP.
-- by move=> x y; rewrite R_of_Q_le.
-Qed.
+Notation Rsor := (Rsor F).
+Notation FSORaddon := (FSORaddon F).
 
 Definition Feval_nformula : PolEnv F -> NFormula Q -> Prop :=
   eval_nformula 0 +%R *%R eq (fun x y => x <= y) (fun x y => x < y) R_of_Q.
@@ -512,16 +395,16 @@ Proof.
 rewrite (Fnorm_bf_correct erefl erefl erefl erefl erefl).
 move=> /(_ _ _ _ (fun x y => x - y)) -> Hchecker.
 move: Hchecker env; apply: (tauto_checker_sound _ _ _ _ Feval_nformula).
-- exact: (eval_nformula_dec (Rsor F)).
-- by move=> [? ?] ? ?; apply: (check_inconsistent_sound (Rsor F) FSORaddon).
+- exact: (eval_nformula_dec Rsor).
+- by move=> [? ?] ? ?; apply: (check_inconsistent_sound Rsor FSORaddon).
 - move=> t t' u deducett'u env evalt evalt'.
-  exact: (nformula_plus_nformula_correct (Rsor F) FSORaddon env t t').
+  exact: (nformula_plus_nformula_correct Rsor FSORaddon env t t').
 - move=> env k t tg cnfff; rewrite Feval_formula_compat //.
-  exact: (cnf_normalise_correct (Rsor F) FSORaddon env t tg).1.
+  exact: (cnf_normalise_correct Rsor FSORaddon env t tg).1.
 - move=> env k t tg cnfff; rewrite hold_eNOT Feval_formula_compat //.
-  exact: (cnf_negate_correct (Rsor F) FSORaddon env t tg).1.
+  exact: (cnf_negate_correct Rsor FSORaddon env t tg).1.
 - move=> t w0 checkw0 env; rewrite (Refl.make_impl_map (Feval_nformula env)) //.
-  exact: (checker_nf_sound (Rsor F) FSORaddon) checkw0 env.
+  exact: (checker_nf_sound Rsor FSORaddon) checkw0 env.
 Qed.
 
 End RealField.
@@ -608,6 +491,16 @@ Definition seq_Psatz_Q2Z : seq (Psatz Q) -> seq (Psatz Z) :=
 
 End Internals.
 
+Strategy expand [addn_expand nat_of_pos_rec_expand nat_of_pos_expand].
+Strategy expand [nat_of_N_expand int_of_Z_expand Z_of_N_expand].
+Strategy expand [nat_of_large_nat N_of_large_nat Z_of_large_nat].
+Strategy expand [int_of_large_int Z_of_large_int].
+
+Strategy expand [Reval_expr Rnorm_expr Fnorm_expr].
+Strategy expand [Reval_pop2 Reval_bop2 Reval_op2].
+Strategy expand [Reval_formula Rnorm_formula Fnorm_formula].
+Strategy expand [Reval_PFormula Feval_PFormula].
+
 (* Main tactics, called from the elpi parser (c.f., lra.elpi) *)
 
 Ltac tacF tac efalso hyps_goal rff ff varmap :=
@@ -660,6 +553,7 @@ Ltac psatzR n :=
   tacF sos_or_psatzn.
 
 Elpi Tactic lra.
+Elpi Accumulate File "theories/common.elpi".
 Elpi Accumulate File "theories/lra.elpi".
 Elpi Typecheck.
 
@@ -667,7 +561,3 @@ Tactic Notation "lra" := elpi lra "lraF" "lraR" 0.
 Tactic Notation "nra" := elpi lra "nraF" "nraR" 0.
 Tactic Notation "psatz" integer(n) := elpi lra "psatzF" "psatzR" ltac_int:(n).
 Tactic Notation "psatz" := elpi lra "psatzF" "psatzR" (-1).
-
-Strategy expand
-  [Reval_expr Rnorm_expr Fnorm_expr Reval_pop2 Reval_bop2 Reval_op2
-   Reval_formula Rnorm_formula Fnorm_formula Reval_PFormula Feval_PFormula].

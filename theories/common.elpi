@@ -1,3 +1,18 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Misc utils
+
+pred list-constant o:term, o:list term, o:term.
+list-constant T [] {{ @nil lp:T }} :- !.
+list-constant T [X|XS] {{ @cons lp:T lp:X lp:XS' }} :- list-constant T XS XS'.
+
+pred mem o:list term, o:term, o:int.
+mem [X|_] X 0 :- !.
+mem [_|XS] X M :- !, mem XS X N, M is N + 1.
+
+pred close o:list term.
+close [] :- !.
+close [_|XS] :- close XS.
+
 % [eucldiv N D M R] N = D * M + R
 pred eucldiv o:int, i:int, o:int, i:int.
 eucldiv N D M R :- var N, var M, !, declare_constraint (eucldiv N D M R) [N, M].
@@ -11,485 +26,65 @@ positive-constant N {{ lib:num.pos.xO lp:T }} :-
 positive-constant N {{ lib:num.pos.xI lp:T }} :-
   eucldiv N 2 M 1, positive-constant M T.
 
-pred n-constant o:int, o:term.
-n-constant N _ :- not (var N), N < 0, !, fail.
-n-constant 0 {{ lib:num.N.N0 }} :- !.
-n-constant N {{ lib:num.N.Npos lp:T }} :- !, positive-constant N T.
+pred ground-pos i:term.
+ground-pos {{ xH }} :- !.
+ground-pos {{ xO lp:P }} :- !, ground-pos P.
+ground-pos {{ xI lp:P }} :- !, ground-pos P.
 
-pred z-constant o:int, o:term.
-z-constant 0 {{ lib:num.Z.Z0 }} :- !.
-z-constant N T :-
-  var T, N < 0, !,
-  T = {{ lib:num.Z.Zneg lp:T' }}, positive-constant {calc (~ N)} T'.
-z-constant N T :-
-  var T, 0 < N, !, T = {{ lib:num.Z.Zpos lp:T' }}, positive-constant N T'.
-z-constant N {{ lib:num.Z.Zneg lp:T }} :-
-  var N, !, positive-constant N' T, N is ~ N'.
-z-constant N {{ lib:num.Z.Zpos lp:T }} :-
-  var N, !, positive-constant N T.
+pred ground-N i:term.
+ground-N {{ N0 }} :- !.
+ground-N {{ Npos lp:P }} :- !, ground-pos P.
 
-pred int->nat i:int, o:term.
-int->nat 0 {{ lib:num.nat.O }} :- !.
-int->nat SN {{ lib:num.nat.S lp:M }} :- !, int->nat {calc (SN - 1)} M.
-int->nat N T :- coq.error "int->nat" N T.
+pred ground-Z i:term.
+ground-Z {{ Z0 }} :- !.
+ground-Z {{ Zpos lp:P }} :- !, ground-pos P.
+ground-Z {{ Zneg lp:P }} :- !, ground-pos P.
 
-pred nat->int i:term, o:int.
-nat->int {{ lib:num.nat.O }} 0 :- !.
-nat->int {{ lib:num.nat.S lp:M }} SN :- nat->int M N, SN is N + 1.
+pred ground-decimal i:term.
+ground-decimal {{ Decimal.Nil }} :- !.
+ground-decimal {{ Decimal.D0 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D1 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D2 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D3 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D4 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D5 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D6 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D7 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D8 lp:D }} :- !, ground-decimal D.
+ground-decimal {{ Decimal.D9 lp:D }} :- !, ground-decimal D.
 
-pred list-constant o:term, o:list term, o:term.
-list-constant T [] {{ @nil lp:T }} :- !.
-list-constant T [X|XS] {{ @cons lp:T lp:X lp:XS' }} :- list-constant T XS XS'.
+pred ground-hexadecimal i:term.
+ground-hexadecimal {{ Hexadecimal.Nil }} :- !.
+ground-hexadecimal {{ Hexadecimal.D0 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D1 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D2 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D3 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D4 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D5 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D6 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D7 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D8 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.D9 lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.Da lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.Db lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.Dc lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.Dd lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.De lp:D }} :- !, ground-hexadecimal D.
+ground-hexadecimal {{ Hexadecimal.Df lp:D }} :- !, ground-hexadecimal D.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+pred ground-uint i:term.
+ground-uint {{ Number.UIntDecimal lp:D }} :- !, ground-decimal D.
+ground-uint {{ Number.UIntHexadecimal lp:D }} :- !, ground-hexadecimal D.
 
-pred mem o:list term, o:term, o:int.
-mem [X|_] X 0 :- !.
-mem [_|XS] X M :- !, mem XS X N, M is N + 1.
+pred reduction-pos i:term, o:term.
+reduction-pos I O :- coq.reduction.vm.norm I {{ positive }} O, ground-pos O.
 
-pred close o:list term.
-close [] :- !.
-close [_|XS] :- close XS.
+pred reduction-N i:term, o:term.
+reduction-N I O :- coq.reduction.vm.norm I {{ N }} O, ground-N O.
 
-% [field-mode] is true if the target is a field equation.
-pred field-mode.
+pred reduction-Z i:term, o:term.
+reduction-Z I O :- coq.reduction.vm.norm I {{ Z }} O, ground-Z O.
 
-pred quote.expr.variable i:term, o:term.
-quote.expr.variable In {{ @FEX Z lp:In }} :- field-mode, !.
-quote.expr.variable In {{ @PEX Z lp:In }} :- !.
-
-pred quote.expr.constant i:term, o:term.
-quote.expr.constant In {{ @FEc Z lp:In }} :- field-mode, !.
-quote.expr.constant In {{ @PEc Z lp:In }} :- !.
-
-pred quote.expr.zero o:term.
-quote.expr.zero {{ @FEO Z }} :- field-mode, !.
-quote.expr.zero {{ @PEO Z }} :- !.
-
-pred quote.expr.opp i:term, o:term.
-quote.expr.opp In {{ @FEopp Z lp:In }} :- field-mode, !.
-quote.expr.opp In {{ @PEopp Z lp:In }} :- !.
-
-pred quote.expr.add i:term, i:term, o:term.
-quote.expr.add In1 In2 {{ @FEadd Z lp:In1 lp:In2 }} :- field-mode, !.
-quote.expr.add In1 In2 {{ @PEadd Z lp:In1 lp:In2 }} :- !.
-
-pred quote.expr.sub i:term, i:term, o:term.
-quote.expr.sub In1 In2 {{ @FEsub Z lp:In1 lp:In2 }} :- field-mode, !.
-quote.expr.sub In1 In2 {{ @PEsub Z lp:In1 lp:In2 }} :- !.
-
-pred quote.expr.one o:term.
-quote.expr.one {{ @FEI Z }} :- field-mode, !.
-quote.expr.one {{ @PEI Z }} :- !.
-
-pred quote.expr.mul i:term, i:term, o:term.
-quote.expr.mul In1 In2 {{ @FEmul Z lp:In1 lp:In2 }} :- field-mode, !.
-quote.expr.mul In1 In2 {{ @PEmul Z lp:In1 lp:In2 }} :- !.
-
-pred quote.expr.exp i:term, i:term, o:term.
-quote.expr.exp In1 In2 {{ @FEpow Z lp:In1 lp:In2 }} :- field-mode, !.
-quote.expr.exp In1 In2 {{ @PEpow Z lp:In1 lp:In2 }} :- !.
-
-% [ring->field Ring Field]: [Field] is optionally a [fieldType] instance such
-% that [GRing.Field.ringType Field = Ring].
-pred ring->field i:term, o:option term.
-ring->field Ring (some Field) :-
-  field-mode,
-  coq.unify-eq {{ GRing.Ring.sort lp:Ring }} {{ GRing.Field.sort lp:Field }} ok,
-  !.
-ring->field _ none.
-
-% [quote.nat R Input OutM Out VarMap]
-% - [R] is a [ringType] instance,
-% - [Input] is a term of type [nat],
-% - [OutM] and [Out] are reified terms of [Input], and
-% - [VarMap] is a variable map.
-pred quote.nat i:term, i:term, o:term, o:term, o:list term.
-quote.nat _ {{ lib:num.nat.O }} {{ NC lib:num.N.N0 }} Out _ :- !,
-  quote.expr.constant { z-constant 0 } Out.
-quote.nat R {{ lib:num.nat.S lp:In }} OutM Out VarMap :- !,
-  quote.count-succ In N In2, !,
-  positive-constant {calc (N + 1)} Out1, !,
-  if (In2 = {{ lib:num.nat.O }})
-     (OutM = {{ NC (lib:num.N.Npos lp:Out1) }},
-      quote.expr.constant {{ lib:num.Z.Zpos lp:Out1 }} Out)
-     (quote.nat R In2 OutM2 Out2 VarMap, !,
-      OutM = {{ NAdd (NC (lib:num.N.Npos lp:Out1)) lp:OutM2 }},
-      quote.expr.add
-        {quote.expr.constant {{ lib:num.Z.Zpos lp:Out1 }} } Out2 Out).
-quote.nat R {{ addn lp:In1 lp:In2 }} {{ NAdd lp:OutM1 lp:OutM2 }} Out VarMap :-
-  !,
-  quote.nat R In1 OutM1 Out1 VarMap, !,
-  quote.nat R In2 OutM2 Out2 VarMap, !,
-  quote.expr.add Out1 Out2 Out.
-quote.nat R {{ muln lp:In1 lp:In2 }} {{ NMul lp:OutM1 lp:OutM2 }} Out VarMap :-
-  !,
-  quote.nat R In1 OutM1 Out1 VarMap, !,
-  quote.nat R In2 OutM2 Out2 VarMap, !,
-  quote.expr.mul Out1 Out2 Out.
-quote.nat R {{ expn lp:In1 lp:In2 }} {{ NExp lp:OutM1 lp:Out2 }} Out VarMap :-
-  coq.reduction.vm.norm {{ N.of_nat lp:In2 }} {{ N }} Out2,
-  n-constant _ Out2,
-  !,
-  quote.nat R In1 OutM1 Out1 VarMap, !,
-  quote.expr.exp Out1 Out2 Out.
-% For now, we normalize some specific form of terms of type nat.
-quote.nat _ {{ Nat.of_num_uint lp:In }} {{ NC lp:OutM }} Out _ :-
-  nat->int { coq.reduction.vm.norm {{ Nat.of_num_uint lp:In }} {{ nat }} } N,
-  !,
-  n-constant N OutM,
-  quote.expr.constant { z-constant N } Out.
-quote.nat R In {{ NX lp:In }} Out VarMap :- !,
-  Zmodule = {{ GRing.Ring.zmodType lp:R }},
-  mem VarMap {{ @GRing.natmul lp:Zmodule (@GRing.one lp:R) lp:In }} N, !,
-  quote.expr.variable { positive-constant {calc (N + 1)} } Out.
-
-pred quote.count-succ i:term, o:int, o:term.
-quote.count-succ {{ lib:num.nat.S lp:In }} N' Out :- !,
-  quote.count-succ In N Out, N' is N + 1.
-quote.count-succ In 0 In :- !.
-
-% [quote.zmod U R Morph Input OutM Out VarMap]
-% - [U] is a [zmodType] instance,
-% - [R] is a [ringType] instance,
-% - [Morph] is an additive function from [U] to [R],
-% - [Input] is a term of type [U],
-% - [OutM] and [Out] are reified terms of [Input], and
-% - [VarMap] is a variable map.
-pred quote.zmod i:term, i:term, i:(term -> term), i:term,
-                o:term, o:term, o:list term.
-% 0%R
-quote.zmod U _ _ {{ @GRing.zero lp:U' }} {{ @ZM0 lp:U }} Out _ :-
-  coq.unify-eq U U' ok, !,
-  quote.expr.zero Out.
-% -%R
-quote.zmod U R Morph {{ @GRing.opp lp:U' lp:In1 }}
-           {{ @ZMOpp lp:U lp:OutM1 }} Out VarMap :-
-  coq.unify-eq U U' ok,
-  !,
-  quote.zmod U R Morph In1 OutM1 Out1 VarMap, !,
-  quote.expr.opp Out1 Out.
-% +%R
-quote.zmod U R Morph {{ @GRing.add lp:U' lp:In1 lp:In2 }}
-           {{ @ZMAdd lp:U lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq U U' ok,
-  !,
-  quote.zmod U R Morph In1 OutM1 Out1 VarMap, !,
-  quote.zmod U R Morph In2 OutM2 Out2 VarMap, !,
-  quote.expr.add Out1 Out2 Out.
-% (_ *+ _)%R
-quote.zmod U R Morph {{ @GRing.natmul lp:U' lp:In1 lp:In2 }}
-           {{ @ZMMuln lp:U lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq U U' ok,
-  !,
-  quote.zmod U R Morph In1 OutM1 Out1 VarMap, !,
-  quote.nat R In2 OutM2 Out2 VarMap, !,
-  quote.expr.mul Out1 Out2 Out.
-% (_ *~ _)%R
-quote.zmod U R Morph {{ @intmul lp:U' lp:In1 lp:In2 }}
-           {{ @ZMMulz lp:U lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq U U' ok,
-  !,
-  quote.zmod U R Morph In1 OutM1 Out1 VarMap, !,
-  quote.ring
-    {{ int_Ring }} none R
-    (n\ {{ @intmul (GRing.Ring.zmodType lp:R) (@GRing.one lp:R) lp:n }})
-    In2 OutM2 Out2 VarMap, !,
-  quote.expr.mul Out1 Out2 Out.
-% additive functions
-quote.zmod U R Morph In
-           {{ @ZMMorph lp:V lp:U lp:NewMorphInst lp:OutM }} Out VarMap :-
-  NewMorph = (x\ {{ @GRing.Additive.apply lp:V lp:U _ lp:NewMorphInst lp:x }}),
-  coq.unify-eq In (NewMorph In1) ok,
-  !,
-  % TODO: for concrete additive functions, should we unpack [NewMorph]?
-  quote.zmod V R (x\ Morph (NewMorph x)) In1 OutM Out VarMap.
-% variables
-quote.zmod U _ Morph In {{ @ZMX lp:U lp:In }} Out VarMap :-
-  mem VarMap (Morph In) N,
-  quote.expr.variable { positive-constant {calc (N + 1)} } Out,
-  !.
-quote.zmod _ _ _ In _ _ _ :- coq.error "Unknown" {coq.term->string In}.
-
-% [quote.ring R F TR Morph Input OutM Out VarMap]
-% - [R] and [TR] are [ringType] instances,
-% - [F] is optionally a [fieldType] instance such that
-%   [GRing.Field.ringType F = R],
-% - [Morph] is a ring morphism from [R] to [TR],
-% - [Input] is a term of type [R],
-% - [OutM] and [Out] are reified terms of [Input], and
-% - [VarMap] is a variable map.
-pred quote.ring i:term, i:option term, i:term, i:(term -> term),
-                i:term, o:term, o:term, o:list term.
-% 0%R
-quote.ring R _ _ _ {{ @GRing.zero lp:V }} {{ @R0 lp:R }} Out _ :-
-  coq.unify-eq V {{ GRing.Ring.zmodType lp:R }} ok, !,
-  quote.expr.zero Out.
-% -%R
-quote.ring R F TR Morph {{ @GRing.opp lp:V lp:In1 }}
-           {{ @ROpp lp:R lp:OutM1 }} Out VarMap :-
-  coq.unify-eq V {{ GRing.Ring.zmodType lp:R }} ok,
-  !,
-  quote.ring R F TR Morph In1 OutM1 Out1 VarMap, !,
-  quote.expr.opp Out1 Out.
-% Z.opp
-quote.ring R none TR Morph
-           {{ Z.opp lp:In1 }} {{ @RZOpp lp:OutM1 }} Out VarMap :-
-  coq.unify-eq {{ ZInstances.Z_ringType }} R ok,
-  !,
-  quote.ring R none TR Morph In1 OutM1 Out1 VarMap, !,
-  quote.expr.opp Out1 Out.
-% +%R
-quote.ring R F TR Morph {{ @GRing.add lp:V lp:In1 lp:In2 }}
-           {{ @RAdd lp:R lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq V {{ GRing.Ring.zmodType lp:R }} ok,
-  !,
-  quote.ring R F TR Morph In1 OutM1 Out1 VarMap, !,
-  quote.ring R F TR Morph In2 OutM2 Out2 VarMap, !,
-  quote.expr.add Out1 Out2 Out.
-% Z.add
-quote.ring R none TR Morph {{ Z.add lp:In1 lp:In2 }}
-           {{ @RZAdd lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq {{ ZInstances.Z_ringType }} R ok,
-  !,
-  quote.ring R none TR Morph In1 OutM1 Out1 VarMap, !,
-  quote.ring R none TR Morph In2 OutM2 Out2 VarMap, !,
-  quote.expr.add Out1 Out2 Out.
-% Z.sub
-quote.ring R none TR Morph {{ Z.sub lp:In1 lp:In2 }}
-           {{ @RZSub lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq {{ ZInstances.Z_ringType }} R ok,
-  !,
-  quote.ring R none TR Morph In1 OutM1 Out1 VarMap, !,
-  quote.ring R none TR Morph In2 OutM2 Out2 VarMap, !,
-  quote.expr.sub Out1 Out2 Out.
-% (_ *+ _)%R
-quote.ring R F TR Morph {{ @GRing.natmul lp:V lp:In1 lp:In2 }}
-           {{ @RMuln lp:R lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq V {{ @GRing.Ring.zmodType lp:R }} ok,
-  !,
-  quote.ring R F TR Morph In1 OutM1 Out1 VarMap, !,
-  quote.nat TR In2 OutM2 Out2 VarMap, !,
-  quote.expr.mul Out1 Out2 Out.
-% (_ *~ _)%R
-quote.ring R F TR Morph {{ @intmul lp:V lp:In1 lp:In2 }}
-           {{ @RMulz lp:R lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq V {{ @GRing.Ring.zmodType lp:R }} ok,
-  !,
-  quote.ring R F TR Morph In1 OutM1 Out1 VarMap, !,
-  quote.ring
-    {{ int_Ring }} none TR
-    (n\ {{ @intmul (GRing.Ring.zmodType lp:TR) (@GRing.one lp:TR) lp:n }})
-    In2 OutM2 Out2 VarMap, !,
-  quote.expr.mul Out1 Out2 Out.
-% 1%R
-quote.ring R _ _ _ {{ @GRing.one lp:R' }} {{ @R1 lp:R }} Out _ :-
-  coq.unify-eq R' R ok,
-  !,
-  quote.expr.one Out.
-% *%R
-quote.ring R F TR Morph {{ @GRing.mul lp:R' lp:In1 lp:In2 }}
-           {{ @RMul lp:R lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq R' R ok,
-  !,
-  quote.ring R F TR Morph In1 OutM1 Out1 VarMap, !,
-  quote.ring R F TR Morph In2 OutM2 Out2 VarMap, !,
-  quote.expr.mul Out1 Out2 Out.
-% Z.mul
-quote.ring R none TR Morph {{ Z.mul lp:In1 lp:In2 }}
-           {{ @RZMul lp:OutM1 lp:OutM2 }} Out VarMap :-
-  coq.unify-eq {{ ZInstances.Z_ringType }} R ok,
-  !,
-  quote.ring R none TR Morph In1 OutM1 Out1 VarMap, !,
-  quote.ring R none TR Morph In2 OutM2 Out2 VarMap, !,
-  quote.expr.mul Out1 Out2 Out.
-% (_ ^+ _)%R
-quote.ring R F TR Morph {{ @GRing.exp lp:R' lp:In1 lp:In2 }}
-           {{ @RExpn lp:R lp:OutM1 lp:Out2 }} Out VarMap :-
-  coq.unify-eq R' R ok,
-  n-constant { nat->int { coq.reduction.vm.norm In2 {{ nat }} } } Out2,
-  !,
-  quote.ring R F TR Morph In1 OutM1 Out1 VarMap, !,
-  quote.expr.exp Out1 Out2 Out.
-% (_ ^ _)%R
-quote.ring R F TR Morph {{ @exprz lp:R' lp:In1 lp:In2 }}
-           OutM Out VarMap :-
-  z-constant Exp { coq.reduction.vm.norm {{ Z_of_int lp:In2 }} {{ Z }} },
-  if (Exp >= 0)
-     (CONT =
-       (coq.unify-eq {{ GRing.UnitRing.ringType lp:R' }} R ok, !,
-        quote.ring R F TR Morph In1 OutM1 Out1 VarMap, !,
-        n-constant Exp Out2, !,
-        OutM = {{ @RExpPosz lp:R' lp:OutM1 lp:Out2 }}, !,
-        quote.expr.exp Out1 Out2 Out))
-     (CONT =
-       (field-mode,
-        F = some F',
-        coq.unify-eq R' {{ GRing.Field.unitRingType lp:F' }} ok, !,
-        quote.ring R F TR Morph In1 OutM1 Out1 VarMap, !,
-        n-constant { calc (~ (Exp + 1)) } Out2, !,
-        OutM = {{ @RExpNegz lp:F' lp:OutM1 lp:Out2 }}, !,
-        Out = {{ @FEinv Z (@FEpow Z lp:Out1 lp:Out2) }})),
-  CONT.
-% Z.pow
-quote.ring R none TR Morph {{ Z.pow lp:In1 lp:In2 }}
-           {{ @RZExp lp:OutM1 lp:In2' }} Out VarMap :-
-  coq.unify-eq {{ ZInstances.Z_ringType }} R ok,
-  coq.reduction.vm.norm In2 {{ Z }} In2',
-  z-constant Exp In2',
-  !,
-  if (Exp >= 0)
-     (quote.ring R none TR Morph In1 OutM1 Out1 VarMap,
-      n-constant Exp Out2,
-      quote.expr.exp Out1 Out2 Out)
-     (quote.expr.zero Out).
-% _^-1
-quote.ring R (some F) TR Morph {{ @GRing.inv lp:R' lp:In1 }}
-           {{ @RInv lp:F lp:OutM1 }} {{ @FEinv Z lp:Out1 }} VarMap :-
-  field-mode,
-  coq.unify-eq R' {{ GRing.Field.unitRingType lp:F }} ok,
-  !,
-  quote.ring R (some F) TR Morph In1 OutM1 Out1 VarMap.
-% Posz
-quote.ring R _ TR _ {{ Posz lp:In }} {{ @RPosz lp:OutM }} Out VarMap :-
-  coq.unify-eq {{ int_Ring }} R ok,
-  !,
-  quote.nat TR In OutM Out VarMap.
-% Negz
-quote.ring R _ TR _ {{ Negz lp:In }} {{ @RNegz lp:OutM1 }} Out VarMap :-
-  coq.unify-eq {{ int_Ring }} R ok,
-  !,
-  quote.nat TR In OutM1 Out1 VarMap, !,
-  quote.expr.opp { quote.expr.add { quote.expr.one } Out1 } Out.
-% Z constants
-quote.ring R _ _ _ In {{ @RZC lp:In }} Out _ :-
-  coq.unify-eq {{ ZInstances.Z_ringType }} R ok,
-  z-constant _ In, !,
-  quote.expr.constant In Out.
-% morphisms
-quote.ring R _ TR Morph In
-           {{ @RMorph lp:Q lp:R lp:NewMorphInst lp:OutM }} Out VarMap :-
-  NewMorph = (x\ {{ @GRing.RMorphism.apply
-                      lp:Q lp:R _ lp:NewMorphInst lp:x }}),
-  coq.unify-eq In (NewMorph In1) ok,
-  !,
-  % TODO: for concrete morphisms, should we unpack [NewMorph]?
-  quote.ring Q { ring->field Q } TR (x\ Morph (NewMorph x)) In1 OutM Out VarMap.
-% additive functions
-quote.ring R _ TR Morph In
-           {{ @RMorph' lp:V lp:R lp:NewMorphInst lp:OutM }} Out VarMap :-
-  NewMorph =
-    (x\ {{ @GRing.Additive.apply
-             lp:V (GRing.Ring.zmodType lp:R) _ lp:NewMorphInst lp:x }}),
-  coq.unify-eq In (NewMorph In1) ok,
-  !,
-  % TODO: for concrete additive functions, should we unpack [NewMorph]?
-  quote.zmod V TR (x\ Morph (NewMorph x)) In1 OutM Out VarMap.
-% variables
-quote.ring R _ _ Morph In {{ @RX lp:R lp:In }} Out VarMap :- !,
-  mem VarMap (Morph In) N, !,
-  quote.expr.variable { positive-constant {calc (N + 1)} } Out.
-quote.ring _ _ _ _ In _ _ _ :- coq.error "Unknown" {coq.term->string In}.
-% TODO: converse ring
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-pred if-verbose i:prop.
-if-verbose P :- get-option "verbose" tt, !, P.
-if-verbose _.
-
-pred quote-arg i:term, o:list term, i:argument, o:pair term term.
-quote-arg Ring VarMap (trm Proof)
-          (pr {{ (lp:RE1, lp:RE2, lp:PE1, lp:PE2) }} Proof) :- std.do! [
-  @ltacfail! 0 => std.assert-ok!
-    (coq.typecheck Proof {{ @eq (GRing.Ring.sort lp:Ring) lp:T1 lp:T2 }})
-    "An argument is not a proof of equation of the expected type",
-  quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
-  quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap ].
-
-pred list->conj i:list term, o:term.
-list->conj [] {{ I }} :- !.
-list->conj [P|PS] {{ conj lp:P lp:IS }} :- !, list->conj PS IS.
-
-pred ring-reflection i:term, i:term, i:term, i:term, i:term, i:term,
-                     i:term, i:term, i:goal, o:list sealed-goal.
-ring-reflection ComRing VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS :-
-  coq.ltac.call "ring_reflection"
-    [trm ComRing, trm VarMap', trm Lpe', trm RE1, trm RE2, trm PE1, trm PE2,
-     trm LpeProofs'] G GS.
-ring-reflection _ _ _ _ _ _ _ _ _ _ :-
-  coq.ltac.fail 0 "Not a valid ring equation".
-
-pred ring i:goal, o:list sealed-goal.
-ring (goal _ _ P _ Args as G) GS :-
-  attributes A, !,
-  coq.parse-attributes A [att "verbose" bool] Opts, !,
-  Opts => std.do! [
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
-      "The goal is not an equation",
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }})
-      "Cannot find a declared ringType",
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq Ty {{ GRing.ComRing.sort lp:ComRing }})
-      "Cannot find a declared comRingType",
-    std.time (
-      std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
-      quote.ring Ring none Ring (x\ x) T1 RE1 PE1 VarMap,
-      quote.ring Ring none Ring (x\ x) T2 RE2 PE2 VarMap
-    ) ReifTime,
-    if-verbose (coq.say "Reification:" ReifTime "sec."),
-    list-constant Ty VarMap VarMap',
-    list-constant _ Lpe Lpe',
-    std.assert-ok! (coq.typecheck Lpe' _) "Ill-typed term",
-    list->conj LpeProofs LpeProofs',
-    std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
-    std.time (
-      ring-reflection ComRing VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS
-    ) ReflTime,
-    if-verbose (coq.say "Reflection:" ReflTime "sec."),
-  ].
-
-pred field-reflection i:term, i:term, i:term, i:term, i:term, i:term,
-                      i:term, i:term, i:goal, o:list sealed-goal.
-field-reflection Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS :-
-  coq.ltac.call "field_reflection"
-    [trm Field, trm VarMap', trm Lpe', trm RE1, trm RE2, trm PE1, trm PE2,
-     trm LpeProofs'] G GS.
-field-reflection _ _ _ _ _ _ _ _ _ _ :-
-  coq.ltac.fail 0 "Not a valid ring equation".
-
-pred field i:goal, o:list sealed-goal.
-field (goal _ _ P _ Args as G) GS :-
-  attributes A, !,
-  coq.parse-attributes A [att "verbose" bool] Opts, !,
-  Opts => std.do! [
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq P {{ @eq lp:Ty lp:T1 lp:T2 }})
-      "The goal is not an equation",
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq Ty {{ GRing.Ring.sort lp:Ring }})
-      "Cannot find a declared ringType",
-    @ltacfail! 0 => std.assert-ok!
-      (coq.unify-eq Ty {{ GRing.Field.sort lp:Field }})
-      "Cannot find a declared fieldType",
-    coq.unify-eq Ty {{ Num.NumField.sort lp:NField }} NFieldDiag,
-    std.time (
-      std.unzip { std.map Args (quote-arg Ring VarMap) } Lpe LpeProofs,
-      field-mode => quote.ring Ring (some Field) Ring (x\ x) T1 RE1 PE1 VarMap,
-      field-mode => quote.ring Ring (some Field) Ring (x\ x) T2 RE2 PE2 VarMap
-    ) ReifTime,
-    if-verbose (coq.say "Reification:" ReifTime "sec."),
-    list-constant Ty VarMap VarMap',
-    list-constant _ Lpe Lpe',
-    std.assert-ok! (coq.typecheck Lpe' _) "Ill-typed term",
-    list->conj LpeProofs LpeProofs',
-    std.assert-ok! (coq.typecheck LpeProofs' _) "Ill-typed equations",
-    std.time (
-      if (NFieldDiag = ok)
-         (field-reflection NField VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS)
-         (field-reflection Field VarMap' Lpe' RE1 RE2 PE1 PE2 LpeProofs' G GS)
-    ) ReflTime,
-    if-verbose (coq.say "Reflection:" ReflTime "sec."),
-  ].
+pred negb i:bool, o:bool.
+negb tt ff :- !.
+negb ff tt :- !.
