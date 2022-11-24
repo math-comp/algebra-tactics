@@ -109,6 +109,11 @@ Proof.
 lra.
 Qed.
 
+Lemma test_rfstr (x : rat) : (x <= 2%:R) || true = true.
+Proof.
+lra.
+Qed.
+
 End Tests.
 
 (* Examples from the test suite of Coq *)
