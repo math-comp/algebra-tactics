@@ -100,8 +100,8 @@ rfstr.prop {{ @eq lp:Bool lp:Ty1 lp:Ty2 }} C IsField :-
 rfstr.prop {{ @eq lp:Ty _ _ }} C IsField :- !, type->carrier Ty C IsField.
 
 pred rfstr.hyps i:list prop, o:carrier, o:prop.
-rfstr.hyps [decl _ _ H|_] C IsField :- rfstr.prop H C IsField.
 rfstr.hyps [_|Ctx] C IsField :- rfstr.hyps Ctx C IsField.
+rfstr.hyps [decl _ _ H|_] C IsField :- rfstr.prop H C IsField.
 
 pred rfstr i:list prop, i:term, o:carrier, o:prop.
 rfstr _ Type C IsField :- rfstr.prop Type C IsField, !.
@@ -402,70 +402,75 @@ quote.prop C In {{ A isProp lp:OutM tt }} {{ A isProp lp:Out tt }} VM :-
   quote.pop2 C In OutM Out VM.
 quote.prop _ In {{ X isProp lp:In }} {{ X isProp lp:In }} _ :- !.
 
-% [quote.goal C Hyps Goal Out ReifiedOutM ReifiedOut VM] reifies the goal
+% [quote.goal C Ctx Goal Goal' NS OutM Out VM] reifies the goal [Goal],
+% including the arithmetic hypotheses in the context [Ctx], in the form of
+% implication chain
 % - [C] is the carrier type and structure instances,
-% - [Hyps] are hypotheses,
+% - [Ctx] is the context (hypotheses),
 % - [Goal] is the goal, of type [Prop],
-% - [Out] is a chain of implications including [Goal] and hypotheses in [Hyps]
-%   that have some arithmetic content,
-% - [ReifiedOutM] is a reified version of [Out] as a
-%   [BFormula (RFormula C) isProp],
-% - [ReifiedOut] is a reified version of [Out] as a
-%   [BFormula (Formula Q) isProp], and
+% - [Goal'] is a chain of implications including [Goal] and hypotheses in [Hyps]
+%   that have some arithmetic contents,
+% - [NS] are the names of arithmetic hypotheses in [Ctx] added to [Goal'],
+% - [OutM] is the reified term of type [BFormula (RFormula C) isProp],
+% - [ReifiedOut] is the reified term of type [BFormula (Formula Q) isProp], and
 % - [VM] is a variable map, that is a list of terms of type [C].
 pred quote.goal i:carrier, i:list prop, i:term,
-  o:term, o:term, o:term, o:list term.
-quote.goal C [decl _ _ H|Ctx] Type
-           {{ lp:H -> lp:Type' }} {{ IMPL lp:HM' None lp:TypeFM' }}
-           {{ IMPL lp:H' None lp:TypeF' }} VM :-
-  quote.prop C H HM' H' VM, not (H' = {{ X _ _ }}), !,
-  quote.goal C Ctx Type Type' TypeFM' TypeF' VM.
-quote.goal C [decl _ _ _|Ctx] Type Type' TypeFM' TypeF' VM :- !,
-  quote.goal C Ctx Type Type' TypeFM' TypeF' VM.
-quote.goal C [def _ _ _ _|Ctx] Type Type' TypeFM' TypeF' VM :- !,
-  quote.goal C Ctx Type Type' TypeFM' TypeF' VM.
-quote.goal C [] Type Type TypeFM TypeF VM :- !,
-  quote.prop C Type TypeFM TypeF VM.
+    o:term, o:list term, o:term, o:term, o:list term.
+quote.goal C [decl N _ In1|Ctx] Type {{ lp:In1 -> lp:Type' }} [N|NS]
+           {{ IMPL lp:OutM1 None lp:OutM2 }}
+           {{ IMPL lp:Out1 None lp:Out2 }} VM :-
+  quote.prop C In1 OutM1 Out1 VM, not (Out1 = {{ X _ _ }}), !,
+  quote.goal C Ctx Type Type' NS OutM2 Out2 VM.
+quote.goal C [_|Ctx] Type Type' NS OutM Out VM :- !,
+  quote.goal C Ctx Type Type' NS OutM Out VM.
+quote.goal C [] Type Type [] OutM Out VM :- !, quote.prop C Type OutM Out VM.
 
 % [exfalso_if_not_prop In Out Bool] changes [In] to [False]
-% when [In] is not a [Prop] (and then set [Bool] to [true])
-pred exfalso_if_not_prop i:term, o:term, o:term.
-exfalso_if_not_prop Type Type {{ false }} :-
-  coq.typecheck Type {{ Prop }} ok.
-exfalso_if_not_prop _ {{ False }} {{ true }}.
+% when [In] is not a [Prop] (and then set [Bool] to [tt])
+pred exfalso_if_not_prop i:term, o:term, o:bool.
+exfalso_if_not_prop Type Type ff :- coq.typecheck Type {{ Prop }} ok.
+exfalso_if_not_prop _ {{ False }} tt.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Main tactic
+
+pred lra-reflection i:string, i:argument, i:term,
+    i:term, i:term, i:term, i:goal, o:list sealed-goal.
+lra-reflection Tac N Hyps OutM Out VM G GS :-
+  coq.ltac.call Tac [N, trm Hyps, trm OutM, trm Out, trm VM] G GS.
+lra-reflection _ _ _ _ _ _ _ _ :- coq.ltac.fail 0.
 
 % The tactic takes three arguments, two strings [TacF] and [TacR]
 % that are the names of the Ltac1 tactic to call respactively
 % in the [realFieldType] and [realDomainType] case and a third argument [N],
 % passed unchanged as first argument to the previous tactic.
-% The tactics [TacF] or [TacR] will receive seven arguments:
-% - [N] above
-% - [Efalso] a term of type [bool] indicating if the goal was changed to [False]
-% - [Type''] a term of type [Prop], an implication with the goal
-%   and selected hypotheses
-% - [TypeFM'] the reified [Type''] as a [BFormula RFormula isProp]
-% - [TypeF'] the reified [Type''] as a [BFormula (Formula Q) isProp]
-% - [VM'] a variable map, giving the interpretation to variables in [TypeF']
+% The tactics [TacF] or [TacR] will receive six arguments:
+% - [N] above,
+% - [Hyps] a function of type
+%   [(H1 -> ... -> Hn -> G) -> G] (if [G] is a [Prop]) or
+%   [(H1 -> ... -> Hn -> False) -> G] (if [G] is not a [Prop])
+%   that explicitly passes hypotheses of types [H1], ..., [Hn] taken from the
+%   context to the reflexive proof,
+% - [OutM] the reified goal as a [BFormula RFormula isProp],
+% - [Out] the reified goal as a [BFormula (Formula Q) isProp],
+% - [VM'] a variable map, giving the interpretation to variables in [Out]
 %   it is of type [VarMap.t F] where [F] is the carrier for the detected
-%   [realFieldType] or [realDomainType]
-solve (goal Ctx _Trigger Type _Proof [str TacF, str TacR, N] as G) GL :- std.do!
+%   [realFieldType] or [realDomainType].
+solve (goal Ctx _Trigger Type _Proof [str TacF, str TacR, N] as G) GS :- std.do!
   [ exfalso_if_not_prop Type Type' Efalso,
-    std.rev Ctx Ctx',
-    rfstr Ctx' Type' C IsField,
-    (IsField => quote.goal C Ctx' Type' Type'' TypeFM' TypeF' VM),
+    rfstr Ctx Type' C IsField,
+    (IsField => quote.goal C Ctx Type' Type'' NS OutM Out VM),
     carrier->ring C R,
     std.assert-ok!
-      (coq.typecheck TypeFM' {{ BFormula (@RFormula lp:R) isProp }})
+      (coq.typecheck OutM {{ BFormula (@RFormula lp:R) isProp }})
       "The reification produced an ill-typed result, this is a bug.",
     std.assert-ok!
-      (coq.typecheck TypeF' {{ BFormula (Formula Q) isProp }})
+      (coq.typecheck Out {{ BFormula (Formula Q) isProp }})
       "The reification produced an ill-typed result, this is a bug.",
     list-constant { carrier->type C } VM VM',
     if (C = carrier (some _) _ (some _) (some _) _ _ _ _)
        (Tac = TacF) (Tac = TacR),
-    (coq.ltac.call
-       Tac [N, trm Efalso, trm Type'', trm TypeFM', trm TypeF', trm VM'] G GL;
-     coq.ltac.fail 0) ].
+    if (Efalso = tt)
+       (Hyps = fun _ Type'' (x \ app [{{ False_rect }}, _, app [x|NS]]))
+       (Hyps = fun _ Type'' (x \ app [x|NS])),
+    lra-reflection Tac N Hyps OutM Out VM' G GS ].
