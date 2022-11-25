@@ -505,47 +505,40 @@ Strategy expand [Reval_PFormula Feval_PFormula].
 
 (* Main tactics, called from the elpi parser (c.f., lra.elpi) *)
 
-Ltac tacF tac efalso hyps_goal rff ff varmap :=
-  match efalso with true => exfalso | _ => idtac end;
-  (suff: hyps_goal by exact);
+Ltac tacF tac hyps rff ff varmap :=
   let irff := fresh "__rff" in
   let iff := fresh "__ff" in
   let ivarmap := fresh "__varmap" in
   let iwit := fresh "__wit" in
-  let iprf := fresh "__prf" in
   pose (irff := rff);
   pose (iff := ff);
   pose (ivarmap := varmap);
   tac iwit ff;
-  pose (iprf := erefl true <: QTautoChecker iff iwit = true);
-  exact: (@FTautoChecker_sound _ irff iff iwit
-            (VarMap.find 0 (vm_of_list ivarmap))
-            (fun _ _ _ _ _ _ _ _ _ _ => erefl) iprf).
+  refine (hyps (@FTautoChecker_sound _ irff iff iwit
+                  (VarMap.find 0 (vm_of_list ivarmap))
+                  (fun _ _ _ _ _ _ _ _ _ _ => erefl) _));
+  [ vm_compute; reflexivity ].
 Ltac lraF n := let wlra_Q w f := wlra_Q w f in tacF wlra_Q.
 Ltac nraF n := let wnra_Q w f := wnra_Q w f in tacF wnra_Q.
 Ltac psatzF n :=
   let sos_or_psatzn w f := wsos_Q w f || wpsatz_Q n w f in
   tacF sos_or_psatzn.
 
-Ltac tacR tac efalso hyps_goal rff ff varmap :=
-  match efalso with true => exfalso | _ => idtac end;
-  (suff: hyps_goal by exact);
+Ltac tacR tac hyps rff ff varmap :=
   let irff := fresh "__rff" in
   let iff := fresh "__ff" in
   let ivarmap := fresh "__varmap" in
   let iwit := fresh "__wit" in
-  let iprf := fresh "__prf" in
   match eval vm_compute in (BFormula_Q2Z ff) with
   | Some ?f =>
       pose (irff := rff);
       pose (iff := f);
       pose (ivarmap := varmap);
       tac iwit ff;
-      let tr := seq_Psatz_Q2Z in
-      pose (iprf := erefl true <: ZTautoChecker iff (tr iwit) = true);
-      exact: (@RTautoChecker_sound _ irff iff (tr iwit)
-                (VarMap.find 0 (vm_of_list ivarmap))
-                (fun _ _ _ _ _ _ _ _ _ _ => erefl) iprf)
+      refine (hyps (@RTautoChecker_sound _ irff iff (seq_Psatz_Q2Z iwit)
+                      (VarMap.find 0 (vm_of_list ivarmap))
+                      (fun _ _ _ _ _ _ _ _ _ _ => erefl) _));
+      [ vm_compute; reflexivity ]
   | _ => fail  (* should never happen, the parser only parses int constants *)
   end.
 Ltac lraR n := let wlra_Q w f := wlra_Q w f in tacR wlra_Q.
