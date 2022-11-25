@@ -5,6 +5,8 @@ From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
 From mathcomp.zify Require Import ssrZ zify.
 From mathcomp.algebra_tactics Require Import common.
+From mathcomp.algebra_tactics Extra Dependency "common.elpi" as common.
+From mathcomp.algebra_tactics Extra Dependency "lra.elpi" as lra.
 
 Import Order.TTheory GRing.Theory Num.Theory.
 
@@ -553,8 +555,7 @@ Ltac psatzR n :=
   tacF sos_or_psatzn.
 
 Elpi Tactic lra.
-Elpi Accumulate File "theories/common.elpi".
-Elpi Accumulate File "theories/lra.elpi".
+Elpi Accumulate File common lra.
 Elpi Typecheck.
 
 Tactic Notation "lra" := elpi lra "lraF" "lraR" 0.

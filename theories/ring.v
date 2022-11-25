@@ -4,6 +4,10 @@ From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
 From mathcomp.zify Require Import ssrZ zify.
 From mathcomp.algebra_tactics Require Import common.
+From mathcomp.algebra_tactics Extra Dependency "common.elpi" as common.
+From mathcomp.algebra_tactics Extra Dependency "ring.elpi" as ring.
+From mathcomp.algebra_tactics Extra Dependency "ring_tac.elpi" as ring_tac.
+From mathcomp.algebra_tactics Extra Dependency "field_tac.elpi" as field_tac.
 
 Import GRing.Theory.
 
@@ -650,9 +654,7 @@ Strategy expand [int_of_large_int Z_of_large_int].
 Strategy expand [Neval Reval Nnorm Rnorm Fnorm PEeval FEeval].
 
 Elpi Tactic ring.
-Elpi Accumulate File "theories/common.elpi".
-Elpi Accumulate File "theories/ring.elpi".
-Elpi Accumulate File "theories/ring_tac.elpi".
+Elpi Accumulate File common ring ring_tac.
 Elpi Typecheck.
 
 Tactic Notation "ring" := elpi ring.
@@ -662,9 +664,7 @@ Tactic Notation "#[" attributes(A) "]" "ring" ":" ne_constr_list(L) :=
   ltac_attributes:(A) elpi ring ltac_term_list:(L).
 
 Elpi Tactic field.
-Elpi Accumulate File "theories/common.elpi".
-Elpi Accumulate File "theories/ring.elpi".
-Elpi Accumulate File "theories/field_tac.elpi".
+Elpi Accumulate File common ring field_tac.
 Elpi Typecheck.
 
 Tactic Notation "field" := elpi field.
