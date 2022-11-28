@@ -100,12 +100,12 @@ rfstr.prop {{ @eq lp:Bool lp:Ty1 lp:Ty2 }} C IsField :-
 rfstr.prop {{ @eq lp:Ty _ _ }} C IsField :- !, type->carrier Ty C IsField.
 
 pred rfstr.hyps i:list prop, o:carrier, o:prop.
-rfstr.hyps [_|Ctx] C IsField :- rfstr.hyps Ctx C IsField.
 rfstr.hyps [decl _ _ H|_] C IsField :- rfstr.prop H C IsField.
+rfstr.hyps [_|Ctx] C IsField :- rfstr.hyps Ctx C IsField.
 
 pred rfstr i:list prop, i:term, o:carrier, o:prop.
 rfstr _ Type C IsField :- rfstr.prop Type C IsField, !.
-rfstr Ctx _ C IsField :- rfstr.hyps Ctx C IsField, !.
+rfstr Ctx _ C IsField :- rfstr.hyps {std.rev Ctx} C IsField, !.
 rfstr _ _ _ _ :- coq.ltac.fail _ "Cannot find a realDomainType".
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
