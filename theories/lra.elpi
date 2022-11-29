@@ -434,17 +434,32 @@ exfalso_if_not_prop _ {{ False }} tt.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Main tactic
 
-pred lra-reflection i:string, i:argument, i:term,
-    i:term, i:term, i:term, i:goal, o:list sealed-goal.
-lra-reflection Tac N Hyps OutM Out VM G GS :-
-  coq.ltac.call Tac [N, trm Hyps, trm OutM, trm Out, trm VM] G GS.
-lra-reflection _ _ _ _ _ _ _ _ :- coq.ltac.fail 0.
+pred gen-witness i:string, i:argument, i:term, i:goal, o:sealed-goal.
+gen-witness TacW N Out G G' :- coq.ltac.call TacW [N, trm Out] G [G'].
+gen-witness _ _ _ _ _ :- coq.ltac.fail 0 "Cannot find witness".
 
-% The tactic takes three arguments, two strings [TacF] and [TacR]
-% that are the names of the Ltac1 tactic to call respactively
-% in the [realFieldType] and [realDomainType] case and a third argument [N],
-% passed unchanged as first argument to the previous tactic.
-% The tactics [TacF] or [TacR] will receive six arguments:
+pred lra-reflection i:string, i:term, i:term, i:term, i:term, i:term,
+                    i:goal, i:sealed-goal, o:list sealed-goal.
+lra-reflection Tac C Hyps OutM Out VM G G' GS :-
+  coq.ltac.set-goal-arguments
+    [trm C, trm Hyps, trm OutM, trm Out, trm VM] G G' G'',
+  coq.ltac.open (g\ gs\ sigma Wit Args Args'\
+    % NB: the following line is very specific to the current implementation of
+    % the witness generators. We assume that the witness appears as the first
+    % item of the context.
+    g = goal [def Wit _ _ _|_] _ _ _ Args,
+    std.append Args [trm Wit] Args',
+    coq.ltac.call Tac Args' g gs) G'' GS.
+lra-reflection _ _ _ _ _ _ _ _ _ :-
+  coq.ltac.fail 0 "Reflection failed, this is a bug".
+
+% The tactic takes four arguments:
+% - [TacW] is the name of the Ltac1 tactic that generates the witness,
+% - [TacF] and [TacR] are the names of the Ltac1 tactics to call respectively
+%   in the [realFieldType] and [realDomainType] cases, and
+% - [N] is passed as is as the first argument of [TacW].
+% The [TacW] tactic will receive [N] and the reified term [Out], explained
+% below, and the [TacF] or [TacR] tactic will receive six arguments:
 % - [N] above,
 % - [Hyps] a function of type
 %   [(H1 -> ... -> Hn -> G) -> G] (if [G] is a [Prop]) or
@@ -452,25 +467,26 @@ lra-reflection _ _ _ _ _ _ _ _ :- coq.ltac.fail 0.
 %   that explicitly passes hypotheses of types [H1], ..., [Hn] taken from the
 %   context to the reflexive proof,
 % - [OutM] the reified goal as a [BFormula RFormula isProp],
-% - [Out] the reified goal as a [BFormula (Formula Q) isProp],
+% - [Out] the reified goal as a [BFormula (Formula Q) isProp], and
 % - [VM'] a variable map, giving the interpretation to variables in [Out]
-%   it is of type [VarMap.t F] where [F] is the carrier for the detected
+%   it is of type [VarMap.t C] where [C] is the carrier for the detected
 %   [realFieldType] or [realDomainType].
-solve (goal Ctx _Trigger Type _Proof [str TacF, str TacR, N] as G) GS :- std.do!
-  [ exfalso_if_not_prop Type Type' Efalso,
-    rfstr Ctx Type' C IsField,
-    (IsField => quote.goal C Ctx Type' Type'' NS OutM Out VM),
-    carrier->ring C R,
-    std.assert-ok!
-      (coq.typecheck OutM {{ BFormula (@RFormula lp:R) isProp }})
-      "The reification produced an ill-typed result, this is a bug.",
-    std.assert-ok!
-      (coq.typecheck Out {{ BFormula (Formula Q) isProp }})
-      "The reification produced an ill-typed result, this is a bug.",
-    list-constant { carrier->type C } VM VM',
-    if (C = carrier (some _) _ (some _) (some _) _ _ _ _)
-       (Tac = TacF) (Tac = TacR),
-    if (Efalso = tt)
-       (Hyps = fun _ Type'' (x \ app [{{ False_rect }}, _, app [x|NS]]))
-       (Hyps = fun _ Type'' (x \ app [x|NS])),
-    lra-reflection Tac N Hyps OutM Out VM' G GS ].
+solve (goal Ctx _ Type _ [str TacW, str TacF, str TacR, N] as G) GS :- std.do! [
+  exfalso_if_not_prop Type Type' Efalso,
+  rfstr Ctx Type' C IsField,
+  (IsField => quote.goal C Ctx Type' Type'' NS OutM Out VM),
+  carrier->ring C R,
+  std.assert-ok!
+    (coq.typecheck OutM {{ BFormula (@RFormula lp:R) isProp }})
+    "The reification produced an ill-typed result, this is a bug",
+  std.assert-ok!
+    (coq.typecheck Out {{ BFormula (Formula Q) isProp }})
+    "The reification produced an ill-typed result, this is a bug",
+  gen-witness TacW N Out G G',
+  list-constant { carrier->type C } VM VM',
+  if (Efalso = tt)
+     (Hyps = fun _ Type'' (x \ app [{{ False_rect }}, Type, app [x|NS]]))
+     (Hyps = fun _ Type'' (x \ app [x|NS])),
+  ((carrier->realField C C', Tac = TacF);
+   (carrier->realDomain C C', Tac = TacR)),
+  lra-reflection Tac C' Hyps OutM Out VM' G G' GS ].

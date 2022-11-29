@@ -218,7 +218,7 @@ Lemma RTautoChecker_sound
       let eval_f :=
         Reval_PFormula R_of_Z opp add sub mul exp eqProp eqBool le lt env in
       eval_bf norm_ff ff = eval_bf eval_f f) ->
-  ZTautoChecker f w = true -> eval_bf (Reval_formula eq eq_op <=%O <%O) ff.
+  ZTautoChecker f w -> eval_bf (Reval_formula eq eq_op <=%O <%O) ff.
 Proof.
 rewrite (Rnorm_bf_correct erefl erefl erefl erefl erefl).
 move=> /(_ _ _ _ (fun x y => x - y)) -> Hchecker.
@@ -392,7 +392,7 @@ Lemma FTautoChecker_sound
       let eval_f :=
         Feval_PFormula F_of_Q opp add sub mul exp eqProp eqBool le lt env in
       eval_bf norm_ff ff = eval_bf eval_f f) ->
-  QTautoChecker f w = true -> eval_bf (Reval_formula eq eq_op <=%O <%O) ff.
+  QTautoChecker f w -> eval_bf (Reval_formula eq eq_op <=%O <%O) ff.
 Proof.
 rewrite (Fnorm_bf_correct erefl erefl erefl erefl erefl).
 move=> /(_ _ _ _ (fun x y => x - y)) -> Hchecker.
@@ -491,6 +491,41 @@ Fixpoint Psatz_Q2Z (l : seq positive) (p : Psatz Q) : Psatz Z * positive :=
 Definition seq_Psatz_Q2Z : seq (Psatz Q) -> seq (Psatz Z) :=
   map (fun p => fst (Psatz_Q2Z [::] p)).
 
+(* Main tactics, called from the elpi parser (c.f., lra.elpi) *)
+
+Ltac lra_witness n f := let w := fresh "__wit" in wlra_Q w f.
+Ltac nra_witness n f := let w := fresh "__wit" in wnra_Q w f.
+Ltac psatz_witness n f :=
+  let w := fresh "__wit" in wsos_Q w f || wpsatz_Q n w f.
+
+Ltac tacF F hyps rff ff varmap wit :=
+  let irff := fresh "__rff" in
+  let iff := fresh "__ff" in
+  let ivarmap := fresh "__varmap" in
+  pose (irff := rff);
+  pose (iff := ff);
+  pose (ivarmap := varmap);
+  refine (hyps (@FTautoChecker_sound F irff iff wit
+                  (VarMap.find 0 (vm_of_list ivarmap))
+                  (fun _ _ _ _ _ _ _ _ _ _ => erefl) _));
+  [ vm_compute; reflexivity ].
+
+Ltac tacR R hyps rff ff varmap wit :=
+  let irff := fresh "__rff" in
+  let iff := fresh "__ff" in
+  let ivarmap := fresh "__varmap" in
+  lazymatch eval vm_compute in (BFormula_Q2Z ff) with
+  | Some ?f =>
+      pose (irff := rff);
+      pose (iff := f);
+      pose (ivarmap := varmap);
+      refine (hyps (@RTautoChecker_sound R irff iff (seq_Psatz_Q2Z wit)
+                      (VarMap.find 0 (vm_of_list ivarmap))
+                      (fun _ _ _ _ _ _ _ _ _ _ => erefl) _));
+      [ vm_compute; reflexivity ]
+  | _ => fail  (* should never happen, the parser only parses int constants *)
+  end.
+
 End Internals.
 
 Strategy expand [addn_expand nat_of_pos_rec_expand nat_of_pos_expand].
@@ -503,55 +538,12 @@ Strategy expand [Reval_pop2 Reval_bop2 Reval_op2].
 Strategy expand [Reval_formula Rnorm_formula Fnorm_formula].
 Strategy expand [Reval_PFormula Feval_PFormula].
 
-(* Main tactics, called from the elpi parser (c.f., lra.elpi) *)
-
-Ltac tacF tac hyps rff ff varmap :=
-  let irff := fresh "__rff" in
-  let iff := fresh "__ff" in
-  let ivarmap := fresh "__varmap" in
-  let iwit := fresh "__wit" in
-  pose (irff := rff);
-  pose (iff := ff);
-  pose (ivarmap := varmap);
-  tac iwit ff;
-  refine (hyps (@FTautoChecker_sound _ irff iff iwit
-                  (VarMap.find 0 (vm_of_list ivarmap))
-                  (fun _ _ _ _ _ _ _ _ _ _ => erefl) _));
-  [ vm_compute; reflexivity ].
-Ltac lraF n := let wlra_Q w f := wlra_Q w f in tacF wlra_Q.
-Ltac nraF n := let wnra_Q w f := wnra_Q w f in tacF wnra_Q.
-Ltac psatzF n :=
-  let sos_or_psatzn w f := wsos_Q w f || wpsatz_Q n w f in
-  tacF sos_or_psatzn.
-
-Ltac tacR tac hyps rff ff varmap :=
-  let irff := fresh "__rff" in
-  let iff := fresh "__ff" in
-  let ivarmap := fresh "__varmap" in
-  let iwit := fresh "__wit" in
-  match eval vm_compute in (BFormula_Q2Z ff) with
-  | Some ?f =>
-      pose (irff := rff);
-      pose (iff := f);
-      pose (ivarmap := varmap);
-      tac iwit ff;
-      refine (hyps (@RTautoChecker_sound _ irff iff (seq_Psatz_Q2Z iwit)
-                      (VarMap.find 0 (vm_of_list ivarmap))
-                      (fun _ _ _ _ _ _ _ _ _ _ => erefl) _));
-      [ vm_compute; reflexivity ]
-  | _ => fail  (* should never happen, the parser only parses int constants *)
-  end.
-Ltac lraR n := let wlra_Q w f := wlra_Q w f in tacR wlra_Q.
-Ltac nraR n := let wnra_Q w f := wnra_Q w f in tacR wnra_Q.
-Ltac psatzR n :=
-  let sos_or_psatzn w f := wsos_Q w f || wpsatz_Q n w f in
-  tacF sos_or_psatzn.
-
 Elpi Tactic lra.
 Elpi Accumulate File common lra.
 Elpi Typecheck.
 
-Tactic Notation "lra" := elpi lra "lraF" "lraR" 0.
-Tactic Notation "nra" := elpi lra "nraF" "nraR" 0.
-Tactic Notation "psatz" integer(n) := elpi lra "psatzF" "psatzR" ltac_int:(n).
-Tactic Notation "psatz" := elpi lra "psatzF" "psatzR" (-1).
+Tactic Notation "lra" := elpi lra "lra_witness" "tacF" "tacR" 0.
+Tactic Notation "nra" := elpi lra "nra_witness" "tacF" "tacR" 0.
+Tactic Notation "psatz" integer(n) :=
+  elpi lra "psatz_witness" "tacF" "tacR" ltac_int:(n).
+Tactic Notation "psatz" := elpi lra "psatz_witness" "tacF" "tacR" (-1).
