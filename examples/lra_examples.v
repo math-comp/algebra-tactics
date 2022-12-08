@@ -1,4 +1,4 @@
-From mathcomp Require Import all_ssreflect ssralg ssrnum rat.
+From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint rat.
 From mathcomp Require Import lra.
 
 Local Open Scope ring_scope.
@@ -18,8 +18,14 @@ Proof.
 lra.
 Qed.
 
-Lemma test_realDomain (F : realDomainType) (x y : F) :
+Lemma test_realDomain (R : realDomainType) (x y : R) :
   x + 2%:R * y <= 3%:R -> 2%:R * x + y <= 3%:R -> x + y <= 2%:R.
+Proof.
+lra.
+Qed.
+
+Lemma test_realDomain' (R : realDomainType) (x : int) (y : R) :
+  x%:~R + 2 * y <= 3 -> (2 * x)%:~R + y <= 3 -> x%:~R + y <= 2.
 Proof.
 lra.
 Qed.

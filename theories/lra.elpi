@@ -160,99 +160,104 @@ quote.int {{ Negz (Nat.of_num_uint lp:X) }} {{ large_int_Neg lp:X }}
 quote.int {{ Negz lp:N }} {{ large_int_Z (Zneg lp:P) }} (coqZneg P) :-
   reduction-pos {{ N.succ_pos (N.of_nat lp:N) }} P, !.
 
-% [quote.expr Inv R F TR Morph In OutM Out VM] reifies arithmetic expressions
+% [quote.expr Inv R F TR TUR Morph In OutM Out VM] reifies arithmetic
+% expressions
 % - [Inv] is a Boolean flag indicating that [Out] should represent the
 %   multiplicative inverse of [In],
 % - [R] is a [ringType] instance,
 % - [F] is optionally a [fieldType] instance such that
 %   [GRing.Field.ringType F = R],
-% - [TR] is optionally an [unitRingType] instance,
+% - [TR] is a [ringType] instance,
+% - [TUR] is optionally an [unitRingType] instance such that
+%   [GRing.UnitRing.ringType TUR = TR],
 % - [Morph] is a function from [R] to [TR],
 % - [In] is a term of type [R],
 % - [OutM] is a reified expression of type [RExpr R],
 % - [Out] is a reified expression of type [PExpr Q], and
 % - [VM] is a variable map, that is a list of terms of type [R].
-pred quote.expr i:bool, i:term, i:option term, i:option term,
+pred quote.expr i:bool, i:term, i:option term, i:term, i:option term,
     i:(term -> term), i:term, o:term, o:term, o:list term.
 % 0%R
-quote.expr _ R _ _ _ {{ @GRing.zero lp:U }}
+quote.expr _ R _ _ _ _ {{ @GRing.zero lp:U }}
            {{ @R0 lp:R }} {{ PEc (Qmake 0 1) }} _ :-
   ring->zmod R U, !.
 % -%R
-quote.expr Inv R F TR Morph {{ @GRing.opp lp:U lp:In }}
+quote.expr Inv R F TR TUR Morph {{ @GRing.opp lp:U lp:In }}
            {{ @ROpp lp:R lp:OutM }} {{ PEopp lp:Out }} VM :-
   ring->zmod R U, !,
-  quote.expr Inv R F TR Morph In OutM Out VM.
+  quote.expr Inv R F TR TUR Morph In OutM Out VM.
 % +%R
-quote.expr ff R F TR Morph {{ @GRing.add lp:U lp:In1 lp:In2 }}
+quote.expr ff R F TR TUR Morph {{ @GRing.add lp:U lp:In1 lp:In2 }}
            {{ @RAdd lp:R lp:OutM1 lp:OutM2 }} {{ PEadd lp:Out1 lp:Out2 }} VM :-
   ring->zmod R U, !,
-  quote.expr ff R F TR Morph In1 OutM1 Out1 VM, !,
-  quote.expr ff R F TR Morph In2 OutM2 Out2 VM.
+  quote.expr ff R F TR TUR Morph In1 OutM1 Out1 VM, !,
+  quote.expr ff R F TR TUR Morph In2 OutM2 Out2 VM.
 % (_ *+ _)%R
-quote.expr Inv R F TR Morph {{ @GRing.natmul lp:U lp:In1 lp:In2 }}
+quote.expr Inv R F TR TUR Morph {{ @GRing.natmul lp:U lp:In1 lp:In2 }}
            {{ @RMuln lp:R lp:OutM1 lp:OutM2 }}
            {{ PEmul lp:Out1 (PEc lp:Out2') }} VM :-
   ring->zmod R U, quote.nat In2 OutM2 Out2, !,
-  quote.expr Inv R F TR Morph In1 OutM1 Out1 VM, !,
+  quote.expr Inv R F TR TUR Morph In1 OutM1 Out1 VM, !,
   coqZ->Q Inv Out2 Out2'.
 % (_ *~ _)%R
-quote.expr Inv R F TR Morph {{ @intmul lp:U lp:In1 lp:In2 }}
+quote.expr Inv R F TR TUR Morph {{ @intmul lp:U lp:In1 lp:In2 }}
            {{ @RMulz lp:R lp:OutM1 lp:OutM2 }} {{ PEmul lp:Out1 lp:Out2 }} VM :-
   ring->zmod R U, !,
-  quote.expr Inv R F TR Morph In1 OutM1 Out1 VM, !,
-  quote.expr Inv R F TR Morph In2 OutM2 Out2 VM.
+  quote.expr Inv R F TR TUR Morph In1 OutM1 Out1 VM, !,
+  quote.expr Inv {{ int_Ring }} none TR TUR
+    (n\ {{ @intmul (GRing.Ring.zmodType lp:TR) (@GRing.one lp:TR) lp:n }})
+    In2 OutM2 Out2 VM.
 % 1%R
-quote.expr _ R _ _ _ {{ @GRing.one lp:R' }}
+quote.expr _ R _ _ _ _ {{ @GRing.one lp:R' }}
            {{ @R1 lp:R }} {{ PEc (Qmake 1 1) }} _ :-
   coq.unify-eq R R' ok, !.
 % *%R
-quote.expr Inv R F TR Morph {{ @GRing.mul lp:R' lp:In1 lp:In2 }}
+quote.expr Inv R F TR TUR Morph {{ @GRing.mul lp:R' lp:In1 lp:In2 }}
            {{ @RMul lp:R lp:OutM1 lp:OutM2 }} {{ PEmul lp:Out1 lp:Out2 }} VM :-
   coq.unify-eq R R' ok, !,
-  quote.expr Inv R F TR Morph In1 OutM1 Out1 VM, !,
-  quote.expr Inv R F TR Morph In2 OutM2 Out2 VM.
+  quote.expr Inv R F TR TUR Morph In1 OutM1 Out1 VM, !,
+  quote.expr Inv R F TR TUR Morph In2 OutM2 Out2 VM.
 % (_ ^+ _)%R
-quote.expr Inv R F TR Morph {{ @GRing.exp lp:R' lp:In1 lp:In2 }}
+quote.expr Inv R F TR TUR Morph {{ @GRing.exp lp:R' lp:In1 lp:In2 }}
            {{ @RExpn lp:R lp:OutM1 lp:OutM2 }}
            {{ PEpow lp:Out1 lp:Out2' }} VM :-
   coq.unify-eq R R' ok, quote.nat In2 OutM2 Out2, !,
-  quote.expr Inv R F TR Morph In1 OutM1 Out1 VM, !,
+  quote.expr Inv R F TR TUR Morph In1 OutM1 Out1 VM, !,
   coqZ->N Out2 Out2'.
 % _^-1
-quote.expr Inv R (some F) TR Morph {{ @GRing.inv lp:R' lp:In }}
+quote.expr Inv R (some F) TR TUR Morph {{ @GRing.inv lp:R' lp:In }}
            {{ @RInv lp:F lp:OutM }} Out VM :-
   field-mode,
   field->unitRing F R', !,
-  quote.expr { negb Inv } R (some F) TR Morph In OutM Out VM.
+  quote.expr { negb Inv } R (some F) TR TUR Morph In OutM Out VM.
 % morphisms
-quote.expr Inv R _ TR Morph In
+quote.expr Inv R _ TR TUR Morph In
            {{ @RMorph lp:R' lp:R lp:NewMorphInst lp:OutM }} Out VM :-
   NewMorph = (x\ {{ @GRing.RMorphism.apply
                       lp:R' lp:R _ lp:NewMorphInst lp:x }}),
   coq.unify-eq In (NewMorph In1) ok, !,
-  quote.expr Inv R' { ring->field R' } TR (x\ Morph (NewMorph x)) In1
+  quote.expr Inv R' { ring->field R' } TR TUR (x\ Morph (NewMorph x)) In1
     OutM Out VM.
 % int constants
-quote.expr Inv _ _ _ _ In {{ RintC lp:OutM }} {{ PEc lp:Out' }} _ :-
+quote.expr Inv _ _ _ _ _ In {{ RintC lp:OutM }} {{ PEc lp:Out' }} _ :-
   quote.int In OutM Out, !,
   coqZ->Q Inv Out Out'. 
 % Z constants
-quote.expr _ _ _ _ _ {{ Z0 }} {{ RZC Z0 }} {{ PEc (Qmake 0 1) }} _ :- !.
-quote.expr Inv _ _ _ _ {{ Zpos lp:P }} {{ RZC (Zpos lp:P') }}
+quote.expr _ _ _ _ _ _ {{ Z0 }} {{ RZC Z0 }} {{ PEc (Qmake 0 1) }} _ :- !.
+quote.expr Inv _ _ _ _ _ {{ Zpos lp:P }} {{ RZC (Zpos lp:P') }}
            {{ PEc lp:Out }} _ :- !,
   reduction-pos P P', coqZ->Q Inv (coqZpos P') Out.
-quote.expr Inv _ _ _ _ {{ Zneg lp:P }} {{ RZC (Zneg lp:P') }}
+quote.expr Inv _ _ _ _ _ {{ Zneg lp:P }} {{ RZC (Zneg lp:P') }}
            {{ PEc lp:Out }} _ :- !,
   reduction-pos P P', coqZ->Q Inv (coqZneg P') Out.
 % variables
-quote.expr ff R _ _ Morph In {{ @RX lp:R lp:In }} {{ PEX lp:P }} VM :- !,
+quote.expr ff R _ _ _ Morph In {{ @RX lp:R lp:In }} {{ PEX lp:P }} VM :- !,
   mem VM (Morph In) N, !, positive-constant { calc (N + 1) } P.
-quote.expr tt R _ (some TR) Morph In {{ @RX lp:R lp:In }} {{ PEX lp:P }} VM :-
+quote.expr tt R _ _ (some TUR) Morph In {{ @RX lp:R lp:In }} {{ PEX lp:P }} VM :-
   !,
-  mem VM {{ @GRing.inv lp:TR lp:{{ Morph In }} }} N, !,
+  mem VM {{ @GRing.inv lp:TUR lp:{{ Morph In }} }} N, !,
   positive-constant { calc (N + 1) } P.
-quote.expr _ _ _ _ _ In _ _ _ :- coq.error "Unknown" {coq.term->string In}.
+quote.expr _ _ _ _ _ _ In _ _ _ :- coq.error "Unknown" {coq.term->string In}.
 
 % [quote.exprw C In OutM Out VM] reifies arithmetic expressions
 % - [C] is the carrier type and structure instances,
@@ -261,7 +266,7 @@ quote.expr _ _ _ _ _ In _ _ _ :- coq.error "Unknown" {coq.term->string In}.
 % - [Out] is a reified expression of type [PExpr Q], and
 pred quote.exprw i:carrier, i:term, o:term, o:term, o:list term.
 quote.exprw (carrier _ _ F TR R _ _ _) In OutM Out VM :-
-  quote.expr ff R F TR (x\ x) In OutM Out VM.
+  quote.expr ff R F R TR (x\ x) In OutM Out VM.
 
 % [quote.bop2 C In OutM Out VM] reifies boolean (in)equalities
 % - [C] is the carrier type and structure instances,
