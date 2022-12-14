@@ -86,7 +86,7 @@ quote.nat R {{ lib:num.nat.S lp:In }} OutM Out VarMap :- !,
      (OutM = {{ NC (large_nat_N (lib:num.N.Npos lp:Out1)) }},
       quote.expr.constant {{ lib:num.Z.Zpos lp:Out1 }} Out)
      (quote.nat R In2 OutM2 Out2 VarMap, !,
-      OutM = {{ NAdd (NC large_nat_N (lib:num.N.Npos lp:Out1)) lp:OutM2 }},
+      OutM = {{ NAdd (NC (large_nat_N (lib:num.N.Npos lp:Out1))) lp:OutM2 }},
       quote.expr.add
         {quote.expr.constant {{ lib:num.Z.Zpos lp:Out1 }} } Out2 Out).
 quote.nat _ {{ Nat.of_num_uint lp:X }} {{ NC (large_nat_uint lp:X) }} Out _ :-
