@@ -14,7 +14,7 @@ Local Open Scope ring_scope.
 
 Section AbstractCommutativeRing.
 
-Variables (R : comRingType) (a b c : R).
+Variables (R : comRingType) (a b c : R) (n : nat).
 
 (* Examples from the Coq Reference Manual, but for an instance of MathComp's
    (abstract) commutative ring. *)
@@ -43,6 +43,9 @@ Proof. move=> H; ring: H. Qed.
 (* Using the _%:~R embedding from int to R *)
 Goal 2%:~R * a * b = 30%:~R -> (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 30%:~R.
 Proof. move=> H; ring: H. Qed.
+
+Goal (n.+1)%:R = n%:R + 1 :> R.
+Proof. ring. Qed.
 
 End AbstractCommutativeRing.
 
