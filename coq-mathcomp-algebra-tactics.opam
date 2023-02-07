@@ -2,7 +2,7 @@
 # Follow the instructions on https://github.com/coq-community/templates to regenerate.
 
 opam-version: "2.0"
-maintainer: "sakaguchi@coins.tsukuba.ac.jp"
+maintainer: "kazuhiko.sakaguchi@inria.fr"
 version: "dev"
 
 homepage: "https://github.com/math-comp/algebra-tactics"
