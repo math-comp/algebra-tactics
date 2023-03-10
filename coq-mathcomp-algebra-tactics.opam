@@ -2,7 +2,7 @@
 # Follow the instructions on https://github.com/coq-community/templates to regenerate.
 
 opam-version: "2.0"
-maintainer: "sakaguchi@coins.tsukuba.ac.jp"
+maintainer: "kazuhiko.sakaguchi@inria.fr"
 version: "dev"
 
 homepage: "https://github.com/math-comp/algebra-tactics"
@@ -28,7 +28,7 @@ depends: [
   "coq-mathcomp-ssreflect" {>= "1.15"}
   "coq-mathcomp-algebra" 
   "coq-mathcomp-zify" {>= "1.1.0"}
-  "coq-elpi" {>= "1.15.0"}
+  "coq-elpi" {>= "1.15.0" & != "1.17.0"}
 ]
 
 tags: [

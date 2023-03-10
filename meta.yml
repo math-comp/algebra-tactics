@@ -27,7 +27,7 @@ authors:
 - name: Kazuhiko Sakaguchi
   initial: true
 
-opam-file-maintainer: sakaguchi@coins.tsukuba.ac.jp
+opam-file-maintainer: kazuhiko.sakaguchi@inria.fr
 
 license:
   fullname: CeCILL-B Free Software License Agreement
@@ -43,9 +43,13 @@ tested_coq_nix_versions:
 tested_coq_opam_versions:
 - version: '1.15.0-coq-8.16'
   repo: 'mathcomp/mathcomp'
+- version: '1.16.0-coq-8.16'
+  repo: 'mathcomp/mathcomp'
+- version: '1.16.0-coq-8.17'
+  repo: 'mathcomp/mathcomp'
 - version: 'coq-8.16'
   repo: 'mathcomp/mathcomp-dev'
-- version: 'coq-dev'
+- version: 'coq-8.17'
   repo: 'mathcomp/mathcomp-dev'
 
 dependencies:
@@ -65,9 +69,9 @@ dependencies:
     [Mczify](https://github.com/math-comp/mczify) 1.1.0 or later
 - opam:
     name: coq-elpi
-    version: '{>= "1.15.0"}'
+    version: '{>= "1.15.0" & != "1.17.0"}'
   description: |-
-    [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.15.0 or later
+    [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.15.0 or later (known not to work with 1.17.0)
 
 namespace: mathcomp.algebra_tactics
 

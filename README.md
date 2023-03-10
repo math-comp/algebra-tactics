@@ -31,7 +31,7 @@ before applying the proof procedures.
   - [MathComp](https://math-comp.github.io) ssreflect 1.15 or later
   - [MathComp](https://math-comp.github.io) algebra
   - [Mczify](https://github.com/math-comp/mczify) 1.1.0 or later
-  - [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.15.0 or later
+  - [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.15.0 or later (known not to work with 1.17.0)
 - Coq namespace: `mathcomp.algebra_tactics`
 - Related publication(s):
   - [Reflexive tactics for algebra, revisited](https://drops.dagstuhl.de/opus/volltexte/2022/16738/) doi:[10.4230/LIPIcs.ITP.2022.29](https://doi.org/10.4230/LIPIcs.ITP.2022.29)
