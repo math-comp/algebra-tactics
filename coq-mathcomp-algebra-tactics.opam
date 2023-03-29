@@ -10,16 +10,17 @@ dev-repo: "git+https://github.com/math-comp/algebra-tactics.git"
 bug-reports: "https://github.com/math-comp/algebra-tactics/issues"
 license: "CECILL-B"
 
-synopsis: "Ring and field tactics for Mathematical Components"
+synopsis: "Ring, field, lra, nra, and psatz tactics for Mathematical Components"
 description: """
-This library provides `ring`, `field`, and `lra` tactics for Mathematical
-Components, that work with any `comRingType`, `fieldType`, and
-`realDomainType` or `realFieldType` instances, respectively. Their instance
-resolution is done through canonical structure inference.  Therefore, they
-work with abstract rings and do not require `Add Ring` and `Add Field`
-commands. Another key feature of this library is that they automatically push
-down ring morphisms and additive functions to leaves of ring/field expressions
-before applying the proof procedures."""
+This library provides `ring`, `field`, `lra`, `nra`, and `psatz` tactics for
+algebraic structures of the Mathematical Components library. The `ring` and
+`field` tactics respectively work with any `comRingType` and `fieldType`. The
+other (Micromega) tactics work with any `realDomainType` or `realFieldType`.
+Their instance resolution is done through canonical structure inference.
+Therefore, they work with abstract rings and do not require `Add Ring` and
+`Add Field` commands. Another key feature of this library is that they
+automatically push down ring morphisms and additive functions to leaves of
+ring/field expressions before applying the proof procedures."""
 
 build: [make "-j%{jobs}%"]
 install: [make "install"]
@@ -36,4 +37,5 @@ tags: [
 ]
 authors: [
   "Kazuhiko Sakaguchi"
+  "Pierre Roux"
 ]
