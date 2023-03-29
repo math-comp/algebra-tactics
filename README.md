@@ -12,19 +12,21 @@ Follow the instructions on https://github.com/coq-community/templates to regener
 
 
 
-This library provides `ring`, `field`, and `lra` tactics for Mathematical
-Components, that work with any `comRingType`, `fieldType`, and
-`realDomainType` or `realFieldType` instances, respectively. Their instance
-resolution is done through canonical structure inference.  Therefore, they
-work with abstract rings and do not require `Add Ring` and `Add Field`
-commands. Another key feature of this library is that they automatically push
-down ring morphisms and additive functions to leaves of ring/field expressions
-before applying the proof procedures.
+This library provides `ring`, `field`, `lra`, `nra`, and `psatz` tactics for
+algebraic structures of the Mathematical Components library. The `ring` and
+`field` tactics respectively work with any `comRingType` and `fieldType`. The
+other (Micromega) tactics work with any `realDomainType` or `realFieldType`.
+Their instance resolution is done through canonical structure inference.
+Therefore, they work with abstract rings and do not require `Add Ring` and
+`Add Field` commands. Another key feature of this library is that they
+automatically push down ring morphisms and additive functions to leaves of
+ring/field expressions before applying the proof procedures.
 
 ## Meta
 
 - Author(s):
   - Kazuhiko Sakaguchi (initial)
+  - Pierre Roux
 - License: [CeCILL-B Free Software License Agreement](CeCILL-B)
 - Compatible Coq versions: 8.16 or later
 - Additional dependencies:
@@ -56,9 +58,16 @@ make install
 ```
 
 
+## Caveat
+
+The `lra`, `nra`, and `psatz` tactics are considered experimental features and
+subject to change.
+
 ## Credits
 
-- The way we adapt the internals of Coq's `ring` and `field` tactics to
+- The adaptation of the `lra`, `nra`, and `psatz` tactics is contributed by
+  Pierre Roux.
+- The way we adapt the internal lemmas of Coq's `ring` and `field` tactics to
   algebraic structures of the Mathematical Components library is inspired by
   the [elliptic-curves-ssr](https://github.com/strub/elliptic-curves-ssr)
   library by Evmorfia-Iro Bartzia and Pierre-Yves Strub.
