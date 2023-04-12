@@ -36,6 +36,16 @@ Variable F : realFieldType.
 
 Implicit Types x y : F.
 
+Lemma test_cast : 0 <= 2 :> F.
+Proof.
+lra.
+Qed.
+
+Example test_div x y : x / 2 + y <= 3 -> x + y / 2 <= 3 -> x + y <= 4.
+Proof.
+lra.
+Qed.
+
 Lemma test_lt x y :
   x + 2%:R * y < 3%:R -> 2%:R * x + y <= 3%:R -> x + y < 2%:R.
 Proof.
@@ -289,3 +299,11 @@ lra.
 Qed.
 
 End TestsCoq.
+
+Example test_abstract_rmorphism (R : realDomainType) (f : {rmorphism R -> R})
+  (x y : R) : f y >= 0 -> f x + 2 * f (y + 1) <= f (3 * y + x) + 2.
+Proof. lra. Qed.
+
+Example test_concrete_rmorphism (R : realFieldType) (x y : rat) :
+  ratr y >= 0 :> R -> ratr x + 2 * ratr (y + 1) <= ratr (3 * y + x) + 2 :> R.
+Proof. lra. Qed.
