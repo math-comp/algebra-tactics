@@ -49,6 +49,7 @@ quote.expr.exp In1 In2 {{ @PEpow Z lp:In1 lp:In2 }} :- !.
 % [quote.ncstr In OutM Out] reifies natural number constant [In] of type [nat]
 % to a term [OutM] of type [large_nat] and a term [Out] of type [N].
 pred quote.ncstr i:term, o:term, o:term.
+quote.ncstr {{ lp:In : _ }} OutM Out :- !, quote.ncstr In OutM Out.
 quote.ncstr {{ Nat.of_num_uint lp:In }} {{ large_nat_uint lp:In }} Out :-
   ground-uint In, !,
   coq.reduction.vm.norm {{ N.of_num_uint lp:In }} {{ N }} Out.
@@ -57,6 +58,7 @@ quote.ncstr In {{ large_nat_N lp:Out }} Out :-
 
 % [quote.icstr In Pos OutM Out] reifies integer constant
 pred quote.icstr i:term, o:bool, o:term, o:term.
+quote.icstr {{ lp:In : _ }} Pos OutM Out :- !, quote.icstr In Pos OutM Out.
 quote.icstr {{ Posz (Nat.of_num_uint lp:In) }}
             tt {{ large_nat_uint lp:In }} Out :-
   ground-uint In, !,
@@ -77,6 +79,8 @@ quote.icstr In Pos {{ large_nat_N lp:Out }} Out :- !,
 % - [OutM] and [Out] are reified terms of [Input], and
 % - [VarMap] is a variable map.
 pred quote.nat i:term, i:term, o:term, o:term, o:list term.
+quote.nat R {{ lp:In : _ }} OutM Out VarMap :- !,
+  quote.nat R In OutM Out VarMap.
 quote.nat _ {{ lib:num.nat.O }} {{ NC (large_nat_N lib:num.N.N0) }} Out _ :- !,
   quote.expr.constant {{ lib:num.Z.Z0 }} Out.
 quote.nat R {{ lib:num.nat.S lp:In }} OutM Out VarMap :- !,
@@ -125,6 +129,9 @@ quote.count-succ In 0 In :- !.
 % - [VarMap] is a variable map.
 pred quote.zmod i:term, i:term, i:(term -> term), i:term,
                 o:term, o:term, o:list term.
+% _ : _
+quote.zmod U R Morph {{ lp:In : _ }} OutM Out VarMap :- !,
+  quote.zmod U R Morph In OutM Out VarMap.
 % 0%R
 quote.zmod U _ _ {{ @GRing.zero lp:U' }} {{ @ZM0 lp:U }} Out _ :-
   coq.unify-eq U U' ok, !,
@@ -182,6 +189,9 @@ quote.zmod _ _ _ In _ _ _ :- coq.error "Unknown" {coq.term->string In}.
 % - [VarMap] is a variable map.
 pred quote.ring i:term, i:option term, i:term, i:(term -> term),
                 i:term, o:term, o:term, o:list term.
+% _ : _
+quote.ring R F TR Morph {{ lp:In : _ }} OutM Out VarMap :- !,
+  quote.ring R F TR Morph In OutM Out VarMap.
 % 0%R
 quote.ring R _ _ _ {{ @GRing.zero lp:U }} {{ @R0 lp:R }} Out _ :-
   coq.unify-eq U {{ GRing.Ring.zmodType lp:R }} ok, !,
