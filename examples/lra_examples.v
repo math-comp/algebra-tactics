@@ -36,6 +36,11 @@ Variable F : realFieldType.
 
 Implicit Types x y : F.
 
+Lemma test_cast : 0 <= 2 :> F.
+Proof.
+lra.
+Qed.
+
 Lemma test_lt x y :
   x + 2%:R * y < 3%:R -> 2%:R * x + y <= 3%:R -> x + y < 2%:R.
 Proof.

@@ -177,6 +177,9 @@ quote.int {{ Negz lp:N }} {{ large_int_Z (Zneg lp:P) }} (coqZneg P) :-
 % - [VM] is a variable map, that is a list of terms of type [R].
 pred quote.expr i:bool, i:term, i:option term, i:term, i:option term,
     i:(term -> term), i:term, o:term, o:term, o:list term.
+% _ : _
+quote.expr ff R F TR TUR Morph {{ lp:E : _ }} OutM Out VM :- !,
+  quote.expr ff R F TR TUR Morph E OutM Out VM.
 % 0%R
 quote.expr _ R _ _ _ _ {{ @GRing.zero lp:U }}
            {{ @R0 lp:R }} {{ PEc (Qmake 0 1) }} _ :-
