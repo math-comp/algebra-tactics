@@ -138,6 +138,7 @@ coqZ->Q tt (coqZneg P) {{ Qmake (-1) lp:P }} :- !.
 % [quote.nat In OutM Out] reifies natural number constant [In] of type [nat] to
 % a term [OutM] of type [large_nat] and [Out] of type [coqZ].
 pred quote.nat i:term, o:term, o:coqZ.
+quote.nat {{ lp:In : _ }} OutM Out :- !, quote.nat In OutM Out.
 quote.nat {{ Nat.of_num_uint lp:X }} {{ large_nat_uint lp:X }} Out :-
   ground-uint X, !,
   coq.reduction.vm.norm {{ N.of_num_uint lp:X }} {{ N }} XN, !,
@@ -148,6 +149,7 @@ quote.nat X {{ large_nat_N lp:XN }} Out :-
 % [quote.int In OutM Out] reifies integer constant [In] of type [int] to a term
 % [OutM] of type [large_int] and [Out] of type [coqZ].
 pred quote.int i:term, o:term, o:coqZ.
+quote.int {{ lp:In : _ }} OutM Out :- !, quote.int In OutM Out.
 quote.int {{ Posz (Nat.of_num_uint lp:X) }} {{ large_int_Pos lp:X }} Out :-
   ground-uint X, !,
   coq.reduction.vm.norm {{ N.of_num_uint lp:X }} {{ N }} XN, !, coqZ->N Out XN.
@@ -178,8 +180,8 @@ quote.int {{ Negz lp:N }} {{ large_int_Z (Zneg lp:P) }} (coqZneg P) :-
 pred quote.expr i:bool, i:term, i:option term, i:term, i:option term,
     i:(term -> term), i:term, o:term, o:term, o:list term.
 % _ : _
-quote.expr ff R F TR TUR Morph {{ lp:E : _ }} OutM Out VM :- !,
-  quote.expr ff R F TR TUR Morph E OutM Out VM.
+quote.expr ff R F TR TUR Morph {{ lp:In : _ }} OutM Out VM :- !,
+  quote.expr ff R F TR TUR Morph In OutM Out VM.
 % 0%R
 quote.expr _ R _ _ _ _ {{ @GRing.zero lp:U }}
            {{ @R0 lp:R }} {{ PEc (Qmake 0 1) }} _ :-

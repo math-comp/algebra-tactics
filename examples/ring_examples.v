@@ -47,6 +47,9 @@ Proof. move=> H; ring: H. Qed.
 Goal (n.+1)%:R = n%:R + 1 :> R.
 Proof. ring. Qed.
 
+Goal a * 2%:R = (2%:R : R) * a.
+Proof. ring. Qed.
+
 End AbstractCommutativeRing.
 
 Section AbstractRingMorphism.
