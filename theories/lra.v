@@ -68,20 +68,19 @@ Variables (add : R' -> R' -> R') (addE : add = +%R).
 Variables (mul : R' -> R' -> R') (mulE : mul = *%R).
 Variables (exp : R' -> N -> R') (expE : exp = (fun x n => x ^+ nat_of_N n)).
 
-Fixpoint Rnorm_expr R (f : {rmorphism R -> R'}) (e : RExpr R) : R' :=
-  match e in RExpr R return {rmorphism R -> R'} -> R' with
+Fixpoint Rnorm_expr R (f : R -> R') (e : RExpr R) : R' :=
+  match e in RExpr R return (R -> R') -> R' with
   | RX _ x => fun f => f x
   | R0 _ => fun=> R_of_Z 0
   | ROpp _ e => fun f => opp (Rnorm_expr f e)
   | RAdd _ e1 e2 => fun f => add (Rnorm_expr f e1) (Rnorm_expr f e2)
   | RMuln _ e n => fun f => mul (Rnorm_expr f e) (R_of_Z (Z_of_large_nat n))
-  | RMulz _ e1 e2 =>
-      fun f => mul (Rnorm_expr f e1) (Rnorm_expr [rmorphism of intmul 1] e2)
+  | RMulz _ e1 e2 => fun f => mul (Rnorm_expr f e1) (Rnorm_expr intr e2)
   | R1 _ => fun=> R_of_Z 1
   | RMul _ e1 e2 => fun f => mul (Rnorm_expr f e1) (Rnorm_expr f e2)
   | RExpn _ e1 n => fun f => exp (Rnorm_expr f e1) (N_of_large_nat n)
   | RInv _ _ => fun=> f (Reval_expr e)
-  | RMorph _ _ g e => fun f => Rnorm_expr [rmorphism of f \o g] e
+  | RMorph _ _ g e => fun f => Rnorm_expr (fun x => f (g x)) e
   | RintC x => fun=> R_of_Z (Z_of_large_int x)
   | RZC x => fun=> R_of_Z x
   end f.
@@ -99,13 +98,12 @@ move: f; elim: e => {R} //=.
 - by move=> R f; rewrite R_of_ZE rmorph1.
 - by move=> R e1 IHe1 e2 IHe2 f; rewrite mulE rmorphM IHe1 IHe2.
 - by move=> R e IHe n f; rewrite expE rmorphX IHe large_nat_N_nat.
-- by move=> R S g e IHe f; rewrite -IHe.
+- by move=> R S g e IHe f; rewrite -/(comp f g) -IHe.
 - by move=> x f; rewrite R_of_ZE -(rmorph_int f) intz large_int_Z_int.
 - by move=> x f; rewrite R_of_ZE -(rmorph_int f); congr (f _); lia.
 Qed.
 
-Lemma Rnorm_expr_correct (e : RExpr R') :
-  Reval_expr e = Rnorm_expr [rmorphism of idfun] e.
+Lemma Rnorm_expr_correct (e : RExpr R') : Reval_expr e = Rnorm_expr id e.
 Proof. exact: Rnorm_expr_correct_rec [rmorphism of idfun] _. Qed.
 
 End Rnorm_expr.
@@ -153,8 +151,8 @@ Definition Reval_formula k (ff : RFormula R) : rtyp k :=
   let (lhs,o,rhs) := ff in Reval_op2 k o (Reval_expr lhs) (Reval_expr rhs).
 
 Definition Rnorm_formula k (ff : RFormula R) :=
-  let norm := Rnorm_expr [rmorphism of idfun] in
-  let (lhs,o,rhs) := ff in Reval_op2 k o (norm lhs) (norm rhs).
+  let (lhs,o,rhs) := ff in
+  Reval_op2 k o (Rnorm_expr id lhs) (Rnorm_expr id rhs).
 
 Lemma Rnorm_formula_correct k (ff : RFormula R) :
   Reval_formula k ff = Rnorm_formula k ff.
@@ -247,9 +245,9 @@ Variables (mul : F -> F -> F) (mulE : mul = *%R).
 Variables (exp : F -> N -> F) (expE : exp = (fun x n => x ^+ nat_of_N n)).
 Variables (inv : F -> F) (invE : inv = GRing.inv).
 
-Fixpoint Fnorm_expr R (f : {rmorphism R -> F}) (e : RExpr R) (invb : bool) :
+Fixpoint Fnorm_expr R (f : R -> F) (e : RExpr R) (invb : bool) :
     F :=
-  match e in RExpr R, invb return {rmorphism R -> F} -> F with
+  match e in RExpr R, invb return (R -> F) -> F with
   | RX _ x, false => fun f => f x
   | RX _ x, true => fun f => inv (f x)
   | R0 _, _ => fun=> F_of_Q 0
@@ -262,13 +260,13 @@ Fixpoint Fnorm_expr R (f : {rmorphism R -> F}) (e : RExpr R) (invb : bool) :
            F_of_Q (Qinv (Z_of_large_nat n # 1))
          else F_of_Q (Z_of_large_nat n # 1))
   | RMulz _ e1 e2, _ => fun f =>
-      mul (Fnorm_expr f e1 invb) (Fnorm_expr [rmorphism of intmul 1] e2 invb)
+      mul (Fnorm_expr f e1 invb) (Fnorm_expr intr e2 invb)
   | R1 _, _ => fun=> F_of_Q 1
   | RMul _ e1 e2, _ =>
       fun f => mul (Fnorm_expr f e1 invb) (Fnorm_expr f e2 invb)
   | RExpn _ e1 n, _ => fun f => exp (Fnorm_expr f e1 invb) (N_of_large_nat n)
   | RInv _ e, _ => fun f => Fnorm_expr f e (negb invb)
-  | RMorph _ _ g e, _ => fun f => Fnorm_expr [rmorphism of f \o g] e invb
+  | RMorph _ _ g e, _ => fun f => Fnorm_expr (fun x => f (g x)) e invb
   | RintC x, false => fun=> F_of_Q (Z_of_large_int x # 1)
   | RintC x, true => fun=> F_of_Q (Qinv (Z_of_large_int x # 1))
   | RZC x, false => fun=> F_of_Q (x # 1)
@@ -308,8 +306,7 @@ move: f; elim: e => {R} //=.
   by split; [congr (f _) | congr (f _)^-1]; lia.
 Qed.
 
-Lemma Fnorm_expr_correct (e : RExpr F) :
-  Reval_expr e = Fnorm_expr [rmorphism of idfun] e false.
+Lemma Fnorm_expr_correct (e : RExpr F) : Reval_expr e = Fnorm_expr id e false.
 Proof. by have [] := Fnorm_expr_correct_rec [rmorphism of idfun] e. Qed.
 
 End Fnorm_expr.
@@ -335,8 +332,8 @@ Notation Feval_op2 := (Reval_op2 eqProp eqBool le lt).
 Notation Feval_formula := (Reval_formula eqProp eqBool le lt).
 
 Definition Fnorm_formula k (ff : RFormula F) :=
-  let norm := Fnorm_expr [rmorphism of idfun] in
-  let (lhs,o,rhs) := ff in Feval_op2 k o (norm lhs false) (norm rhs false).
+  let (lhs,o,rhs) := ff in
+  Feval_op2 k o (Fnorm_expr id lhs false) (Fnorm_expr id rhs false).
 
 Lemma Fnorm_formula_correct k (ff : RFormula F) :
   Feval_formula k ff = Fnorm_formula k ff.
