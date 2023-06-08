@@ -170,7 +170,7 @@ quote.int {{ Negz lp:N }} {{ large_int_Z (Zneg lp:P) }} (coqZneg P) :-
 % - [F] is optionally a [fieldType] instance such that
 %   [GRing.Field.ringType F = R],
 % - [TR] is a [ringType] instance,
-% - [TUR] is optionally an [unitRingType] instance such that
+% - [TUR] is optionally a [unitRingType] instance such that
 %   [GRing.UnitRing.ringType TUR = TR],
 % - [Morph] is a function from [R] to [TR],
 % - [In] is a term of type [R],
