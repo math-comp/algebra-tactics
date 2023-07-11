@@ -15,6 +15,7 @@ Make*.coq.conf
 *#
 .lia.cache
 .nia.cache
+.nra.cache
 examples/.csdp.cache
 examples/.nra.cache
 examples/trace
