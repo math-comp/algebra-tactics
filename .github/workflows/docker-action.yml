@@ -1,5 +1,5 @@
 # This file was generated from `meta.yml` using the coq-community templates and
-# then patched to support the test-suite. Be careful when regenerate it.
+# then patched to support the test-suite. Be careful when regenerating it.
 name: Docker CI
 
 on:
@@ -20,11 +20,11 @@ jobs:
           - 'mathcomp/mathcomp:1.15.0-coq-8.16'
           - 'mathcomp/mathcomp:1.16.0-coq-8.16'
           - 'mathcomp/mathcomp:1.16.0-coq-8.17'
-          - 'mathcomp/mathcomp-dev:coq-8.16'
-          - 'mathcomp/mathcomp-dev:coq-8.17'
+          - 'mathcomp/mathcomp:1.17.0-coq-8.16'
+          - 'mathcomp/mathcomp:1.17.0-coq-8.17'
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: coq-community/docker-coq-action@v1
         with:
           opam_file: 'coq-mathcomp-algebra-tactics.opam'

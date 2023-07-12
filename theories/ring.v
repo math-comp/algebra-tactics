@@ -164,8 +164,8 @@ elim: e => //=.
 - by move=> e1 IHe1 e2; rewrite expE natrX IHe1 large_nat_N_nat.
 Qed.
 
-Fixpoint Rnorm R (f : {rmorphism R -> R'}) (e : RExpr R) : R' :=
-  match e in RExpr R return {rmorphism R -> R'} -> R' with
+Fixpoint Rnorm R (f : R -> R') (e : RExpr R) : R' :=
+  match e in RExpr R return (R -> R') -> R' with
   | RX _ x => fun f => f x
   | R0 _ => fun => zero
   | ROpp _ e1 => fun f => opp (Rnorm f e1)
@@ -174,8 +174,7 @@ Fixpoint Rnorm R (f : {rmorphism R -> R'}) (e : RExpr R) : R' :=
   | RZAdd e1 e2 => fun f => add (Rnorm f e1) (Rnorm f e2)
   | RZSub e1 e2 => fun f => sub (Rnorm f e1) (Rnorm f e2)
   | RMuln _ e1 e2 => fun f => mul (Rnorm f e1) (Nnorm e2)
-  | RMulz _ e1 e2 => fun f =>
-      mul (Rnorm f e1) (Rnorm [rmorphism of intmul 1] e2)
+  | RMulz _ e1 e2 => fun f => mul (Rnorm f e1) (Rnorm intr e2)
   | R1 _ => fun => one
   | RMul _ e1 e2 => fun f => mul (Rnorm f e1) (Rnorm f e2)
   | RZMul e1 e2 => fun f => mul (Rnorm f e1) (Rnorm f e2)
@@ -185,29 +184,27 @@ Fixpoint Rnorm R (f : {rmorphism R -> R'}) (e : RExpr R) : R' :=
   | RZExp e1 (Z.neg _) => fun f => zero
   | RZExp e1 n => fun f => exp (Rnorm f e1) (Z.to_N n)
   | RInv _ _ => fun _ => f (Reval e)
-  | RMorph _ _ g e1 => fun f => Rnorm [rmorphism of f \o g] e1
-  | RMorph' _ _ g e1 => fun f => RZMnorm [additive of f \o g] e1
+  | RMorph _ _ g e1 => fun f => Rnorm (fun x => f (g x)) e1
+  | RMorph' _ _ g e1 => fun f => RZMnorm (fun x => f (g x)) e1
   | RPosz e1 => fun => Nnorm e1
   | RNegz e1 => fun => opp (add one (Nnorm e1))
   | RZC x => fun => R_of_Z x
   end f
-with RZMnorm V (f : {additive V -> R'}) (e : ZMExpr V) : R' :=
-  match e in ZMExpr V return {additive V -> R'} -> R' with
+with RZMnorm V (f : V -> R') (e : ZMExpr V) : R' :=
+  match e in ZMExpr V return (V -> R') -> R' with
   | ZMX _ x => fun f => f x
   | ZM0 _ => fun => zero
   | ZMOpp _ e1 => fun f => opp (RZMnorm f e1)
   | ZMAdd _ e1 e2 => fun f => add (RZMnorm f e1) (RZMnorm f e2)
   | ZMMuln _ e1 e2 => fun f => mul (RZMnorm f e1) (Nnorm e2)
-  | ZMMulz _ e1 e2 => fun f =>
-      mul (RZMnorm f e1) (Rnorm [rmorphism of intmul 1] e2)
-  | ZMMorph _ _ g e1 => fun f => RZMnorm [additive of f \o g] e1
+  | ZMMulz _ e1 e2 => fun f => mul (RZMnorm f e1) (Rnorm intr e2)
+  | ZMMorph _ _ g e1 => fun f => RZMnorm (fun x => f (g x)) e1
   end f.
 
 Fixpoint norm_RElist
     (lpe : list (RExpr R' * RExpr R' * PExpr Z * PExpr Z)) : seq R' :=
   if lpe is (lhs, rhs, _, _) :: lpe then
-    Rnorm [rmorphism of idfun] lhs ::
-    Rnorm [rmorphism of idfun] rhs :: norm_RElist lpe
+    Rnorm id lhs :: Rnorm id rhs :: norm_RElist lpe
   else
     [::].
 
@@ -232,8 +229,8 @@ move: f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> R e1 IHe1 e2 f; rewrite rmorphX IHe1 expE large_nat_N_nat.
 - move=> e1 IHe1 [|n|n] f; rewrite !(zeroE, expE, rmorph0, rmorph1) //=.
   rewrite -IHe1 -rmorphX; congr (f _); lia.
-- by move=> R S g e1 IHe1 f; rewrite -IHe1.
-- by move=> V R g e1 IHe1 f; rewrite -IHe1.
+- by move=> R S g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
+- by move=> V R g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
 - by move=> e f; rewrite -[Posz _]intz rmorph_int [LHS]Nnorm_correct.
 - move=> e f; rewrite -[Negz _]intz rmorph_int /intmul mulrS Nnorm_correct.
   by rewrite oppE addE oneE.
@@ -244,10 +241,10 @@ move: f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - move=> V e1 IHe1 e2 f.
   by rewrite raddfMn IHe1 -mulr_natr Nnorm_correct mulE.
 - by move=> V e1 IHe1 e2 IHe2 f; rewrite raddfMz IHe1 -mulrzr IHe2 mulE.
-- by move=> V V' g e1 IHe1 f; rewrite -IHe1.
+- by move=> V V' g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
 Qed.
 
-Lemma Rnorm_correct (e : RExpr R') : Reval e = Rnorm [rmorphism of idfun] e.
+Lemma Rnorm_correct (e : RExpr R') : Reval e = Rnorm id e.
 Proof. exact: Rnorm_correct_rec [rmorphism of idfun] _. Qed.
 
 End Rnorm.
@@ -266,8 +263,8 @@ Variables (inv : F -> F) (invE : inv = GRing.inv).
 Notation Nnorm := (Nnorm F_of_Z add one mul exp).
 Let Nnorm_correct := (Nnorm_correct F_of_ZE addE oneE mulE expE).
 
-Fixpoint Fnorm R (f : {rmorphism R -> F}) (e : RExpr R) : F :=
-  match e in RExpr R return {rmorphism R -> F} -> F with
+Fixpoint Fnorm R (f : R -> F) (e : RExpr R) : F :=
+  match e in RExpr R return (R -> F) -> F with
   | RX _ x => fun f => f x
   | R0 _ => fun => zero
   | ROpp _ e1 => fun f => opp (Fnorm f e1)
@@ -276,8 +273,7 @@ Fixpoint Fnorm R (f : {rmorphism R -> F}) (e : RExpr R) : F :=
   | RZAdd e1 e2 => fun f => add (Fnorm f e1) (Fnorm f e2)
   | RZSub e1 e2 => fun f => sub (Fnorm f e1) (Fnorm f e2)
   | RMuln _ e1 e2 => fun f => mul (Fnorm f e1) (Nnorm e2)
-  | RMulz _ e1 e2 => fun f =>
-      mul (Fnorm f e1) (Fnorm [rmorphism of intmul 1] e2)
+  | RMulz _ e1 e2 => fun f => mul (Fnorm f e1) (Fnorm intr e2)
   | R1 _ => fun => one
   | RMul _ e1 e2 => fun f => mul (Fnorm f e1) (Fnorm f e2)
   | RZMul e1 e2 => fun f => mul (Fnorm f e1) (Fnorm f e2)
@@ -288,22 +284,21 @@ Fixpoint Fnorm R (f : {rmorphism R -> F}) (e : RExpr R) : F :=
   | RZExp e1 (Z.neg _) => fun f => zero
   | RZExp e1 n => fun f => exp (Fnorm f e1) (Z.to_N n)
   | RInv _ e1 => fun f => inv (Fnorm f e1)
-  | RMorph _ _ g e1 => fun f => Fnorm [rmorphism of f \o g] e1
-  | RMorph' _ _ g e1 => fun f => FZMnorm [additive of f \o g] e1
+  | RMorph _ _ g e1 => fun f => Fnorm (fun x => f (g x)) e1
+  | RMorph' _ _ g e1 => fun f => FZMnorm (fun x => f (g x)) e1
   | RPosz e1 => fun => Nnorm e1
   | RNegz e1 => fun => opp (add one (Nnorm e1))
   | RZC x => fun => F_of_Z x
   end f
-with FZMnorm V (f : {additive V -> F}) (e : ZMExpr V) : F :=
-  match e in ZMExpr V return {additive V -> F} -> F with
+with FZMnorm V (f : V -> F) (e : ZMExpr V) : F :=
+  match e in ZMExpr V return (V -> F) -> F with
   | ZMX _ x => fun f => f x
   | ZM0 _ => fun => zero
   | ZMOpp _ e1 => fun f => opp (FZMnorm f e1)
   | ZMAdd _ e1 e2 => fun f => add (FZMnorm f e1) (FZMnorm f e2)
   | ZMMuln _ e1 e2 => fun f => mul (FZMnorm f e1) (Nnorm e2)
-  | ZMMulz _ e1 e2 => fun f =>
-      mul (FZMnorm f e1) (Fnorm [rmorphism of intmul 1] e2)
-  | ZMMorph _ _ g e1 => fun f => FZMnorm [additive of f \o g] e1
+  | ZMMulz _ e1 e2 => fun f => mul (FZMnorm f e1) (Fnorm intr e2)
+  | ZMMorph _ _ g e1 => fun f => FZMnorm (fun x => f (g x)) e1
   end f.
 
 Lemma Fnorm_correct_rec R (f : {rmorphism R -> F}) (e : RExpr R) :
@@ -331,8 +326,8 @@ move: f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - move=> e1 IHe1 [|n|n] f; rewrite ?(zeroE, oneE, expE, rmorph0, rmorph1) //=.
   rewrite -IHe1 -rmorphX; congr (f _); lia.
 - by move=> F' e1 IHe1 f; rewrite fmorphV IHe1 invE.
-- by move=> R R' g e1 IHe1 f; rewrite -IHe1.
-- by move=> V R g e1 IHe1 f; rewrite -IHe1.
+- by move=> R R' g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
+- by move=> V R g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
 - by move=> e f; rewrite -[Posz _]intz rmorph_int [LHS]Nnorm_correct.
 - move=> e f; rewrite -[Negz _]intz rmorph_int /intmul mulrS Nnorm_correct.
   by rewrite oppE addE oneE.
@@ -342,10 +337,10 @@ move: f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> V e1 IHe1 e2 IHe2 f; rewrite raddfD IHe1 IHe2 addE.
 - by move=> V e1 IHe1 e2 f; rewrite raddfMn IHe1 -mulr_natr Nnorm_correct mulE.
 - by move=> V e1 IHe1 e2 IHe2 f; rewrite raddfMz IHe1 -mulrzr IHe2 mulE.
-- by move=> V V' g e1 IHe1 f; rewrite -IHe1.
+- by move=> V V' g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
 Qed.
 
-Lemma Fnorm_correct (e : RExpr F) : Reval e = Fnorm [rmorphism of idfun] e.
+Lemma Fnorm_correct (e : RExpr F) : Reval e = Fnorm id e.
 Proof. exact: Fnorm_correct_rec [rmorphism of idfun] _. Qed.
 
 End Fnorm.
@@ -373,8 +368,8 @@ Lemma ring_correct (R : comRingType) (n : nat) (l : seq R)
                    (re1 re2 : RExpr R) (pe1 pe2 : PExpr Z) :
   interp_RElist lpe ->
   (forall R_of_Z zero opp add sub one mul exp,
-      Rnorm R_of_Z zero opp add sub one mul exp [rmorphism of idfun] re1 ::
-      Rnorm R_of_Z zero opp add sub one mul exp [rmorphism of idfun] re2 ::
+      Rnorm R_of_Z zero opp add sub one mul exp id re1 ::
+      Rnorm R_of_Z zero opp add sub one mul exp id re2 ::
       norm_RElist R_of_Z zero opp add sub one mul exp lpe =
       PEeval zero one add mul sub opp R_of_Z id exp l pe1 ::
       PEeval zero one add mul sub opp R_of_Z id exp l pe2 ::
@@ -461,8 +456,8 @@ Lemma field_correct (F : fieldType) (n : nat) (l : seq F)
                     (re1 re2 : RExpr F) (fe1 fe2 : FExpr Z) :
   interp_RElist lpe ->
   (forall R_of_Z zero opp add sub one mul exp div inv,
-      Fnorm R_of_Z zero opp add sub one mul exp inv [rmorphism of idfun] re1 ::
-      Fnorm R_of_Z zero opp add sub one mul exp inv [rmorphism of idfun] re2 ::
+      Fnorm R_of_Z zero opp add sub one mul exp inv id re1 ::
+      Fnorm R_of_Z zero opp add sub one mul exp inv id re2 ::
       norm_RElist R_of_Z zero opp add sub one mul exp lpe =
       FEeval zero one add mul sub opp div inv R_of_Z id exp l fe1 ::
       FEeval zero one add mul sub opp div inv R_of_Z id exp l fe2 ::
@@ -515,8 +510,8 @@ Lemma numField_correct (F : numFieldType) (n : nat) (l : seq F)
                        (re1 re2 : RExpr F) (fe1 fe2 : FExpr Z) :
   interp_RElist lpe ->
   (forall R_of_Z zero opp add sub one mul exp div inv,
-      Fnorm R_of_Z zero opp add sub one mul exp inv [rmorphism of idfun] re1 ::
-      Fnorm R_of_Z zero opp add sub one mul exp inv [rmorphism of idfun] re2 ::
+      Fnorm R_of_Z zero opp add sub one mul exp inv id re1 ::
+      Fnorm R_of_Z zero opp add sub one mul exp inv id re2 ::
       norm_RElist R_of_Z zero opp add sub one mul exp lpe =
       FEeval zero one add mul sub opp div inv R_of_Z id exp l fe1 ::
       FEeval zero one add mul sub opp div inv R_of_Z id exp l fe2 ::
