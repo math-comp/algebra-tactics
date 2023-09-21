@@ -1,4 +1,4 @@
-From elpi Require Export elpi.
+From elpi Require Import elpi.
 From Coq Require Import ZArith Ring Ring_polynom Field_theory.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
@@ -438,6 +438,7 @@ Strategy expand [Reval Meval SemiRing.Rnorm SemiRing.Mnorm].
 Strategy expand [Ring.Rnorm Ring.Mnorm Field.Rnorm Field.Mnorm PEeval FEeval].
 
 Elpi Tactic ring.
+Elpi Accumulate Db canonicals.db.
 Elpi Accumulate File common ring ring_tac.
 Elpi Typecheck.
 
@@ -448,6 +449,7 @@ Tactic Notation "#[" attributes(A) "]" "ring" ":" ne_constr_list(L) :=
   ltac_attributes:(A) elpi ring ltac_term_list:(L).
 
 Elpi Tactic field.
+Elpi Accumulate Db canonicals.db.
 Elpi Accumulate File common ring field_tac.
 Elpi Typecheck.
 
@@ -457,3 +459,5 @@ Tactic Notation "#[" attributes(A) "]" "field" :=
   ltac_attributes:(A) elpi field.
 Tactic Notation "#[" attributes(A) "]" "field" ":" ne_constr_list(L) :=
   ltac_attributes:(A) elpi field ltac_term_list:(L).
+
+Elpi Query lp:{{ canonical-init library "canonicals.db" }}.

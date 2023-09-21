@@ -7,26 +7,36 @@
 pred mk-ring-morphism i:term, o:rmorphism, o:term, o:term, o:list prop.
 mk-ring-morphism Ty rmorphism-nat {{ semiring_correct }} {{ target_nat }} Env :-
   coq.unify-eq Ty {{ nat }} ok, !,
+  canonical-nat-nmodule NatNmodule,
+  canonical-nat-semiring NatSemiRing,
   semiring-env SREnv,
-  Env = [target-nmodule {{ nat_nmodType }},
-         target-semiring {{ nat_semiRingType }} | SREnv].
+  Env = [target-nmodule (global (const NatNmodule)),
+         target-semiring (global (const NatSemiRing)) | SREnv].
 mk-ring-morphism Ty rmorphism-N {{ semiring_correct }} {{ target_N }} Env :-
   coq.unify-eq Ty {{ N }} ok, !,
+  canonical-N-nmodule NNmodule,
+  canonical-N-semiring NSemiRing,
   semiring-env SREnv,
-  Env = [target-nmodule {{ N_nmodType }},
-         target-semiring {{ N_semiRingType }} | SREnv].
+  Env = [target-nmodule (global (const NNmodule)),
+         target-semiring (global (const NSemiRing)) | SREnv].
 mk-ring-morphism Ty rmorphism-int {{ ring_correct }} {{ target_int }} Env :-
   coq.unify-eq Ty {{ int }} ok, !,
+  canonical-int-nmodule IntNmodule,
+  canonical-int-semiring IntSemiRing,
+  canonical-int-zmodule IntZmodule,
   ring-env REnv,
-  Env = [target-nmodule {{ int_nmodType }},
-         target-semiring {{ int_semiRingType }},
-         target-zmodule {{ int_zmodType }} | REnv].
+  Env = [target-nmodule (global (const IntNmodule)),
+         target-semiring (global (const IntSemiRing)),
+         target-zmodule (global (const IntZmodule)) | REnv].
 mk-ring-morphism Ty rmorphism-Z {{ ring_correct }} {{ target_Z }} Env :-
   coq.unify-eq Ty {{ Z }} ok, !,
+  canonical-Z-nmodule ZNmodule,
+  canonical-Z-semiring ZSemiRing,
+  canonical-Z-zmodule ZZmodule,
   ring-env REnv,
-  Env = [target-nmodule {{ Z_nmodType }},
-         target-semiring {{ Z_semiRingType }},
-         target-zmodule {{ Z_zmodType }} | REnv].
+  Env = [target-nmodule (global (const ZNmodule)),
+         target-semiring (global (const ZSemiRing)),
+         target-zmodule (global (const ZZmodule)) | REnv].
 mk-ring-morphism Ty (rmorphism U V' SR R' UR' none (x\ x)) Lem CR Env :- !,
   std.assert-ok! (coq.unify-eq Ty {{ GRing.Nmodule.sort lp:U }})
                  "Cannot find a declared nmodType",
@@ -104,7 +114,8 @@ ring-env
    (pi In\ quote.build.Z-constant In {{ @PEc Z lp:In }} :- !),
    (quote.build.N-constant {{ N0 }} {{ @PEc Z Z0 }} :- !),
    (pi In\
-      quote.build.N-constant {{ Npos lp:In }} {{ @PEc Z (Zpos lp:In) }} :- !)].
+      quote.build.N-constant {{ Npos lp:In }} {{ @PEc Z (Zpos lp:In) }} :- !)]
+  :- !.
 
 pred field-env o:list prop.
 field-env
@@ -120,7 +131,8 @@ field-env
    (pi In\ quote.build.Z-constant In {{ @FEc Z lp:In }} :- !),
    (quote.build.N-constant {{ N0 }} {{ @FEc Z Z0 }} :- !),
    (pi In\
-      quote.build.N-constant {{ Npos lp:In }} {{ @FEc Z (Zpos lp:In) }} :- !)].
+      quote.build.N-constant {{ Npos lp:In }} {{ @FEc Z (Zpos lp:In) }} :- !)]
+  :- !.
 
 pred if-verbose i:prop.
 if-verbose P :- get-option "verbose" tt, !, P.

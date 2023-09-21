@@ -1,3 +1,4 @@
+From elpi Require Import elpi.
 From Coq Require Import QArith.
 From Coq.micromega Require Import OrderedRing RingMicromega.
 From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint.
@@ -1367,25 +1368,25 @@ Qed.
 
 End RealField.
 
-Import Instances.
+Elpi Db canonicals.db lp:{{
 
-Notation nat_nmodType := Datatypes_nat__canonical__CountRing_Nmodule.
-Notation nat_semiRingType := Datatypes_nat__canonical__GRing_SemiRing.
-Notation nat_comSemiRingType := Datatypes_nat__canonical__GRing_ComSemiRing.
-Notation N_nmodType := BinNums_N__canonical__GRing_Nmodule.
-Notation N_semiRingType := BinNums_N__canonical__GRing_SemiRing.
-Notation N_comSemiRingType := BinNums_N__canonical__GRing_ComSemiRing.
-Notation int_nmodType := ssrint_int__canonical__GRing_Nmodule.
-Notation int_zmodType := ssrint_int__canonical__GRing_Zmodule.
-Notation int_semiRingType := ssrint_int__canonical__GRing_SemiRing.
-Notation int_ringType := ssrint_int__canonical__GRing_Ring.
-Notation int_comRingType := ssrint_int__canonical__GRing_ComRing.
-Notation int_unitRingType := ssrint_int__canonical__GRing_UnitRing.
-Notation Z_nmodType := BinNums_Z__canonical__GRing_Nmodule.
-Notation Z_zmodType := BinNums_Z__canonical__GRing_Zmodule.
-Notation Z_semiRingType := BinNums_Z__canonical__GRing_SemiRing.
-Notation Z_ringType := BinNums_Z__canonical__GRing_Ring.
-Notation Z_comRingType := BinNums_Z__canonical__GRing_ComRing.
-Notation Z_unitRingType := BinNums_Z__canonical__GRing_UnitRing.
+pred canonical-nat-nmodule o:constant.
+pred canonical-nat-semiring o:constant.
+pred canonical-nat-comsemiring o:constant.
+pred canonical-N-nmodule o:constant.
+pred canonical-N-semiring o:constant.
+pred canonical-N-comsemiring o:constant.
+pred canonical-int-nmodule o:constant.
+pred canonical-int-zmodule o:constant.
+pred canonical-int-semiring o:constant.
+pred canonical-int-ring o:constant.
+pred canonical-int-comring o:constant.
+pred canonical-int-unitring o:constant.
+pred canonical-Z-nmodule o:constant.
+pred canonical-Z-zmodule o:constant.
+pred canonical-Z-semiring o:constant.
+pred canonical-Z-ring o:constant.
+pred canonical-Z-comring o:constant.
+pred canonical-Z-unitring o:constant.
 
-Notation GRing_Zmodule__to__GRing_Nmodule := GRing_Zmodule__to__GRing_Nmodule.
+}}.

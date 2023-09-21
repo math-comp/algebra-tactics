@@ -392,6 +392,7 @@ Strategy expand [Reval_formula Rnorm_formula Fnorm_formula].
 Strategy expand [Reval_PFormula Feval_PFormula].
 
 Elpi Tactic lra.
+Elpi Accumulate Db canonicals.db.
 Elpi Accumulate File common lra.
 Elpi Typecheck.
 
@@ -400,3 +401,5 @@ Tactic Notation "nra" := elpi lra "nra_witness" "tacF" "tacR" 0.
 Tactic Notation "psatz" integer(n) :=
   elpi lra "psatz_witness" "tacF" "tacR" ltac_int:(n).
 Tactic Notation "psatz" := elpi lra "psatz_witness" "tacF" "tacR" (-1).
+
+Elpi Query lp:{{ canonical-init library "canonicals.db" }}.
