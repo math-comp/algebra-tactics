@@ -20,93 +20,11 @@ Module Import Internals.
 
 Implicit Types (k : kind) (R S : ringType) (F : fieldType).
 
-Inductive RExpr : ringType -> Type :=
-  | RX R : R -> RExpr R
-  | R0 R : RExpr R
-  | ROpp R : RExpr R -> RExpr R
-  | RAdd R : RExpr R -> RExpr R -> RExpr R
-  (* TODO: support nat expressions: *)
-  | RMuln R : RExpr R -> large_nat -> RExpr R
-  | RMulz R : RExpr R -> RExpr [ringType of int] -> RExpr R
-  | R1 R : RExpr R
-  | RMul R : RExpr R -> RExpr R -> RExpr R
-  | RExpn R : RExpr R -> large_nat -> RExpr R
-  | RInv F : RExpr F -> RExpr F
-  | RMorph R R' : {rmorphism R -> R'} -> RExpr R -> RExpr R'
-  | RintC : large_int -> RExpr [ringType of int]
-  | RZC : Z -> RExpr [ringType of Z].
-
-Fixpoint Reval_expr R (e : RExpr R) : R :=
-  match e with
-  | RX _ x => x
-  | R0 _ => 0%R
-  | ROpp _ e => - Reval_expr e
-  | RAdd _ e1 e2 => Reval_expr e1 + Reval_expr e2
-  | RMuln _ e n => Reval_expr e *+ nat_of_large_nat n
-  | RMulz _ e1 e2 => Reval_expr e1 *~ Reval_expr e2
-  | R1 _ => 1%R
-  | RMul _ e1 e2 => Reval_expr e1 * Reval_expr e2
-  | RExpn _ e n => Reval_expr e ^+ nat_of_large_nat n
-  | RInv _  e => (Reval_expr e)^-1
-  | RMorph _ _ f e => f (Reval_expr e)
-  | RintC x => int_of_large_int x
-  | RZC x => x
-  end.
-
 (* Define [Reval_formula] the semantics of [BFormula (Formula Z) Tauto.isProp]
    as arithmetic expressions on some [realDomainType].
    Then prove [RTautoChecker_sound] stating that [ZTautoChecker f w = true]
    implies that the formula [Reval_formula f] holds. *)
 Record RFormula R := { Rlhs : RExpr R;  Rop : Op2;  Rrhs : RExpr R }.
-
-Section Rnorm_expr.
-
-Variables (R' : ringType).
-Variables (R_of_Z : Z -> R') (R_of_ZE : R_of_Z = (fun n => (int_of_Z n)%:~R)).
-Variables (opp : R' -> R') (oppE : opp = -%R).
-Variables (add : R' -> R' -> R') (addE : add = +%R).
-Variables (mul : R' -> R' -> R') (mulE : mul = *%R).
-Variables (exp : R' -> N -> R') (expE : exp = (fun x n => x ^+ nat_of_N n)).
-
-Fixpoint Rnorm_expr R (f : R -> R') (e : RExpr R) : R' :=
-  match e in RExpr R return (R -> R') -> R' with
-  | RX _ x => fun f => f x
-  | R0 _ => fun=> R_of_Z 0
-  | ROpp _ e => fun f => opp (Rnorm_expr f e)
-  | RAdd _ e1 e2 => fun f => add (Rnorm_expr f e1) (Rnorm_expr f e2)
-  | RMuln _ e n => fun f => mul (Rnorm_expr f e) (R_of_Z (Z_of_large_nat n))
-  | RMulz _ e1 e2 => fun f => mul (Rnorm_expr f e1) (Rnorm_expr intr e2)
-  | R1 _ => fun=> R_of_Z 1
-  | RMul _ e1 e2 => fun f => mul (Rnorm_expr f e1) (Rnorm_expr f e2)
-  | RExpn _ e1 n => fun f => exp (Rnorm_expr f e1) (N_of_large_nat n)
-  | RInv _ _ => fun=> f (Reval_expr e)
-  | RMorph _ _ g e => fun f => Rnorm_expr (fun x => f (g x)) e
-  | RintC x => fun=> R_of_Z (Z_of_large_int x)
-  | RZC x => fun=> R_of_Z x
-  end f.
-
-Lemma Rnorm_expr_correct_rec R (f : {rmorphism R -> R'}) (e : RExpr R) :
-  f (Reval_expr e) = Rnorm_expr f e.
-Proof.
-move: f; elim: e => {R} //=.
-- by move=> R f; rewrite R_of_ZE rmorph0.
-- by move=> R e IHe f; rewrite oppE rmorphN IHe.
-- by move=> R e1 IHe1 e2 IHe2 f; rewrite addE rmorphD IHe1 IHe2.
-- move=> R e IHe n f.
-  by rewrite mulE R_of_ZE rmorphMn -mulr_natr IHe large_nat_Z_int.
-- by move=> R e1 IHe1 e2 IHe2 f; rewrite mulE rmorphMz -mulrzr IHe1 IHe2.
-- by move=> R f; rewrite R_of_ZE rmorph1.
-- by move=> R e1 IHe1 e2 IHe2 f; rewrite mulE rmorphM IHe1 IHe2.
-- by move=> R e IHe n f; rewrite expE rmorphX IHe large_nat_N_nat.
-- by move=> R S g e IHe f; rewrite -/(comp f g) -IHe.
-- by move=> x f; rewrite R_of_ZE -(rmorph_int f) intz large_int_Z_int.
-- by move=> x f; rewrite R_of_ZE -(rmorph_int f); congr (f _); lia.
-Qed.
-
-Lemma Rnorm_expr_correct (e : RExpr R') : Reval_expr e = Rnorm_expr id e.
-Proof. exact: Rnorm_expr_correct_rec [rmorphism of idfun] _. Qed.
-
-End Rnorm_expr.
 
 Section Rnorm_formula.
 
@@ -122,7 +40,8 @@ Variables (eqBool : R -> R -> bool) (eqBoolE : eqBool = eq_op).
 Variables (le : R -> R -> bool) (leE : le = <=%O).
 Variables (lt : R -> R -> bool) (ltE : lt = <%O).
 
-Notation Rnorm_expr := (Rnorm_expr R_of_Z opp add mul exp).
+Local Notation Rnorm_expr :=
+  (Ring.Rnorm R_of_Z (R_of_Z 0) add opp sub (R_of_Z 1) mul exp).
 
 Definition Reval_pop2 (o : Op2) : R -> R -> Prop :=
   match o with
@@ -148,7 +67,7 @@ Definition Reval_op2 k : Op2 -> R -> R -> rtyp k :=
   match k with isProp => Reval_pop2 | isBool => Reval_bop2 end.
 
 Definition Reval_formula k (ff : RFormula R) : rtyp k :=
-  let (lhs,o,rhs) := ff in Reval_op2 k o (Reval_expr lhs) (Reval_expr rhs).
+  let (lhs,o,rhs) := ff in Reval_op2 k o (Reval lhs) (Reval rhs).
 
 Definition Rnorm_formula k (ff : RFormula R) :=
   let (lhs,o,rhs) := ff in
@@ -156,7 +75,10 @@ Definition Rnorm_formula k (ff : RFormula R) :=
 
 Lemma Rnorm_formula_correct k (ff : RFormula R) :
   Reval_formula k ff = Rnorm_formula k ff.
-Proof. by case: ff => l o r /=; rewrite -!Rnorm_expr_correct. Qed.
+Proof.
+case: ff => l o r /=.
+by rewrite !Ring.Rnorm_correct R_of_ZE addE oppE subE mulE expE.
+Qed.
 
 Lemma Rnorm_bf_correct k (ff : BFormula (RFormula R) k) :
   eval_bf Reval_formula ff = eval_bf Rnorm_formula ff.
@@ -212,13 +134,13 @@ Lemma RTautoChecker_sound
     (ff : BFormula (RFormula R) isProp) (f : BFormula (Formula Z) isProp)
     (w : seq (Psatz Z)) (env : PolEnv R) :
   (forall R_of_Z opp add sub mul exp eqProp eqBool le lt,
-      let norm_ff := Rnorm_formula R_of_Z opp add mul exp eqProp eqBool le lt in
+      let norm_ff := Rnorm_formula R_of_Z opp add sub mul exp eqProp eqBool le lt in
       let eval_f :=
         Reval_PFormula R_of_Z opp add sub mul exp eqProp eqBool le lt env in
       eval_bf norm_ff ff = eval_bf eval_f f) ->
   ZTautoChecker f w -> eval_bf (Reval_formula eq eq_op <=%O <%O) ff.
 Proof.
-rewrite (Rnorm_bf_correct erefl erefl erefl erefl erefl).
+rewrite (Rnorm_bf_correct erefl erefl erefl erefl erefl erefl).
 move=> /(_ _ _ _ (fun x y => x - y)) -> Hchecker.
 move: Hchecker env; apply: (tauto_checker_sound _ _ _ _ Reval_nformula).
 - exact: (eval_nformula_dec Rsor).
@@ -235,82 +157,6 @@ Qed.
 
 End RealDomain.
 
-Section Fnorm_expr.
-
-Variables (F : fieldType).
-Variables (F_of_Q : Q -> F) (F_of_QE : F_of_Q = R_of_Q).
-Variables (opp : F -> F) (oppE : opp = -%R).
-Variables (add : F -> F -> F) (addE : add = +%R).
-Variables (mul : F -> F -> F) (mulE : mul = *%R).
-Variables (exp : F -> N -> F) (expE : exp = (fun x n => x ^+ nat_of_N n)).
-Variables (inv : F -> F) (invE : inv = GRing.inv).
-
-Fixpoint Fnorm_expr R (f : R -> F) (e : RExpr R) (invb : bool) :
-    F :=
-  match e in RExpr R, invb return (R -> F) -> F with
-  | RX _ x, false => fun f => f x
-  | RX _ x, true => fun f => inv (f x)
-  | R0 _, _ => fun=> F_of_Q 0
-  | ROpp _ e, _ => fun f => opp (Fnorm_expr f e invb)
-  | RAdd _ e1 e2, false =>
-      fun f => add (Fnorm_expr f e1 false) (Fnorm_expr f e2 false)
-  | RMuln _ e n, _ => fun f =>
-      mul (Fnorm_expr f e invb)
-        (if invb then
-           F_of_Q (Qinv (Z_of_large_nat n # 1))
-         else F_of_Q (Z_of_large_nat n # 1))
-  | RMulz _ e1 e2, _ => fun f =>
-      mul (Fnorm_expr f e1 invb) (Fnorm_expr intr e2 invb)
-  | R1 _, _ => fun=> F_of_Q 1
-  | RMul _ e1 e2, _ =>
-      fun f => mul (Fnorm_expr f e1 invb) (Fnorm_expr f e2 invb)
-  | RExpn _ e1 n, _ => fun f => exp (Fnorm_expr f e1 invb) (N_of_large_nat n)
-  | RInv _ e, _ => fun f => Fnorm_expr f e (negb invb)
-  | RMorph _ _ g e, _ => fun f => Fnorm_expr (fun x => f (g x)) e invb
-  | RintC x, false => fun=> F_of_Q (Z_of_large_int x # 1)
-  | RintC x, true => fun=> F_of_Q (Qinv (Z_of_large_int x # 1))
-  | RZC x, false => fun=> F_of_Q (x # 1)
-  | RZC x, true => fun=> F_of_Q (Qinv (x # 1))
-  | _, true => fun=> inv (f (Reval_expr e))
-  end f.
-
-Lemma Fnorm_expr_correct_rec R (f : {rmorphism R -> F}) (e : RExpr R) :
-  (f (Reval_expr e) = Fnorm_expr f e false) /\
-    ((f (Reval_expr e))^-1 = Fnorm_expr f e true).
-Proof.
-move: f; elim: e => {R} //=.
-- by move=> R x f; rewrite invE.
-- by move=> R f; rewrite F_of_QE rmorph0 invr0 /R_of_Q divr1.
-- move=> R e IHe f; case: (IHe f) => {}IHe IHe'.
-  by rewrite oppE rmorphN invrN IHe' IHe.
-- move=> R e1 IHe1 e2 IHe2 f; move: (IHe1 f) (IHe2 f) => [{}IHe1 _] [{}IHe2 _].
-  by rewrite addE invE rmorphD IHe1 IHe2.
-- move=> R e IHe n f; move: (IHe f) => [{}IHe IHe'].
-  rewrite mulE F_of_QE rmorphMn -mulr_natr invfM IHe' IHe R_of_Q_invZ.
-  by rewrite /R_of_Q divr1 large_nat_Z_int.
-- move=> R e1 IHe1 e2 IHe2 f.
-  move: (IHe1 f) (IHe2 [rmorphism of intr]) => [{}IHe1 IHe1'] [{}IHe2 IHe2'].
-  by rewrite mulE rmorphMz -mulrzr invfM IHe1' IHe1 IHe2' IHe2.
-- by move=> R f; rewrite F_of_QE rmorph1 invr1 /R_of_Q divr1.
-- move=> R e1 IHe1 e2 IHe2 f.
-  move: (IHe1 f) (IHe2 f) => [{}IHe1 IHe1'] [{}IHe2 IHe2'].
-  by rewrite mulE rmorphM invfM IHe1' IHe1 IHe2' IHe2.
-- move=> R e IHe n f; case: (IHe f) => {}IHe IHe'.
-  by rewrite expE rmorphX -exprVn IHe' IHe large_nat_N_nat.
-- move=> R e IHe f; case: (IHe f) => {}IHe IHe'.
-  by rewrite fmorphV invrK IHe' IHe.
-- by move=> R S g e IHe f; case: (IHe [rmorphism of f \o g]); split.
-- move=> x f; rewrite F_of_QE R_of_Q_invZ /R_of_Q divr1 /= -(rmorph_int f).
-  by rewrite intz large_int_Z_int.
-- move=> x f; rewrite F_of_QE R_of_Q_invZ /R_of_Q divr1 /= -(rmorph_int f).
-  by split; [congr (f _) | congr (f _)^-1]; lia.
-Qed.
-
-Lemma Fnorm_expr_correct (e : RExpr F) : Reval_expr e = Fnorm_expr id e false.
-Proof. by have [] := Fnorm_expr_correct_rec [rmorphism of idfun] e. Qed.
-
-End Fnorm_expr.
-
 Section Fnorm_formula.
 
 Variables (F : numFieldType).
@@ -325,7 +171,11 @@ Variables (eqBool : F -> F -> bool) (eqBoolE : eqBool = eq_op).
 Variables (le : F -> F -> bool) (leE : le = <=%O).
 Variables (lt : F -> F -> bool) (ltE : lt = <%O).
 
-Notation Fnorm_expr := (Fnorm_expr F_of_Q opp add mul exp GRing.inv).
+Local Notation F_of_Z invb n :=
+  (if invb then F_of_Q (Qinv (Qmake n 1)) else F_of_Q (Qmake n 1)).
+
+Notation Fnorm_expr := (Lra.Rnorm (fun b n => F_of_Z b n) (F_of_Z false 0)
+  add opp sub (F_of_Z false 1) mul exp GRing.inv false).
 Notation Feval_pop2 := (Reval_pop2 eqProp le lt).
 Notation Feval_bop2 := (Reval_bop2 eqBool le lt).
 Notation Feval_op2 := (Reval_op2 eqProp eqBool le lt).
@@ -333,11 +183,17 @@ Notation Feval_formula := (Reval_formula eqProp eqBool le lt).
 
 Definition Fnorm_formula k (ff : RFormula F) :=
   let (lhs,o,rhs) := ff in
-  Feval_op2 k o (Fnorm_expr id lhs false) (Fnorm_expr id rhs false).
+  Feval_op2 k o (Fnorm_expr id lhs) (Fnorm_expr id rhs).
 
 Lemma Fnorm_formula_correct k (ff : RFormula F) :
   Feval_formula k ff = Fnorm_formula k ff.
-Proof. by case: ff => l o r /=; rewrite -!Fnorm_expr_correct. Qed.
+Proof.
+case: ff => l o r /=; rewrite !Lra.Rnorm_correct addE oppE subE mulE expE.
+rewrite F_of_QE /R_of_Q/= mul0r mul1r invr1.
+by congr Feval_op2; apply: Lra.Rnorm_eq => invb n; rewrite mulr1;
+  case: n => [|p|p] /=; rewrite ?(invr0, mul0r, mul1r)//;
+  rewrite mulNr -divrN mul1r NegzE prednK ?nmulrn//; lia.
+Qed.
 
 Lemma Fnorm_bf_correct k (ff : BFormula (RFormula F) k) :
   eval_bf Feval_formula ff = eval_bf Fnorm_formula ff.
@@ -385,14 +241,15 @@ Lemma FTautoChecker_sound
     (ff : BFormula (RFormula F) isProp) (f : BFormula (Formula Q) isProp)
     (w : seq (Psatz Q)) (env : PolEnv F) :
   (forall F_of_Q opp add sub mul exp eqProp eqBool le lt,
-      let norm_ff := Fnorm_formula F_of_Q opp add mul exp eqProp eqBool le lt in
+      let norm_ff :=
+        Fnorm_formula F_of_Q opp add sub mul exp eqProp eqBool le lt in
       let eval_f :=
         Feval_PFormula F_of_Q opp add sub mul exp eqProp eqBool le lt env in
       eval_bf norm_ff ff = eval_bf eval_f f) ->
   QTautoChecker f w -> eval_bf (Reval_formula eq eq_op <=%O <%O) ff.
 Proof.
-rewrite (Fnorm_bf_correct erefl erefl erefl erefl erefl).
-move=> /(_ _ _ _ (fun x y => x - y)) -> Hchecker.
+rewrite (Fnorm_bf_correct erefl erefl erefl erefl erefl erefl).
+move/(_ R_of_Q) => -> Hchecker.
 move: Hchecker env; apply: (tauto_checker_sound _ _ _ _ Feval_nformula).
 - exact: (eval_nformula_dec Rsor).
 - by move=> [? ?] ? ?; apply: (check_inconsistent_sound Rsor FSORaddon).
@@ -526,16 +383,16 @@ Ltac tacR R hyps rff ff varmap wit :=
 End Internals.
 
 Strategy expand [addn_expand nat_of_pos_rec_expand nat_of_pos_expand].
-Strategy expand [nat_of_N_expand int_of_Z_expand Z_of_N_expand].
+Strategy expand [nat_of_N_expand].
 Strategy expand [nat_of_large_nat N_of_large_nat Z_of_large_nat].
-Strategy expand [int_of_large_int Z_of_large_int].
 
-Strategy expand [Reval_expr Rnorm_expr Fnorm_expr].
+Strategy expand [Reval Meval Ring.Rnorm Ring.Mnorm Lra.Rnorm Lra.Mnorm].
 Strategy expand [Reval_pop2 Reval_bop2 Reval_op2].
 Strategy expand [Reval_formula Rnorm_formula Fnorm_formula].
 Strategy expand [Reval_PFormula Feval_PFormula].
 
 Elpi Tactic lra.
+Elpi Accumulate Db canonicals.db.
 Elpi Accumulate File common lra.
 Elpi Typecheck.
 
@@ -544,3 +401,5 @@ Tactic Notation "nra" := elpi lra "nra_witness" "tacF" "tacR" 0.
 Tactic Notation "psatz" integer(n) :=
   elpi lra "psatz_witness" "tacF" "tacR" ltac_int:(n).
 Tactic Notation "psatz" := elpi lra "psatz_witness" "tacF" "tacR" (-1).
+
+Elpi Query lp:{{ canonical-init library "canonicals.db" }}.

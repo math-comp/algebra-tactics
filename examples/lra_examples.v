@@ -46,6 +46,26 @@ Proof.
 lra.
 Qed.
 
+Example test_div_mul x : 1 / (2 * x) <= 1 / 2 / x + 1.
+Proof.
+lra.
+Qed.
+
+Example test_div_inv x : 1 / x^-1 <= x + 1.
+Proof.
+lra.
+Qed.
+
+Example test_div_opp x : (- x)^-1 <= - x^-1 + 1.
+Proof.
+lra.
+Qed.
+
+Example test_div_exp x : (x ^+ 2) ^-1 <= x ^-1 ^+ 2 + 1.
+Proof.
+lra.
+Qed.
+
 Lemma test_lt x y :
   x + 2%:R * y < 3%:R -> 2%:R * x + y <= 3%:R -> x + y < 2%:R.
 Proof.

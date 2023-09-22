@@ -1,4 +1,4 @@
-From elpi Require Export elpi.
+From elpi Require Import elpi.
 From Coq Require Import ZArith Ring Ring_polynom Field_theory.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
@@ -19,343 +19,139 @@ Local Open Scope ring_scope.
 
 Module Import Internals.
 
-Definition quote_icstr_helper (n : int) : bool * N :=
-  match n with
-  | Posz n => (true, N.of_nat n)
-  | Negz n => (false, N.of_nat n)
-  end.
-
-Definition quote_Z_pow_helper (n : Z) : option N :=
-  match n with
-  | Zpos n => Some (Npos n)
-  | Z0 => Some N0
-  | _ => None
-  end.
-
-Implicit Types (V : zmodType) (R : ringType) (F : fieldType).
+Implicit Types (V : nmodType) (R : semiRingType) (F : fieldType).
 
 (* Pushing down morphisms in ring and field expressions by reflection         *)
 
-Inductive NExpr : Type :=
-  | NC    of large_nat
-  | NX    of nat
-  | NAdd  of NExpr & NExpr
-  | NSucc of NExpr
-  | NMul  of NExpr & NExpr
-  | NExp  of NExpr & large_nat.
-
-Fixpoint Neval (e : NExpr) : nat :=
-  match e with
-  | NC n => nat_of_large_nat n
-  | NX x => x
-  | NAdd e1 e2 => Neval e1 + Neval e2
-  | NSucc e => S (Neval e)
-  | NMul e1 e2 => Neval e1 * Neval e2
-  | NExp e1 n => Neval e1 ^ nat_of_large_nat n
-  end.
-
-Inductive RExpr : ringType -> Type :=
-  | RX R : R -> RExpr R
-  | R0 R : RExpr R
-  | ROpp R : RExpr R -> RExpr R
-  | RZOpp : RExpr [ringType of Z] -> RExpr [ringType of Z]
-  | RAdd R : RExpr R -> RExpr R -> RExpr R
-  | RZAdd : RExpr [ringType of Z] -> RExpr [ringType of Z] ->
-            RExpr [ringType of Z]
-  | RZSub : RExpr [ringType of Z] -> RExpr [ringType of Z] ->
-            RExpr [ringType of Z]
-  | RMuln R : RExpr R -> NExpr -> RExpr R
-  | RMulz R : RExpr R -> RExpr [ringType of int] -> RExpr R
-  | R1 R : RExpr R
-  | RMul R : RExpr R -> RExpr R -> RExpr R
-  | RZMul : RExpr [ringType of Z] -> RExpr [ringType of Z] ->
-            RExpr [ringType of Z]
-  | RExpn R : RExpr R -> large_nat -> RExpr R
-  | RExpPosz (R : unitRingType) : RExpr R -> large_nat -> RExpr R
-  | RExpNegz F : RExpr F -> large_nat -> RExpr F
-  | RZExp : RExpr [ringType of Z] -> Z -> RExpr [ringType of Z]
-  | RInv F : RExpr F -> RExpr F
-  | RMorph R' R : {rmorphism R' -> R} -> RExpr R' -> RExpr R
-  | RMorph' V R : {additive V -> R} -> ZMExpr V -> RExpr R
-  | RPosz : NExpr -> RExpr [ringType of int]
-  | RNegz : NExpr -> RExpr [ringType of int]
-  | RZC : Z -> RExpr [ringType of Z]
-with ZMExpr : zmodType -> Type :=
-  | ZMX V : V -> ZMExpr V
-  | ZM0 V : ZMExpr V
-  | ZMOpp V : ZMExpr V -> ZMExpr V
-  | ZMAdd V : ZMExpr V -> ZMExpr V -> ZMExpr V
-  | ZMMuln V : ZMExpr V -> NExpr -> ZMExpr V
-  | ZMMulz V : ZMExpr V -> RExpr [ringType of int] -> ZMExpr V
-  | ZMMorph V' V : {additive V' -> V} -> ZMExpr V' -> ZMExpr V.
-
-Scheme RExpr_ind' := Induction for RExpr Sort Prop
-  with ZMExpr_ind' := Induction for ZMExpr Sort Prop.
-
-Fixpoint Reval R (e : RExpr R) : R :=
-  match e with
-  | RX _ x => x
-  | R0 _ => 0%R
-  | ROpp _ e1 => - Reval e1
-  | RZOpp e1 => Z.opp (Reval e1)
-  | RAdd _ e1 e2 => Reval e1 + Reval e2
-  | RZAdd e1 e2 => Z.add (Reval e1) (Reval e2)
-  | RZSub e1 e2 => Z.sub (Reval e1) (Reval e2)
-  | RMuln _ e1 e2 => Reval e1 *+ Neval e2
-  | RMulz _ e1 e2 => Reval e1 *~ Reval e2
-  | R1 _ => 1%R
-  | RMul _ e1 e2 => Reval e1 * Reval e2
-  | RZMul e1 e2 => Z.mul (Reval e1) (Reval e2)
-  | RExpn _ e1 n => Reval e1 ^+ nat_of_large_nat n
-  | RExpPosz _ e1 n => Reval e1 ^ Posz (nat_of_large_nat n)
-  | RExpNegz _ e1 n => Reval e1 ^ Negz (nat_of_large_nat n)
-  | RZExp e1 n => Z.pow (Reval e1) n
-  | RInv _ e1 => (Reval e1)^-1
-  | RMorph _ _ f e1 => f (Reval e1)
-  | RMorph' _ _ f e1 => f (ZMeval e1)
-  | RPosz e1 => Posz (Neval e1)
-  | RNegz e2 => Negz (Neval e2)
-  | RZC x => x
-  end
-with ZMeval V (e : ZMExpr V) : V :=
-  match e with
-  | ZMX _ x => x
-  | ZM0 _ => 0%R
-  | ZMOpp _ e1 => - ZMeval e1
-  | ZMAdd _ e1 e2 => ZMeval e1 + ZMeval e2
-  | ZMMuln _ e1 e2 => ZMeval e1 *+ Neval e2
-  | ZMMulz _ e1 e2 => ZMeval e1 *~ Reval e2
-  | ZMMorph _ _ f e1 => f (ZMeval e1)
-  end.
-
-Fixpoint interp_RElist
-    R (lpe : list (RExpr R * RExpr R * PExpr Z * PExpr Z)) : Prop :=
+Fixpoint Reval_eqs C R (lpe : list (RExpr R * RExpr R * PExpr C * PExpr C)) :
+  Prop :=
   if lpe is (lhs, rhs, _, _) :: lpe then
-    Reval lhs = Reval rhs /\ interp_RElist lpe else True.
+    Reval lhs = Reval rhs /\ Reval_eqs lpe else True.
+
+Variant target_comSemiRing :=
+  | target_nat
+  | target_N
+  | target_other_comSemiRing of comSemiRingType.
+
+Local Coercion target_comSemiRingType (R : target_comSemiRing) :
+  comSemiRingType :=
+  match R with
+  | target_nat => nat
+  | target_N => N
+  | target_other_comSemiRing R => R
+  end.
+
+Definition target_comSemiRingMorph (R : target_comSemiRing) : R -> R :=
+  match R with
+  | target_nat => GRing.natmul 1
+  | target_N => fun n => (N.to_nat n)%:R
+  | target_other_comSemiRing _ => id
+  end.
+
+Variant target_comRing :=
+  | target_int
+  | target_Z
+  | target_other_comRing of comRingType.
+
+Local Coercion target_comRingType (R : target_comRing) : comRingType :=
+  match R with
+  | target_int => int
+  | target_Z => Z
+  | target_other_comRing R => R
+  end.
+
+Definition target_comRingMorph (R : target_comRing) : R -> R :=
+  match R with
+  | target_int => intr
+  | target_Z => fun n => (int_of_Z n)%:~R
+  | target_other_comRing _ => id
+  end.
+
+Section Snorm.
+
+Variables (R' : semiRingType) (R_of_N : N -> R').
+Variables (zero : R') (add : R' -> R' -> R').
+Variables (one : R') (mul : R' -> R' -> R') (exp : R' -> N -> R').
+
+Local Notation Snorm := (SemiRing.Rnorm R_of_N zero add one mul exp).
+
+Fixpoint Snorm_list
+    (lpe : list (RExpr R' * RExpr R' * PExpr N * PExpr N)) : seq R' :=
+  if lpe is (lhs, rhs, _, _) :: lpe then
+    Snorm id lhs :: Snorm id rhs :: Snorm_list lpe
+  else
+    [::].
+
+End Snorm.
 
 Section Rnorm.
 
-Variables (R' : ringType).
-Variables (R_of_Z : Z -> R') (R_of_ZE : R_of_Z = (fun n => (int_of_Z n)%:~R)).
-Variables (zero : R') (zeroE : zero = 0%R) (opp : R' -> R') (oppE : opp = -%R).
-Variables (add : R' -> R' -> R') (addE : add = +%R).
-Variables (sub : R' -> R' -> R') (subE : sub = (fun x y => x - y)).
-Variables (one : R') (oneE : one = 1%R).
-Variables (mul : R' -> R' -> R') (mulE : mul = *%R).
-Variables (exp : R' -> N -> R') (expE : exp = (fun x n => x ^+ nat_of_N n)).
+Variables (R' : ringType) (R_of_Z : Z -> R').
+Variables (zero : R') (add : R' -> R' -> R').
+Variables (opp : R' -> R') (sub : R' -> R' -> R').
+Variables (one : R') (mul : R' -> R' -> R') (exp : R' -> N -> R').
 
-Fixpoint Nnorm (e : NExpr) : R' :=
-  match e with
-  | NC n => R_of_Z (Z_of_large_nat n)
-  | NX x => x%:~R
-  | NAdd e1 e2 => add (Nnorm e1) (Nnorm e2)
-  | NSucc e1 => add one (Nnorm e1)
-  | NMul e1 e2 => mul (Nnorm e1) (Nnorm e2)
-  | NExp e1 n => exp (Nnorm e1) (N_of_large_nat n)
-  end.
+Local Notation Rnorm := (Ring.Rnorm R_of_Z zero add opp sub one mul exp).
 
-Lemma Nnorm_correct (e : NExpr) : (Neval e)%:R = Nnorm e.
-Proof.
-elim: e => //=.
-- by move=> n; rewrite R_of_ZE large_nat_Z_int.
-- by move=> e1 IHe1 e2 IHe2; rewrite addE natrD IHe1 IHe2.
-- by move=> e IHe; rewrite addE oneE mulrS IHe.
-- by move=> e1 IHe1 e2 IHe2; rewrite mulE natrM IHe1 IHe2.
-- by move=> e1 IHe1 e2; rewrite expE natrX IHe1 large_nat_N_nat.
-Qed.
-
-Fixpoint Rnorm R (f : R -> R') (e : RExpr R) : R' :=
-  match e in RExpr R return (R -> R') -> R' with
-  | RX _ x => fun f => f x
-  | R0 _ => fun => zero
-  | ROpp _ e1 => fun f => opp (Rnorm f e1)
-  | RZOpp e1 => fun f => opp (Rnorm f e1)
-  | RAdd _ e1 e2 => fun f => add (Rnorm f e1) (Rnorm f e2)
-  | RZAdd e1 e2 => fun f => add (Rnorm f e1) (Rnorm f e2)
-  | RZSub e1 e2 => fun f => sub (Rnorm f e1) (Rnorm f e2)
-  | RMuln _ e1 e2 => fun f => mul (Rnorm f e1) (Nnorm e2)
-  | RMulz _ e1 e2 => fun f => mul (Rnorm f e1) (Rnorm intr e2)
-  | R1 _ => fun => one
-  | RMul _ e1 e2 => fun f => mul (Rnorm f e1) (Rnorm f e2)
-  | RZMul e1 e2 => fun f => mul (Rnorm f e1) (Rnorm f e2)
-  | RExpn _ e1 n => fun f => exp (Rnorm f e1) (N_of_large_nat n)
-  | RExpPosz _ e1 n => fun f => exp (Rnorm f e1) (N_of_large_nat n)
-  | RExpNegz _ _ _ => fun _ => f (Reval e)
-  | RZExp e1 (Z.neg _) => fun f => zero
-  | RZExp e1 n => fun f => exp (Rnorm f e1) (Z.to_N n)
-  | RInv _ _ => fun _ => f (Reval e)
-  | RMorph _ _ g e1 => fun f => Rnorm (fun x => f (g x)) e1
-  | RMorph' _ _ g e1 => fun f => RZMnorm (fun x => f (g x)) e1
-  | RPosz e1 => fun => Nnorm e1
-  | RNegz e1 => fun => opp (add one (Nnorm e1))
-  | RZC x => fun => R_of_Z x
-  end f
-with RZMnorm V (f : V -> R') (e : ZMExpr V) : R' :=
-  match e in ZMExpr V return (V -> R') -> R' with
-  | ZMX _ x => fun f => f x
-  | ZM0 _ => fun => zero
-  | ZMOpp _ e1 => fun f => opp (RZMnorm f e1)
-  | ZMAdd _ e1 e2 => fun f => add (RZMnorm f e1) (RZMnorm f e2)
-  | ZMMuln _ e1 e2 => fun f => mul (RZMnorm f e1) (Nnorm e2)
-  | ZMMulz _ e1 e2 => fun f => mul (RZMnorm f e1) (Rnorm intr e2)
-  | ZMMorph _ _ g e1 => fun f => RZMnorm (fun x => f (g x)) e1
-  end f.
-
-Fixpoint norm_RElist
+Fixpoint Rnorm_list
     (lpe : list (RExpr R' * RExpr R' * PExpr Z * PExpr Z)) : seq R' :=
   if lpe is (lhs, rhs, _, _) :: lpe then
-    Rnorm id lhs :: Rnorm id rhs :: norm_RElist lpe
+    Rnorm id lhs :: Rnorm id rhs :: Rnorm_list lpe
   else
     [::].
-
-Lemma Rnorm_correct_rec R (f : {rmorphism R -> R'}) (e : RExpr R) :
-  f (Reval e) = Rnorm f e.
-Proof.
-pose P R e := forall (f : {rmorphism R -> R'}), f (Reval e) = Rnorm f e.
-pose P0 V e := forall (f : {additive V -> R'}), f (ZMeval e) = RZMnorm f e.
-move: f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
-- by move=> R f; rewrite rmorph0 zeroE.
-- by move=> R e1 IHe1 f; rewrite rmorphN IHe1 oppE.
-- by move=> e1 IHe1 f; rewrite rmorphN IHe1 oppE.
-- by move=> R e1 IHe1 e2 IHe2 f; rewrite rmorphD IHe1 IHe2 addE.
-- by move=> e1 IHe1 e2 IHe2 f; rewrite rmorphD IHe1 IHe2 addE.
-- by move=> e1 IHe1 e2 IHe2 f; rewrite rmorphB IHe1 IHe2 subE.
-- by move=> R e1 IHe1 e2 f; rewrite rmorphMn IHe1 -mulr_natr Nnorm_correct mulE.
-- by move=> R e1 IHe1 e2 IHe2 f; rewrite rmorphMz IHe1 -mulrzr IHe2 mulE.
-- by move=> R f; rewrite rmorph1 oneE.
-- by move=> R e1 IHe1 e2 IHe2 f; rewrite rmorphM IHe1 IHe2 mulE.
-- by move=> e1 IHe1 e2 IHe2 f; rewrite rmorphM IHe1 IHe2 mulE.
-- by move=> R e1 IHe1 e2 f; rewrite rmorphX IHe1 expE large_nat_N_nat.
-- by move=> R e1 IHe1 e2 f; rewrite rmorphX IHe1 expE large_nat_N_nat.
-- move=> e1 IHe1 [|n|n] f; rewrite !(zeroE, expE, rmorph0, rmorph1) //=.
-  rewrite -IHe1 -rmorphX; congr (f _); lia.
-- by move=> R S g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
-- by move=> V R g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
-- by move=> e f; rewrite -[Posz _]intz rmorph_int [LHS]Nnorm_correct.
-- move=> e f; rewrite -[Negz _]intz rmorph_int /intmul mulrS Nnorm_correct.
-  by rewrite oppE addE oneE.
-- by move=> x f; rewrite R_of_ZE -(rmorph_int f); congr (f _); lia.
-- by move=> V f; rewrite raddf0 zeroE.
-- by move=> V e1 IHe1 f; rewrite raddfN IHe1 oppE.
-- by move=> V e1 IHe1 e2 IHe2 f; rewrite raddfD IHe1 IHe2 addE.
-- move=> V e1 IHe1 e2 f.
-  by rewrite raddfMn IHe1 -mulr_natr Nnorm_correct mulE.
-- by move=> V e1 IHe1 e2 IHe2 f; rewrite raddfMz IHe1 -mulrzr IHe2 mulE.
-- by move=> V V' g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
-Qed.
-
-Lemma Rnorm_correct (e : RExpr R') : Reval e = Rnorm id e.
-Proof. exact: Rnorm_correct_rec [rmorphism of idfun] _. Qed.
 
 End Rnorm.
 
-Section Fnorm.
-
-Variables (F : fieldType).
-Variables (F_of_Z : Z -> F) (F_of_ZE : F_of_Z = (fun n => (int_of_Z n)%:~R)).
-Variables (zero : F) (zeroE : zero = 0%R) (opp : F -> F) (oppE : opp = -%R).
-Variables (add : F -> F -> F) (addE : add = +%R).
-Variables (sub : F -> F -> F) (subE : sub = (fun x y => x - y)).
-Variables (one : F) (oneE : one = 1%R) (mul : F -> F -> F) (mulE : mul = *%R).
-Variables (exp : F -> N -> F) (expE : exp = (fun x n => x ^+ nat_of_N n)).
-Variables (inv : F -> F) (invE : inv = GRing.inv).
-
-Notation Nnorm := (Nnorm F_of_Z add one mul exp).
-Let Nnorm_correct := (Nnorm_correct F_of_ZE addE oneE mulE expE).
-
-Fixpoint Fnorm R (f : R -> F) (e : RExpr R) : F :=
-  match e in RExpr R return (R -> F) -> F with
-  | RX _ x => fun f => f x
-  | R0 _ => fun => zero
-  | ROpp _ e1 => fun f => opp (Fnorm f e1)
-  | RZOpp e1 => fun f => opp (Fnorm f e1)
-  | RAdd _ e1 e2 => fun f => add (Fnorm f e1) (Fnorm f e2)
-  | RZAdd e1 e2 => fun f => add (Fnorm f e1) (Fnorm f e2)
-  | RZSub e1 e2 => fun f => sub (Fnorm f e1) (Fnorm f e2)
-  | RMuln _ e1 e2 => fun f => mul (Fnorm f e1) (Nnorm e2)
-  | RMulz _ e1 e2 => fun f => mul (Fnorm f e1) (Fnorm intr e2)
-  | R1 _ => fun => one
-  | RMul _ e1 e2 => fun f => mul (Fnorm f e1) (Fnorm f e2)
-  | RZMul e1 e2 => fun f => mul (Fnorm f e1) (Fnorm f e2)
-  | RExpn _ e1 n => fun f => exp (Fnorm f e1) (N_of_large_nat n)
-  | RExpPosz _ e1 n => fun f => exp (Fnorm f e1) (N_of_large_nat n)
-  | RExpNegz _ e1 n => fun f =>
-      inv (exp (Fnorm f e1) (N.succ (N_of_large_nat n)))
-  | RZExp e1 (Z.neg _) => fun f => zero
-  | RZExp e1 n => fun f => exp (Fnorm f e1) (Z.to_N n)
-  | RInv _ e1 => fun f => inv (Fnorm f e1)
-  | RMorph _ _ g e1 => fun f => Fnorm (fun x => f (g x)) e1
-  | RMorph' _ _ g e1 => fun f => FZMnorm (fun x => f (g x)) e1
-  | RPosz e1 => fun => Nnorm e1
-  | RNegz e1 => fun => opp (add one (Nnorm e1))
-  | RZC x => fun => F_of_Z x
-  end f
-with FZMnorm V (f : V -> F) (e : ZMExpr V) : F :=
-  match e in ZMExpr V return (V -> F) -> F with
-  | ZMX _ x => fun f => f x
-  | ZM0 _ => fun => zero
-  | ZMOpp _ e1 => fun f => opp (FZMnorm f e1)
-  | ZMAdd _ e1 e2 => fun f => add (FZMnorm f e1) (FZMnorm f e2)
-  | ZMMuln _ e1 e2 => fun f => mul (FZMnorm f e1) (Nnorm e2)
-  | ZMMulz _ e1 e2 => fun f => mul (FZMnorm f e1) (Fnorm intr e2)
-  | ZMMorph _ _ g e1 => fun f => FZMnorm (fun x => f (g x)) e1
-  end f.
-
-Lemma Fnorm_correct_rec R (f : {rmorphism R -> F}) (e : RExpr R) :
-  f (Reval e) = Fnorm f e.
-Proof.
-pose P R e := forall (f : {rmorphism R -> F}), f (Reval e) = Fnorm f e.
-pose P0 V e := forall (f : {additive V -> F}), f (ZMeval e) = FZMnorm f e.
-move: f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
-- by move=> R f; rewrite rmorph0 zeroE.
-- by move=> R e1 IHe1 f; rewrite rmorphN IHe1 oppE.
-- by move=> e1 IHe1 f; rewrite rmorphN IHe1 oppE.
-- by move=> R e1 IHe1 e2 IHe2 f; rewrite rmorphD IHe1 IHe2 addE.
-- by move=> e1 IHe1 e2 IHe2 f; rewrite rmorphD IHe1 IHe2 addE.
-- by move=> e1 IHe1 e2 IHe2 f; rewrite rmorphB IHe1 IHe2 subE.
-- move=> R e1 IHe1 e2 f.
-  by rewrite rmorphMn IHe1 -mulr_natr Nnorm_correct mulE.
-- by move=> R e1 IHe1 e2 IHe2 f; rewrite rmorphMz IHe1 -mulrzr IHe2 mulE.
-- by move=> R f; rewrite rmorph1 oneE.
-- by move=> R e1 IHe1 e2 IHe2 f; rewrite rmorphM IHe1 IHe2 mulE.
-- by move=> e1 IHe1 e2 IHe2 f; rewrite rmorphM IHe1 IHe2 mulE.
-- by move=> R e1 IHe1 e2 f; rewrite rmorphX IHe1 expE large_nat_N_nat.
-- by move=> R e1 IHe1 n f; rewrite rmorphX IHe1 expE large_nat_N_nat.
-- move=> R e1 IHe1 n f; rewrite fmorphV rmorphX IHe1 invE expE.
-  by rewrite Nnat.N2Nat.inj_succ large_nat_N_nat.
-- move=> e1 IHe1 [|n|n] f; rewrite ?(zeroE, oneE, expE, rmorph0, rmorph1) //=.
-  rewrite -IHe1 -rmorphX; congr (f _); lia.
-- by move=> F' e1 IHe1 f; rewrite fmorphV IHe1 invE.
-- by move=> R R' g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
-- by move=> V R g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
-- by move=> e f; rewrite -[Posz _]intz rmorph_int [LHS]Nnorm_correct.
-- move=> e f; rewrite -[Negz _]intz rmorph_int /intmul mulrS Nnorm_correct.
-  by rewrite oppE addE oneE.
-- by move=> x f; rewrite F_of_ZE -(rmorph_int f); congr (f _); lia.
-- by move=> V f; rewrite raddf0 zeroE.
-- by move=> V e1 IHe1 f; rewrite raddfN IHe1 oppE.
-- by move=> V e1 IHe1 e2 IHe2 f; rewrite raddfD IHe1 IHe2 addE.
-- by move=> V e1 IHe1 e2 f; rewrite raddfMn IHe1 -mulr_natr Nnorm_correct mulE.
-- by move=> V e1 IHe1 e2 IHe2 f; rewrite raddfMz IHe1 -mulrzr IHe2 mulE.
-- by move=> V V' g e1 IHe1 f; rewrite -/(comp f g) -IHe1.
-Qed.
-
-Lemma Fnorm_correct (e : RExpr F) : Reval e = Fnorm id e.
-Proof. exact: Fnorm_correct_rec [rmorphism of idfun] _. Qed.
-
-End Fnorm.
-
 (* Normalizing ring and field expressions to the Horner form by reflection    *)
 
-Fixpoint interp_PElist
-    R R_of_Z zero opp add sub one mul exp
-    (l : seq R) (lpe : list (RExpr R * RExpr R * PExpr Z * PExpr Z)) : seq R :=
+Fixpoint PEeval_list
+    C R (R_of_C : C -> R) zero opp add sub one mul exp
+    (l : seq R) (lpe : list (RExpr R * RExpr R * PExpr C * PExpr C)) : seq R :=
   if lpe is (_, _, lhs, rhs) :: lpe then
-    PEeval zero one add mul sub opp R_of_Z id exp l lhs ::
-    PEeval zero one add mul sub opp R_of_Z id exp l rhs ::
-    interp_PElist R_of_Z zero opp add sub one mul exp l lpe
+    PEeval zero one add mul sub opp R_of_C id exp l lhs ::
+    PEeval zero one add mul sub opp R_of_C id exp l rhs ::
+    PEeval_list R_of_C zero opp add sub one mul exp l lpe
   else
     [::].
+
+Definition Scorrect (R : comSemiRingType) :=
+  let RE := Eq_ext +%R *%R id in
+  let RN := SRmorph_Rmorph (Eqsth R) (RN R) in
+  ring_correct (Eqsth R) RE (SRth_ARth (Eqsth R) (RS R)) RN (PN R)
+    (triv_div_th (Eqsth R) RE (SRth_ARth (Eqsth R) (RS R)) RN).
+
+Lemma semiring_correct
+  (R : target_comSemiRing) (n : nat) (l : seq R)
+  (lpe : seq (RExpr R * RExpr R * PExpr N * PExpr N))
+  (re1 re2 : RExpr R) (pe1 pe2 : PExpr N) :
+  Reval_eqs lpe ->
+  (forall R_of_N zero add one mul exp,
+      SemiRing.Rnorm R_of_N zero add one mul exp
+        (@target_comSemiRingMorph R) re1 ::
+      SemiRing.Rnorm R_of_N zero add one mul exp
+        (@target_comSemiRingMorph R) re2 ::
+      Snorm_list R_of_N zero add one mul exp lpe =
+      PEeval zero one add mul add id R_of_N id exp l pe1 ::
+      PEeval zero one add mul add id R_of_N id exp l pe2 ::
+      PEeval_list R_of_N zero id add add one mul exp l lpe) ->
+  (let norm_subst' :=
+     norm_subst 0 1 N.add N.mul N.add id N.eqb (triv_div 0 1 N.eqb) n
+                (mk_monpol_list
+                   0 1 N.add N.mul N.add id N.eqb (triv_div 0 1 N.eqb)
+                   (map (fun '(_, _, lhs, rhs) => (lhs, rhs)) lpe))
+   in
+   Peq N.eqb (norm_subst' pe1) (norm_subst' pe2)) ->
+  Reval re1 = Reval re2.
+Proof.
+move=> Hlpe' /(_ (fun n => (nat_of_N n)%:R) 0%R +%R).
+move=> /(_ 1%R *%R (fun x n => x ^+ nat_of_N n)) /=.
+have /SemiRing.eq_Rnorm Hnorm: @target_comSemiRingMorph R =1 id.
+  by case R => //= ?; lia.
+rewrite !{}Hnorm -!SemiRing.Rnorm_correct => -[-> -> Hlpe]; apply: Scorrect.
+elim: lpe Hlpe Hlpe' => [|[[[{}re1 {}re2] {}pe1] {}pe2] lpe IHlpe] //=.
+rewrite /= -!SemiRing.Rnorm_correct //.
+by move=> [-> ->] Hlpe [Hpe /(IHlpe Hlpe)] {IHlpe Hlpe} /=; case: lpe.
+Qed.
 
 Definition Rcorrect (R : comRingType) :=
   let RE := Eq_ext +%R *%R -%R in
@@ -363,17 +159,19 @@ Definition Rcorrect (R : comRingType) :=
     (Eqsth R) RE (Rth_ARth (Eqsth R) RE (RR R)) (RZ R) (PN R)
     (triv_div_th (Eqsth R) RE (Rth_ARth (Eqsth R) RE (RR R)) (RZ R)).
 
-Lemma ring_correct (R : comRingType) (n : nat) (l : seq R)
+Lemma ring_correct (R : target_comRing) (n : nat) (l : seq R)
                    (lpe : seq (RExpr R * RExpr R * PExpr Z * PExpr Z))
                    (re1 re2 : RExpr R) (pe1 pe2 : PExpr Z) :
-  interp_RElist lpe ->
+  Reval_eqs lpe ->
   (forall R_of_Z zero opp add sub one mul exp,
-      Rnorm R_of_Z zero opp add sub one mul exp id re1 ::
-      Rnorm R_of_Z zero opp add sub one mul exp id re2 ::
-      norm_RElist R_of_Z zero opp add sub one mul exp lpe =
+      Ring.Rnorm R_of_Z zero add opp sub one mul exp
+        (@target_comRingMorph R) re1 ::
+      Ring.Rnorm R_of_Z zero add opp sub one mul exp
+        (@target_comRingMorph R) re2 ::
+      Rnorm_list R_of_Z zero add opp sub one mul exp lpe =
       PEeval zero one add mul sub opp R_of_Z id exp l pe1 ::
       PEeval zero one add mul sub opp R_of_Z id exp l pe2 ::
-     interp_PElist R_of_Z zero opp add sub one mul exp l lpe) ->
+      PEeval_list R_of_Z zero opp add sub one mul exp l lpe) ->
   (let norm_subst' :=
      norm_subst 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb (triv_div 0 1 Z.eqb) n
                 (mk_monpol_list
@@ -385,9 +183,10 @@ Lemma ring_correct (R : comRingType) (n : nat) (l : seq R)
 Proof.
 move=> Hlpe' /(_ (fun n => (int_of_Z n)%:~R) 0%R -%R +%R (fun x y => x - y)).
 move=> /(_ 1%R *%R (fun x n => x ^+ nat_of_N n)) /=.
-rewrite -!Rnorm_correct // => -[-> -> Hlpe]; apply: Rcorrect.
+have /Ring.eq_Rnorm Hnorm: @target_comRingMorph R =1 id by case R => //= ?; lia.
+rewrite !Hnorm -!Ring.Rnorm_correct => -[-> -> Hlpe]; apply: Rcorrect.
 elim: lpe Hlpe Hlpe' => [|[[[{}re1 {}re2] {}pe1] {}pe2] lpe IHlpe] //=.
-rewrite /= -!Rnorm_correct //.
+rewrite /= -!Ring.Rnorm_correct //.
 by move=> [-> ->] Hlpe [Hpe /(IHlpe Hlpe)] {IHlpe Hlpe} /=; case: lpe.
 Qed.
 
@@ -454,14 +253,14 @@ Definition Fcorrect F :=
 Lemma field_correct (F : fieldType) (n : nat) (l : seq F)
                     (lpe : seq (RExpr F * RExpr F * PExpr Z * PExpr Z))
                     (re1 re2 : RExpr F) (fe1 fe2 : FExpr Z) :
-  interp_RElist lpe ->
+  Reval_eqs lpe ->
   (forall R_of_Z zero opp add sub one mul exp div inv,
-      Fnorm R_of_Z zero opp add sub one mul exp inv id re1 ::
-      Fnorm R_of_Z zero opp add sub one mul exp inv id re2 ::
-      norm_RElist R_of_Z zero opp add sub one mul exp lpe =
+      Field.Rnorm R_of_Z zero add opp sub one mul exp inv id re1 ::
+      Field.Rnorm R_of_Z zero add opp sub one mul exp inv id re2 ::
+      Rnorm_list R_of_Z zero add opp sub one mul exp lpe =
       FEeval zero one add mul sub opp div inv R_of_Z id exp l fe1 ::
       FEeval zero one add mul sub opp div inv R_of_Z id exp l fe2 ::
-      interp_PElist R_of_Z zero opp add sub one mul exp l lpe) ->
+      PEeval_list R_of_Z zero opp add sub one mul exp l lpe) ->
   (forall is_true_ negb_ andb_ zero one add mul sub opp Feqb F_of_nat exp l',
       is_true_ = is_true -> negb_ = negb -> andb_ = andb ->
       zero = 0 -> one = 1 -> add = +%R -> mul = *%R ->
@@ -492,12 +291,12 @@ Lemma field_correct (F : fieldType) (n : nat) (l : seq F)
 Proof.
 move=> Hlpe' /(_ (fun n => (int_of_Z n)%:~R) 0%R -%R +%R (fun x y => x - y)).
 move=> /(_ 1%R *%R (fun x n => x ^+ nat_of_N n) (fun x y => x / y) GRing.inv).
-rewrite -!Fnorm_correct // => -[-> -> Hlpe].
+rewrite -!Field.Rnorm_correct => -[-> -> Hlpe].
 move=> /(_ _ _ _ _ _ _ _ _ _ _ _ _ _ erefl erefl erefl erefl erefl erefl erefl).
 move=> /(_ _ _ _ _ _ _ erefl erefl erefl erefl erefl erefl) [Heq Hcond].
 apply: (Fcorrect _ erefl erefl erefl Heq).
-  elim: {Heq Hcond}lpe Hlpe Hlpe' => //.
-  move=> [[[{}re1 {}re2] {}pe1] {}pe2] lpe IHlpe; rewrite /= -!Rnorm_correct //.
+  elim: {Heq Hcond}lpe Hlpe Hlpe' => // -[[[{}re1 {}re2] {}pe1] {}pe2].
+  move=> lpe IHlpe /=; rewrite -!Ring.Rnorm_correct.
   by move=> [-> ->] Hlpe [Hpe /(IHlpe Hlpe)] {IHlpe Hlpe} /=; case: lpe.
 by apply: Pcond_simpl_gen;
   [ exact: Eq_ext | exact/F2AF/RF/Eq_ext | exact: RZ | exact: PN |
@@ -508,14 +307,14 @@ Qed.
 Lemma numField_correct (F : numFieldType) (n : nat) (l : seq F)
                        (lpe : seq (RExpr F * RExpr F * PExpr Z * PExpr Z))
                        (re1 re2 : RExpr F) (fe1 fe2 : FExpr Z) :
-  interp_RElist lpe ->
+  Reval_eqs lpe ->
   (forall R_of_Z zero opp add sub one mul exp div inv,
-      Fnorm R_of_Z zero opp add sub one mul exp inv id re1 ::
-      Fnorm R_of_Z zero opp add sub one mul exp inv id re2 ::
-      norm_RElist R_of_Z zero opp add sub one mul exp lpe =
+      Field.Rnorm R_of_Z zero add opp sub one mul exp inv id re1 ::
+      Field.Rnorm R_of_Z zero add opp sub one mul exp inv id re2 ::
+      Rnorm_list R_of_Z zero add opp sub one mul exp lpe =
       FEeval zero one add mul sub opp div inv R_of_Z id exp l fe1 ::
       FEeval zero one add mul sub opp div inv R_of_Z id exp l fe2 ::
-      interp_PElist R_of_Z zero opp add sub one mul exp l lpe) ->
+      PEeval_list R_of_Z zero opp add sub one mul exp l lpe) ->
   (forall is_true_ negb_ andb_ zero one add mul sub opp Feqb F_of_nat exp l',
       is_true_ = is_true -> negb_ = negb -> andb_ = andb ->
       zero = 0 -> one = 1 -> add = +%R -> mul = *%R ->
@@ -546,12 +345,12 @@ Lemma numField_correct (F : numFieldType) (n : nat) (l : seq F)
 Proof.
 move=> Hlpe' /(_ (fun n => (int_of_Z n)%:~R) 0%R -%R +%R (fun x y => x - y)).
 move=> /(_ 1%R *%R (fun x n => x ^+ nat_of_N n) (fun x y => x / y) GRing.inv).
-rewrite -!Fnorm_correct // => -[-> -> Hlpe].
+rewrite -!Field.Rnorm_correct => -[-> -> Hlpe].
 move=> /(_ _ _ _ _ _ _ _ _ _ _ _ _ _ erefl erefl erefl erefl erefl erefl erefl).
 move=> /(_ _ _ _ _ _ _ erefl erefl erefl erefl erefl erefl) [Heq Hcond].
 apply: (Fcorrect _ erefl erefl erefl Heq).
-  elim: {Heq Hcond}lpe Hlpe Hlpe' => //.
-  move=> [[[{}re1 {}re2] {}pe1] {}pe2] lpe IHlpe; rewrite /= -!Rnorm_correct //.
+  elim: {Heq Hcond}lpe Hlpe Hlpe' => // -[[[{}re1 {}re2] {}pe1] {}pe2].
+  move=> lpe IHlpe /=; rewrite -!Ring.Rnorm_correct.
   by move=> [-> ->] Hlpe [Hpe /(IHlpe Hlpe)] {IHlpe Hlpe} /=; case: lpe.
 apply: Pcond_simpl_complete;
   [ exact: Eq_ext | exact/F2AF/RF/Eq_ext | exact: RZ | exact: PN |
@@ -603,38 +402,28 @@ End Internals.
 
 (* Auxiliary Ltac code which will be invoked from Elpi *)
 
-Ltac ring_reflection_check R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
-  refine (@ring_correct R 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
-                        (fun _ _ _ _ _ _ _ _ => erefl) _);
+Ltac ring_reflection_check Lem R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+  refine (Lem R 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
+              (fun _ _ _ _ _ _ _ _ => erefl) _);
   [ vm_compute; reflexivity ].
 
-Ltac ring_reflection_no_check R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
-  exact_no_check (@ring_correct
+Ltac ring_reflection_no_check Lem R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+  exact_no_check (Lem
     R 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
     (fun _ _ _ _ _ _ _ _ => ltac:(reflexivity_no_check))
     ltac:(vm_compute; reflexivity)).
 
 Ltac ring_reflection := ring_reflection_check.
 
-Ltac field_reflection_check F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
-  let refl_lemma :=
-    match type of F with
-      numFieldType => constr:(@numField_correct) | _ => constr:(@field_correct)
-    end
-  in
-  refine (refl_lemma F 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
-                     (fun _ _ _ _ _ _ _ _ _ _ => erefl) _);
+Ltac field_reflection_check Lem F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
+  refine (Lem F 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
+              (fun _ _ _ _ _ _ _ _ _ _ => erefl) _);
   field_normalization.
 
-Ltac field_reflection_no_check F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
-  let refl_lemma :=
-    match type of F with
-      numFieldType => constr:(@numField_correct) | _ => constr:(@field_correct)
-    end
-  in
+Ltac field_reflection_no_check Lem F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let obligation := fresh in
   eassert (obligation : _);
-  [ | exact_no_check (refl_lemma
+  [ | exact_no_check (Lem
         F 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
         (fun _ _ _ _ _ _ _ _ _ _ => ltac:(reflexivity_no_check))
         ltac:(field_normalization; exact obligation)) ].
@@ -642,13 +431,14 @@ Ltac field_reflection_no_check F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
 Ltac field_reflection := field_reflection_check.
 
 Strategy expand [addn_expand nat_of_pos_rec_expand nat_of_pos_expand].
-Strategy expand [nat_of_N_expand int_of_Z_expand Z_of_N_expand].
+Strategy expand [nat_of_N_expand].
 Strategy expand [nat_of_large_nat N_of_large_nat Z_of_large_nat].
-Strategy expand [int_of_large_int Z_of_large_int].
 
-Strategy expand [Neval Reval Nnorm Rnorm Fnorm PEeval FEeval].
+Strategy expand [Reval Meval SemiRing.Rnorm SemiRing.Mnorm].
+Strategy expand [Ring.Rnorm Ring.Mnorm Field.Rnorm Field.Mnorm PEeval FEeval].
 
 Elpi Tactic ring.
+Elpi Accumulate Db canonicals.db.
 Elpi Accumulate File common ring ring_tac.
 Elpi Typecheck.
 
@@ -659,6 +449,7 @@ Tactic Notation "#[" attributes(A) "]" "ring" ":" ne_constr_list(L) :=
   ltac_attributes:(A) elpi ring ltac_term_list:(L).
 
 Elpi Tactic field.
+Elpi Accumulate Db canonicals.db.
 Elpi Accumulate File common ring field_tac.
 Elpi Typecheck.
 
@@ -668,3 +459,5 @@ Tactic Notation "#[" attributes(A) "]" "field" :=
   ltac_attributes:(A) elpi field.
 Tactic Notation "#[" attributes(A) "]" "field" ":" ne_constr_list(L) :=
   ltac_attributes:(A) elpi field ltac_term_list:(L).
+
+Elpi Query lp:{{ canonical-init library "canonicals.db" }}.

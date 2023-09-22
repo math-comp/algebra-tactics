@@ -9,10 +9,6 @@ pred mem o:list term, o:term, o:int.
 mem [X|_] X 0 :- !.
 mem [_|XS] X M :- !, mem XS X N, M is N + 1.
 
-pred close o:list term.
-close [] :- !.
-close [_|XS] :- close XS.
-
 % [eucldiv N D M R] N = D * M + R
 pred eucldiv o:int, i:int, o:int, i:int.
 eucldiv N D M R :- var N, var M, !, declare_constraint (eucldiv N D M R) [N, M].
@@ -76,9 +72,6 @@ pred ground-uint i:term.
 ground-uint {{ Number.UIntDecimal lp:D }} :- !, ground-decimal D.
 ground-uint {{ Number.UIntHexadecimal lp:D }} :- !, ground-hexadecimal D.
 
-pred reduction-pos i:term, o:term.
-reduction-pos I O :- coq.reduction.vm.norm I {{ positive }} O, ground-pos O.
-
 pred reduction-N i:term, o:term.
 reduction-N I O :- coq.reduction.vm.norm I {{ N }} O, ground-N O.
 
@@ -88,3 +81,598 @@ reduction-Z I O :- coq.reduction.vm.norm I {{ Z }} O, ground-Z O.
 pred negb i:bool, o:bool.
 negb tt ff :- !.
 negb ff tt :- !.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+pred register-instance i:scope, i:id, i:gref, i:gref, i:constant -> prop.
+register-instance Scope DbName Proj Pat Pred :- std.do! [
+  coq.CS.db-for Proj (cs-gref Pat) [cs-instance _ _ (const Inst)],
+  coq.elpi.accumulate Scope DbName (clause _ _ (Pred Inst :- !)) ].
+
+pred canonical-init i:scope, i:id.
+canonical-init Scope DbName :- std.do! [
+  register-instance Scope DbName
+    {{:gref GRing.Nmodule.sort }} {{:gref nat }} canonical-nat-nmodule,
+  register-instance Scope DbName
+    {{:gref GRing.SemiRing.sort }} {{:gref nat }} canonical-nat-semiring,
+  register-instance Scope DbName
+    {{:gref GRing.ComSemiRing.sort }} {{:gref nat }} canonical-nat-comsemiring,
+  register-instance Scope DbName
+    {{:gref GRing.Nmodule.sort }} {{:gref N }} canonical-N-nmodule,
+  register-instance Scope DbName
+    {{:gref GRing.SemiRing.sort }} {{:gref N }} canonical-N-semiring,
+  register-instance Scope DbName
+    {{:gref GRing.ComSemiRing.sort }} {{:gref N }} canonical-N-comsemiring,
+  register-instance Scope DbName
+    {{:gref GRing.Nmodule.sort }} {{:gref int }} canonical-int-nmodule,
+  register-instance Scope DbName
+    {{:gref GRing.Zmodule.sort }} {{:gref int }} canonical-int-zmodule,
+  register-instance Scope DbName
+    {{:gref GRing.SemiRing.sort }} {{:gref int }} canonical-int-semiring,
+  register-instance Scope DbName
+    {{:gref GRing.Ring.sort }} {{:gref int }} canonical-int-ring,
+  register-instance Scope DbName
+    {{:gref GRing.ComRing.sort }} {{:gref int }} canonical-int-comring,
+  register-instance Scope DbName
+    {{:gref GRing.UnitRing.sort }} {{:gref int }} canonical-int-unitring,
+  register-instance Scope DbName
+    {{:gref GRing.Nmodule.sort }} {{:gref Z }} canonical-Z-nmodule,
+  register-instance Scope DbName
+    {{:gref GRing.Zmodule.sort }} {{:gref Z }} canonical-Z-zmodule,
+  register-instance Scope DbName
+    {{:gref GRing.SemiRing.sort }} {{:gref Z }} canonical-Z-semiring,
+  register-instance Scope DbName
+    {{:gref GRing.Ring.sort }} {{:gref Z }} canonical-Z-ring,
+  register-instance Scope DbName
+    {{:gref GRing.ComRing.sort }} {{:gref Z }} canonical-Z-comring,
+  register-instance Scope DbName
+    {{:gref GRing.UnitRing.sort }} {{:gref Z }} canonical-Z-unitring ].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Expression refifier
+
+% We use the following four predicates as global variables to store some
+% information about the target (semi)ring, so that we do not have to pass them
+% around in reification.
+
+% [target-nmodule U] and [target-semiring SR] respectively assert that the
+% target carrier type has the N-module and semiring instance [U] and [SR].
+% These predicates should always succeed in reification.
+pred target-nmodule o:term.
+pred target-semiring o:term.
+
+% [target-zmodule U] asserts that the target carrier type has the Z-module
+% instance [U]. This predicate fails when the target is not a ring but semiring.
+pred target-zmodule o:term.
+
+% [field-mode] succeeds if the target is a field equation (field tactic)
+% or real field linear problem (lra).
+pred field-mode.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Types to collect structure instances on the current carrier type and the
+% homomorphism from the carrier type to the target type
+
+kind additive type.
+type additive
+  term ->           % nmodType
+  option term ->    % zmodType
+  (term -> term) -> % additive morphism
+  additive.
+
+kind rmorphism type.
+type rmorphism
+  term ->           % nmodType
+  option term ->    % zmodType
+  term ->           % semiRingType
+  option term ->    % ringType
+  option term ->    % unitRingType
+  option term ->    % fieldType
+  (term -> term) -> % ring morphism
+  rmorphism.
+type rmorphism-nat rmorphism. % _%:R
+type rmorphism-N   rmorphism. % (N.to_nat _)%:R
+type rmorphism-int rmorphism. % _%:~R
+type rmorphism-Z   rmorphism. % (int_of_Z _)%:~R
+
+% destructors
+
+pred rmorphism->nmod i:rmorphism, o:term.
+rmorphism->nmod (rmorphism U _ _ _ _ _ _) U :- !.
+rmorphism->nmod rmorphism-nat (global (const U)) :- !, canonical-nat-nmodule U.
+rmorphism->nmod rmorphism-N   (global (const U)) :- !, canonical-N-nmodule U.
+rmorphism->nmod rmorphism-int (global (const U)) :- !, canonical-int-nmodule U.
+rmorphism->nmod rmorphism-Z   (global (const U)) :- !, canonical-Z-nmodule U.
+
+pred rmorphism->zmod i:rmorphism, o:term.
+rmorphism->zmod (rmorphism _ (some U) _ _ _ _ _) U :- !.
+rmorphism->zmod rmorphism-int (global (const U)) :- !, canonical-int-zmodule U.
+rmorphism->zmod rmorphism-Z   (global (const U)) :- !, canonical-Z-zmodule U.
+
+pred rmorphism->sring i:rmorphism, o:term.
+rmorphism->sring (rmorphism _ _ R _ _ _ _) R :- !.
+rmorphism->sring rmorphism-nat (global (const R)) :- !,
+  canonical-nat-semiring R.
+rmorphism->sring rmorphism-N   (global (const R)) :- !, canonical-N-semiring R.
+rmorphism->sring rmorphism-int (global (const R)) :- !,
+  canonical-int-semiring R.
+rmorphism->sring rmorphism-Z   (global (const R)) :- !, canonical-Z-semiring R.
+
+pred rmorphism->ring i:rmorphism, o:term.
+rmorphism->ring (rmorphism _ _ _ (some R) _ _ _) R :- !.
+rmorphism->ring rmorphism-int (global (const R)) :- !, canonical-int-ring R.
+rmorphism->ring rmorphism-Z   (global (const R)) :- !, canonical-Z-ring R.
+
+pred rmorphism->uring i:rmorphism, o:term.
+rmorphism->uring (rmorphism _ _ _ _ (some UR) _ _) UR :- !.
+rmorphism->uring rmorphism-int (global (const R)) :- !,
+  canonical-int-unitring R.
+rmorphism->uring rmorphism-Z   (global (const R)) :- !, canonical-Z-unitring R.
+
+pred rmorphism->field i:rmorphism, o:term.
+rmorphism->field (rmorphism _ _ _ _ _ (some F) _) F :- !.
+
+pred rmorphism->morph i:rmorphism, o:term -> term.
+rmorphism->morph (rmorphism _ _ _ _ _ _ Morph) Morph :- !.
+rmorphism->morph rmorphism-nat Morph :- !,
+  target-nmodule TU, !, target-semiring TR, !,
+  Morph = n\ {{ @GRing.natmul lp:TU (@GRing.one lp:TR) lp:n }}.
+rmorphism->morph rmorphism-N Morph :- !,
+  target-nmodule TU, !, target-semiring TR, !,
+  Morph = n\ {{ @GRing.natmul lp:TU (@GRing.one lp:TR) (N.to_nat lp:n) }}.
+rmorphism->morph rmorphism-int Morph :- !,
+  target-zmodule TU, !, target-semiring TR, !,
+  Morph = n\ {{ @intmul lp:TU (@GRing.one lp:TR) lp:n }}.
+rmorphism->morph rmorphism-Z Morph :- !,
+  target-zmodule TU, !, target-semiring TR, !,
+  Morph = n\ {{ @intmul lp:TU (@GRing.one lp:TR) (int_of_Z lp:n) }}.
+
+pred rmorphism-rm-field i:rmorphism, o:rmorphism.
+rmorphism-rm-field (rmorphism U V SR R UR _ M) (rmorphism U V SR R UR none M).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+namespace quote {
+
+% Constructors for reified terms (should be instantiated by each tactic)
+pred build.variable i:term, o:term.
+pred build.zero o:term.
+pred build.opp i:term, o:term.
+pred build.add i:term, i:term, o:term.
+pred build.sub i:term, i:term, o:term.
+pred build.one o:term.
+pred build.mul i:term, i:term, o:term.
+pred build.exp i:term, i:term, o:term.
+pred build.inv i:term, o:term.
+pred build.Z-constant i:term, o:term.
+pred build.N-constant i:term, o:term.
+
+% [count-succ In N Out] returns the largest [N] such that [In] is
+% [S (S (... Out))] with [N] occurences of [S]
+pred count-succ i:term, o:int, o:term.
+count-succ {{ lib:num.nat.S lp:In }} N' Out :- !,
+  count-succ In N Out, N' is N + 1.
+count-succ In 0 In :- !.
+
+% [quote.n-const In OutM Out] reifies natural number constant [In] of type [nat]
+% to a term [OutM] of type [large_nat] and a term [Out] of type [N].
+pred n-const i:term, o:term, o:term.
+n-const {{ lp:In : _ }} OutM Out :- !, n-const In OutM Out.
+n-const {{ Nat.of_num_uint lp:In }} {{ large_nat_uint lp:In }} Out :-
+  ground-uint In, !,
+  coq.reduction.vm.norm {{ N.of_num_uint lp:In }} {{ N }} Out.
+n-const In {{ large_nat_N lp:Out }} Out :-
+  reduction-N {{ N.of_nat lp:In }} Out.
+
+% [quote.z-const In Sign OutM Out] reifies integer constant [In] of type
+% [int] to a boolean [Sign], a term [OutM] of type [large_nat]
+% and a term [Out] of type [N]
+% [Sign] is [tt] iff [In] is non negative,
+% in which case [In] is [Out], otherwise [In] is [- Out.+1]
+pred z-const i:term, o:bool, o:term, o:term.
+z-const {{ lp:In : _ }} Sign OutM Out :- !, z-const In Sign OutM Out.
+z-const {{ Posz (Nat.of_num_uint lp:In) }} tt {{ large_nat_uint lp:In }} Out :-
+  ground-uint In, !,
+  coq.reduction.vm.norm {{ N.of_num_uint lp:In }} {{ N }} Out.
+z-const {{ Negz (Nat.of_num_uint lp:In) }} ff {{ large_nat_uint lp:In }} Out :-
+  ground-uint In, !,
+  coq.reduction.vm.norm {{ N.of_num_uint lp:In }} {{ N }} Out.
+z-const In Sign {{ large_nat_N lp:Out }} Out :- !,
+  coq.reduction.vm.norm {{ quote_icstr_helper lp:In }} {{ (bool * N)%type }}
+    {{ (lp:Sign', lp:Out) }}, !,
+  (Sign' = {{ true }}, !, Sign = tt;
+   Sign' = {{ false }}, !, Sign = ff), !,
+  ground-N Out.
+
+% [quote.nmod C Input OutM Out VM] reifies an expression [Input]
+% under the additive morphism [C]
+% - [C] stores instances on the carrier type and the additive function from it,
+% - [Input] is a term of the carrier type,
+% - [OutM] is a reified terms of [Input] of type [MExpr C],
+%   it is such that [Meval OutM] is exactly [Input],
+% - [Out] is a reified term of [Input] built by build.*,
+%   it has morphisms pushed inward such that the eval of [Out]
+%   is [{SemiRing,Ring,Field,Lra}.Mnorm OutM]
+% - [VM] is a variable map.
+pred nmod i:additive, i:term, o:term, o:term, o:list term.
+% _ : _
+nmod C {{ lp:In : _ }} OutM Out VM :- !,
+  nmod C In OutM Out VM.
+% 0%R
+nmod (additive U _ _) {{ @GRing.zero lp:U' }} {{ @M0 lp:U }} Out _ :-
+  coq.unify-eq U U' ok, !,
+  build.zero Out.
+% +%R
+nmod (additive U _ _ as C) {{ @GRing.add lp:U' lp:In1 lp:In2 }}
+     {{ @MAdd lp:U lp:OutM1 lp:OutM2 }} Out VM :-
+  coq.unify-eq U U' ok, !,
+  nmod C In1 OutM1 Out1 VM, !,
+  nmod C In2 OutM2 Out2 VM, !,
+  build.add Out1 Out2 Out.
+% (_ *+ _)%R
+nmod (additive U _ _ as C) {{ @GRing.natmul lp:U' lp:In1 lp:In2 }}
+     {{ @MMuln lp:U lp:OutM1 lp:OutM2 }} Out VM :-
+  coq.unify-eq U U' ok, !,
+  nmod C In1 OutM1 Out1 VM, !,
+  ring rmorphism-nat In2 OutM2 Out2 VM, !,
+  build.mul Out1 Out2 Out.
+% -%R
+nmod (additive _ (some U) _ as C) {{ @GRing.opp lp:U' lp:In1 }}
+     {{ @MOpp lp:U lp:OutM1 }} Out VM :-
+  coq.unify-eq U U' ok, !,
+  nmod C In1 OutM1 Out1 VM, !,
+  build.opp Out1 Out.
+% (_ *~ _)%R
+nmod (additive _ (some U) _ as C) {{ @intmul lp:U' lp:In1 lp:In2 }}
+     {{ @MMulz lp:U lp:OutM1 lp:OutM2 }} Out VM :-
+  coq.unify-eq U U' ok, !,
+  nmod C In1 OutM1 Out1 VM, !,
+  ring rmorphism-int In2 OutM2 Out2 VM, !,
+  build.mul Out1 Out2 Out.
+% additive functions
+nmod (additive U _ _ as C) In OutM Out VM :-
+  % TODO: for concrete additive functions, should we unpack [NewMorphInst]?
+  NewMorph = (x\ {{ @GRing.Additive.sort lp:V lp:U lp:NewMorphInst lp:x }}),
+  coq.unify-eq In (NewMorph In1) ok, !,
+  nmod.additive V C NewMorph NewMorphInst In1 OutM Out VM.
+% variables
+nmod (additive U _ Morph) In {{ @MX lp:U lp:In }} Out VM :-
+  mem VM (Morph In) N, !,
+  build.variable { positive-constant {calc (N + 1)} } Out.
+nmod _ In _ _ _ :- coq.error "Unknown" { coq.term->string In }.
+
+pred nmod.additive i:term, i:additive, i:term -> term, i:term, i:term,
+                   o:term, o:term, o:list term.
+nmod.additive V (additive U _ Morph) NewMorph NewMorphInst In1
+              {{ @MnatAdditive lp:U lp:NewMorphInst lp:OutM1 }} Out VM :-
+  coq.unify-eq V (global (const { canonical-nat-nmodule })) ok,
+  mem VM (Morph (NewMorph {{ 1%N }})) N, !,
+  ring rmorphism-nat In1 OutM1 Out1 VM, !,
+  build.mul { build.variable { positive-constant {calc (N + 1)} } } Out1 Out.
+nmod.additive V (additive U _ Morph) NewMorph NewMorphInst In1
+              {{ @MNAdditive lp:U lp:NewMorphInst lp:OutM1 }} Out VM :-
+  coq.unify-eq V (global (const { canonical-N-nmodule })) ok,
+  mem VM (Morph (NewMorph {{ 1%num }})) N, !,
+  ring rmorphism-N In1 OutM1 Out1 VM, !,
+  build.mul { build.variable { positive-constant {calc (N + 1)} } } Out1 Out.
+nmod.additive V (additive U _ Morph) NewMorph NewMorphInst In1
+              {{ @MintAdditive lp:U lp:NewMorphInst lp:OutM1 }} Out VM :-
+  target-zmodule _,
+  coq.unify-eq V (global (const { canonical-int-nmodule })) ok,
+  mem VM (Morph (NewMorph {{ 1%Z }})) N, !,
+  ring rmorphism-int In1 OutM1 Out1 VM, !,
+  build.mul { build.variable { positive-constant {calc (N + 1)} } } Out1 Out.
+nmod.additive V (additive U _ Morph) NewMorph NewMorphInst In1
+              {{ @MZAdditive lp:U lp:NewMorphInst lp:OutM1 }} Out VM :-
+  target-zmodule _,
+  coq.unify-eq V (global (const { canonical-Z-nmodule })) ok,
+  mem VM (Morph (NewMorph {{ Zpos 1 }})) N, !,
+  ring rmorphism-Z In1 OutM1 Out1 VM, !,
+  build.mul { build.variable { positive-constant {calc (N + 1)} } } Out1 Out.
+nmod.additive V (additive U _ Morph) NewMorph NewMorphInst In1
+              {{ @MAdditive lp:V lp:U lp:NewMorphInst lp:OutM1 }} Out1 VM :- !,
+  if (coq.unify-eq {{ GRing.Nmodule.sort lp:V }}
+                   {{ GRing.Zmodule.sort lp:V' }} ok)
+     (V'' = some V') (V'' = none), !,
+  nmod (additive V V'' (x\ Morph (NewMorph x))) In1 OutM1 Out1 VM, !.
+
+% [quote.ring C Input OutM Out VM] reifies an expression [Input]
+% under the ring morphism [C]
+% - [C] stores instances on the carrier type and the (semi)ring homomorphism
+%   from it,
+% - [Input] is a term of the carrier type,
+% - [OutM] is a reified terms of [Input] of type [RExpr C],
+%   it is such that [Reval OutM] is exactly [Input],
+% - [Out] is a reified term of [Input] built by build.*,
+%   it has morphisms pushed inward such that the eval of [Out]
+%   is [{SemiRing,Ring,Field,Lra}.Rnorm OutM]
+% - [VM] is a variable map.
+pred ring i:rmorphism, i:term, o:term, o:term, o:list term.
+% _ : _
+ring C {{ lp:In : _ }} OutM Out VM :- !,
+  ring C In OutM Out VM.
+% 0%R
+ring C {{ @GRing.zero lp:U }} {{ @R0 lp:R }} Out _ :-
+  coq.unify-eq { rmorphism->nmod C } U ok,
+  rmorphism->sring C R, !,
+  build.zero Out.
+% +%R
+ring C {{ @GRing.add lp:U lp:In1 lp:In2 }}
+     {{ @RAdd lp:R lp:OutM1 lp:OutM2 }} Out VM :-
+  coq.unify-eq { rmorphism->nmod C } U ok,
+  rmorphism->sring C R, !,
+  ring C In1 OutM1 Out1 VM, !,
+  ring C In2 OutM2 Out2 VM, !,
+  build.add Out1 Out2 Out.
+% addn
+ring rmorphism-nat {{ addn lp:In1 lp:In2 }}
+     {{ @RnatAdd lp:OutM1 lp:OutM2 }} Out VM :- !,
+  ring rmorphism-nat In1 OutM1 Out1 VM, !,
+  ring rmorphism-nat In2 OutM2 Out2 VM, !,
+  build.add Out1 Out2 Out.
+% N.add
+ring rmorphism-N {{ N.add lp:In1 lp:In2 }}
+     {{ @RNAdd lp:OutM1 lp:OutM2 }} Out VM :- !,
+  ring rmorphism-N In1 OutM1 Out1 VM, !,
+  ring rmorphism-N In2 OutM2 Out2 VM, !,
+  build.add Out1 Out2 Out.
+% Z.add
+ring rmorphism-Z {{ Z.add lp:In1 lp:In2 }}
+     {{ @RZAdd lp:OutM1 lp:OutM2 }} Out VM :- !,
+  ring rmorphism-Z In1 OutM1 Out1 VM, !,
+  ring rmorphism-Z In2 OutM2 Out2 VM, !,
+  build.add Out1 Out2 Out.
+% (_ *+ _)%R
+ring C {{ @GRing.natmul lp:U lp:In1 lp:In2 }}
+     {{ @RMuln lp:R lp:OutM1 lp:OutM2 }} Out VM :-
+  coq.unify-eq { rmorphism->nmod C } U ok,
+  rmorphism->sring C R, !,
+  ring C In1 OutM1 Out1 VM, !,
+  ring rmorphism-nat In2 OutM2 Out2 VM, !,
+  build.mul Out1 Out2 Out.
+% -%R
+ring C {{ @GRing.opp lp:U lp:In1 }} {{ @ROpp lp:R lp:OutM1 }} Out VM :-
+  coq.unify-eq { rmorphism->zmod C } U ok,
+  rmorphism->ring C R, !,
+  ring C In1 OutM1 Out1 VM, !,
+  build.opp Out1 Out.
+% Z.opp
+ring rmorphism-Z {{ Z.opp lp:In1 }} {{ @RZOpp lp:OutM1 }} Out VM :- !,
+  ring rmorphism-Z In1 OutM1 Out1 VM, !,
+  build.opp Out1 Out.
+% Z.sub
+ring rmorphism-Z {{ Z.sub lp:In1 lp:In2 }}
+     {{ @RZSub lp:OutM1 lp:OutM2 }} Out VM :- !,
+  ring rmorphism-Z In1 OutM1 Out1 VM, !,
+  ring rmorphism-Z In2 OutM2 Out2 VM, !,
+  build.sub Out1 Out2 Out.
+% (_ *~ _)%R
+ring C {{ @intmul lp:U lp:In1 lp:In2 }}
+     {{ @RMulz lp:R lp:OutM1 lp:OutM2 }} Out VM :-
+  coq.unify-eq { rmorphism->zmod C } U ok,
+  rmorphism->ring C R, !,
+  ring C In1 OutM1 Out1 VM, !,
+  ring rmorphism-int In2 OutM2 Out2 VM, !,
+  build.mul Out1 Out2 Out.
+% 1%R
+ring C {{ @GRing.one lp:R' }} {{ @R1 lp:R }} Out _ :-
+  rmorphism->sring C R,
+  coq.unify-eq R R' ok, !,
+  build.one Out.
+% *%R
+ring C {{ @GRing.mul lp:R' lp:In1 lp:In2 }}
+     {{ @RMul lp:R lp:OutM1 lp:OutM2 }} Out VM :-
+  rmorphism->sring C R,
+  coq.unify-eq R R' ok, !,
+  ring C In1 OutM1 Out1 VM, !,
+  ring C In2 OutM2 Out2 VM, !,
+  build.mul Out1 Out2 Out.
+% muln
+ring rmorphism-nat {{ muln lp:In1 lp:In2 }}
+     {{ @RnatMul lp:OutM1 lp:OutM2 }} Out VM :- !,
+  ring rmorphism-nat In1 OutM1 Out1 VM, !,
+  ring rmorphism-nat In2 OutM2 Out2 VM, !,
+  build.mul Out1 Out2 Out.
+% N.mul
+ring rmorphism-N {{ N.mul lp:In1 lp:In2 }}
+     {{ @RNMul lp:OutM1 lp:OutM2 }} Out VM :- !,
+  ring rmorphism-N In1 OutM1 Out1 VM, !,
+  ring rmorphism-N In2 OutM2 Out2 VM, !,
+  build.mul Out1 Out2 Out.
+% Z.mul
+ring rmorphism-Z {{ Z.mul lp:In1 lp:In2 }}
+     {{ @RZMul lp:OutM1 lp:OutM2 }} Out VM :- !,
+  ring rmorphism-Z In1 OutM1 Out1 VM, !,
+  ring rmorphism-Z In2 OutM2 Out2 VM, !,
+  build.mul Out1 Out2 Out.
+% (_ ^+ _)%R
+ring C {{ @GRing.exp lp:R' lp:In1 lp:In2 }}
+     {{ @RExpn lp:R lp:OutM1 lp:OutM2 }} Out VM :-
+  rmorphism->sring C R,
+  coq.unify-eq R R' ok,
+  n-const In2 OutM2 Out2, !,
+  ring C In1 OutM1 Out1 VM, !,
+  build.exp Out1 Out2 Out.
+% (_ ^ _)%R
+ring C {{ @exprz lp:R' lp:In1 lp:In2 }} OutM Out VM :-
+  z-const In2 Pos OutM2 Out2,
+  rmorphism->uring C R,
+  coq.unify-eq R R' ok,
+  if (Pos = tt)
+     (CONT =
+       (!, ring C In1 OutM1 Out1 VM, !,
+        OutM = {{ @RExpPosz lp:R lp:OutM1 lp:OutM2 }}, !,
+        build.exp Out1 Out2 Out))
+     (CONT =
+       (rmorphism->field C F, !,
+        ring C In1 OutM1 Out1 VM, !,
+        OutM = {{ @RExpNegz lp:F lp:OutM1 lp:OutM2 }}, !,
+        build.inv { build.exp Out1 Out2 } Out)),
+  CONT.
+% expn
+ring rmorphism-nat {{ expn lp:In1 lp:In2 }}
+     {{ @RnatExpn lp:OutM1 lp:OutM2 }} Out VM :-
+  n-const In2 OutM2 Out2, !,
+  ring rmorphism-nat In1 OutM1 Out1 VM, !,
+  build.exp Out1 Out2 Out.
+% N.pow
+ring rmorphism-N {{ N.pow lp:In1 lp:In2 }}
+     {{ @RNExp lp:OutM1 lp:Out2 }} Out VM :-
+  reduction-N In2 Out2, !,
+  ring rmorphism-N In1 OutM1 Out1 VM, !,
+  build.exp Out1 Out2 Out.
+% Z.pow
+ring rmorphism-Z {{ Z.pow lp:In1 lp:In2 }}
+     {{ @RZExp lp:OutM1 lp:OutM2 }} Out VM :-
+  reduction-Z In2 OutM2, !,
+  ((OutM2 = {{ Z0 }}, !, Out2 = {{ N0 }}; % If [In2] is non-negative
+    OutM2 = {{ Zpos lp:P }}, !, Out2 = {{ Npos lp:P }}), !,
+   ring rmorphism-Z In1 OutM1 Out1 VM, !,
+   build.exp Out1 Out2 Out;
+   build.zero Out). % If [In2] is negative
+% _^-1
+ring C {{ @GRing.inv lp:R lp:In1 }} {{ @RInv lp:F lp:OutM1 }} Out VM :-
+  rmorphism->field C F,
+  coq.unify-eq { rmorphism->uring C } R ok, !,
+  ring C In1 OutM1 Out1 VM,
+  build.inv Out1 Out.
+% S (..(S ..)..) and nat constants
+ring rmorphism-nat {{ lib:num.nat.S lp:In }} OutM Out VM :- !,
+  count-succ In N In2, !,
+  positive-constant {calc (N + 1)} Pos, !,
+  Out1 = {{ N.pos lp:Pos }}, !,
+  if (In2 = {{ lib:num.nat.O }})
+     (OutM = {{ RnatC (large_nat_N lp:Out1) }}, !,
+      build.N-constant Out1 Out)
+     (ring rmorphism-nat In2 OutM2 Out2 VM, !,
+      OutM = {{ RnatS lp:Pos lp:OutM2 }}, !,
+      build.add { build.N-constant Out1 } Out2 Out).
+ring rmorphism-nat {{ lib:num.nat.O }} {{ RnatC (large_nat_N N0) }} Out _ :-
+  !, build.N-constant {{ N0 }} Out.
+ring rmorphism-nat {{ Nat.of_num_uint lp:In }}
+     {{ RnatC (large_nat_uint lp:In) }} Out _ :- !,
+  ground-uint In, !,
+  coq.reduction.vm.norm {{ N.of_num_uint lp:In }} {{ N }} InN, !,
+  build.N-constant InN Out.
+% Posz
+ring rmorphism-int {{ Posz lp:In }} {{ @RPosz lp:OutM }} Out VM :- !,
+  ring rmorphism-nat In OutM Out VM.
+% Negz
+ring rmorphism-int {{ Negz lp:In }} {{ RNegz lp:OutM1 }} Out VM :- !,
+  ring rmorphism-nat In OutM1 Out1 VM, !,
+  build.opp { build.add { build.one } Out1 } Out.
+% N constants
+ring rmorphism-N In {{ @RNC lp:In }} Out _ :-
+  ground-N In, !, build.N-constant In Out.
+% Z constants
+ring rmorphism-Z In {{ @RZC lp:In }} Out _ :-
+  ground-Z In, !, build.Z-constant In Out.
+% morphisms
+ring C In OutM Out VM :-
+  rmorphism->sring C R,
+  % TODO: for concrete additive functions, should we unpack [NewMorphInst]?
+  NewMorph = (x\ {{ @GRing.RMorphism.sort lp:S lp:R lp:NewMorphInst lp:x }}),
+  coq.unify-eq In (NewMorph In1) ok, !,
+  ring.rmorphism S C NewMorph NewMorphInst In1 OutM Out VM.
+% additive functions
+ring C In OutM Out VM :-
+  rmorphism->nmod C U,
+  % TODO: for concrete additive functions, should we unpack [NewMorphInst]?
+  NewMorph = (x\ {{ @GRing.Additive.sort lp:V lp:U lp:NewMorphInst lp:x }}),
+  coq.unify-eq In (NewMorph In1) ok, !,
+  ring.additive V C NewMorph NewMorphInst In1 OutM Out VM.
+% variables
+ring C In {{ @RX lp:R lp:In }} Out VM :- !,
+  rmorphism->sring C R, rmorphism->morph C Morph,
+  mem VM (Morph In) N, !,
+  build.variable { positive-constant {calc (N + 1)} } Out.
+ring _ In _ _ _ :- coq.error "Unknown" { coq.term->string In }.
+% TODO: converse ring
+
+pred ring.rmorphism.aux i:term, i:term -> term, o:rmorphism.
+ring.rmorphism.aux SR Morph (rmorphism U V' SR R' UR' F' Morph) :- !,
+  Sort = {{ GRing.SemiRing.sort lp:SR }},
+  coq.unify-eq Sort {{ GRing.Nmodule.sort lp:U }} ok,
+  if (target-zmodule _, coq.unify-eq Sort {{ GRing.Ring.sort lp:R }} ok,
+      coq.unify-eq Sort {{ GRing.Zmodule.sort lp:V }} ok)
+     (V' = some V, R' = some R,
+      if (coq.unify-eq Sort {{ GRing.UnitRing.sort lp:UR }} ok)
+         (UR' = some UR,
+          if (field-mode, coq.unify-eq Sort {{ GRing.Field.sort lp:F }} ok)
+             (F' = some F) (F' = none))
+         (UR' = none, F' = none))
+     (V' = none, R' = none, UR' = none, F' = none).
+
+pred ring.rmorphism i:term, i:rmorphism, i:term -> term, i:term, i:term,
+                    o:term, o:term, o:list term.
+ring.rmorphism S C _ NewMorphInst In1
+               {{ @RnatMorph lp:R lp:NewMorphInst lp:OutM1 }} Out1 VM :-
+  coq.unify-eq S (global (const { canonical-nat-semiring })) ok, !,
+  rmorphism->sring C R, !,
+  ring rmorphism-nat In1 OutM1 Out1 VM.
+ring.rmorphism S C _ NewMorphInst In1
+               {{ @RNMorph lp:R lp:NewMorphInst lp:OutM1 }} Out1 VM :-
+  coq.unify-eq S (global (const { canonical-N-semiring })) ok, !,
+  rmorphism->sring C R, !,
+  ring rmorphism-N In1 OutM1 Out1 VM.
+ring.rmorphism S C _ NewMorphInst In1
+               {{ @RintMorph lp:R lp:NewMorphInst lp:OutM1 }} Out1 VM :-
+  target-zmodule _,
+  coq.unify-eq S (global (const { canonical-int-semiring })) ok, !,
+  rmorphism->sring C R, !,
+  ring rmorphism-int In1 OutM1 Out1 VM.
+ring.rmorphism S C _ NewMorphInst In1
+               {{ @RZMorph lp:R lp:NewMorphInst lp:OutM1 }} Out1 VM :-
+  target-zmodule _,
+  coq.unify-eq S (global (const { canonical-Z-semiring })) ok, !,
+  rmorphism->sring C R, !,
+  ring rmorphism-Z In1 OutM1 Out1 VM.
+ring.rmorphism S C NewMorph NewMorphInst In1
+               {{ @RMorph lp:S lp:R lp:NewMorphInst lp:OutM1 }} Out1 VM :- !,
+  rmorphism->sring C R, !,
+  rmorphism->morph C Morph, !,
+  ring.rmorphism.aux S (x\ Morph (NewMorph x)) C', !,
+  ring C' In1 OutM1 Out1 VM.
+
+pred ring.additive i:term, i:rmorphism, i:term -> term, i:term, i:term,
+                   o:term, o:term, o:list term.
+ring.additive V C NewMorph NewMorphInst In1
+              {{ @RnatAdditive lp:R lp:NewMorphInst lp:OutM1 }} Out VM :-
+  coq.unify-eq V (global (const { canonical-nat-nmodule })) ok,
+  rmorphism->sring C R, rmorphism->morph C Morph,
+  mem VM (Morph (NewMorph {{ 1%N }})) N, !,
+  ring rmorphism-nat In1 OutM1 Out1 VM, !,
+  build.mul { build.variable { positive-constant {calc (N + 1)} } } Out1 Out.
+ring.additive V C NewMorph NewMorphInst In1
+              {{ @RNAdditive lp:R lp:NewMorphInst lp:OutM1 }} Out VM :-
+  coq.unify-eq V (global (const { canonical-N-nmodule })) ok,
+  rmorphism->sring C R, rmorphism->morph C Morph,
+  mem VM (Morph (NewMorph {{ 1%num }})) N, !,
+  ring rmorphism-N In1 OutM1 Out1 VM, !,
+  build.mul { build.variable { positive-constant {calc (N + 1)} } } Out1 Out.
+ring.additive V C NewMorph NewMorphInst In1
+              {{ @RintAdditive lp:R lp:NewMorphInst lp:OutM1 }} Out VM :-
+  target-zmodule _,
+  coq.unify-eq V (global (const { canonical-int-nmodule })) ok,
+  rmorphism->sring C R, rmorphism->morph C Morph,
+  mem VM (Morph (NewMorph {{ 1%Z }})) N, !,
+  ring rmorphism-int In1 OutM1 Out1 VM, !,
+  build.mul { build.variable { positive-constant {calc (N + 1)} } } Out1 Out.
+ring.additive V C NewMorph NewMorphInst In1
+              {{ @RZAdditive lp:R lp:NewMorphInst lp:OutM1 }} Out VM :-
+  target-zmodule _,
+  coq.unify-eq V (global (const { canonical-Z-nmodule })) ok,
+  rmorphism->sring C R, rmorphism->morph C Morph,
+  mem VM (Morph (NewMorph {{ Zpos 1 }})) N, !,
+  ring rmorphism-Z In1 OutM1 Out1 VM, !,
+  build.mul { build.variable { positive-constant {calc (N + 1)} } } Out1 Out.
+ring.additive V C NewMorph NewMorphInst In1
+              {{ @RAdditive lp:V lp:R lp:NewMorphInst lp:OutM1 }} Out1 VM :- !,
+  rmorphism->sring C R, rmorphism->morph C Morph,
+  if (coq.unify-eq {{ GRing.Nmodule.sort lp:V }}
+                   {{ GRing.Zmodule.sort lp:V' }} ok)
+     (V'' = some V') (V'' = none), !,
+  nmod (additive V V'' (x\ Morph (NewMorph x))) In1 OutM1 Out1 VM, !.
+
+}
