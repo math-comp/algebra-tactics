@@ -32,7 +32,7 @@ ring/field expressions before applying the proof procedures.
 - Additional dependencies:
   - [MathComp](https://math-comp.github.io) ssreflect 2.0 or later
   - [MathComp](https://math-comp.github.io) algebra
-  - [Mczify](https://github.com/math-comp/mczify) 1.4.0 or later
+  - [Mczify](https://github.com/math-comp/mczify) 1.5.0 or later
   - [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.15.0 or later (known not to work with 1.17.0)
 - Coq namespace: `mathcomp.algebra_tactics`
 - Related publication(s):
