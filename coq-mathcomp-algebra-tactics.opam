@@ -13,14 +13,18 @@ license: "CECILL-B"
 synopsis: "Ring, field, lra, nra, and psatz tactics for Mathematical Components"
 description: """
 This library provides `ring`, `field`, `lra`, `nra`, and `psatz` tactics for
-algebraic structures of the Mathematical Components library. The `ring` and
-`field` tactics respectively work with any `comRingType` and `fieldType`. The
-other (Micromega) tactics work with any `realDomainType` or `realFieldType`.
-Their instance resolution is done through canonical structure inference.
-Therefore, they work with abstract rings and do not require `Add Ring` and
-`Add Field` commands. Another key feature of this library is that they
-automatically push down ring morphisms and additive functions to leaves of
-ring/field expressions before applying the proof procedures."""
+algebraic structures of the Mathematical Components library. The `ring` tactic
+works with any `comRingType` (commutative ring) or `comSemiRingType`
+(commutative semiring). The `field` tactic works with any `fieldType` (field).
+The other (Micromega) tactics work with any `realDomainType` (totally ordered
+integral domain) or `realFieldType` (totally ordered field). Algebra Tactics
+do not provide a way to declare instances, like the `Add Ring` and `Add Field`
+commands, but use canonical structure inference instead. Therefore, each of
+these tactics works with any canonical (or abstract) instance of the
+respective structure declared through Hierarchy Builder. Another key feature
+of Algebra Tactics is that they automatically push down ring morphisms and
+additive functions to leaves of ring/field expressions before applying the
+proof procedures."""
 
 build: [make "-j%{jobs}%"]
 install: [make "install"]
