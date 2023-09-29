@@ -359,6 +359,7 @@ apply: Pcond_simpl_complete;
 Qed.
 
 Ltac reflexivity_no_check :=
+  move=> *;
   match goal with
     | |- @eq ?T ?LHS ?RHS => exact_no_check (@Logic.eq_refl T LHS)
   end.
@@ -403,29 +404,26 @@ End Internals.
 (* Auxiliary Ltac code which will be invoked from Elpi *)
 
 Ltac ring_reflection_check Lem R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
-  refine (Lem R 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
-              (fun _ _ _ _ _ _ _ _ => erefl) _);
-  [ vm_compute; reflexivity ].
+  exact (Lem R 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
+             ltac:(reflexivity) ltac:(vm_compute; reflexivity)).
 
 Ltac ring_reflection_no_check Lem R VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   exact_no_check (Lem
     R 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
-    (fun _ _ _ _ _ _ _ _ => ltac:(reflexivity_no_check))
-    ltac:(vm_compute; reflexivity)).
+    ltac:(reflexivity_no_check) ltac:(vm_compute; reflexivity)).
 
 Ltac ring_reflection := ring_reflection_check.
 
 Ltac field_reflection_check Lem F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   refine (Lem F 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
-              (fun _ _ _ _ _ _ _ _ _ _ => erefl) _);
-  field_normalization.
+              ltac:(reflexivity) ltac:(field_normalization)).
 
 Ltac field_reflection_no_check Lem F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let obligation := fresh in
   eassert (obligation : _);
   [ | exact_no_check (Lem
         F 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
-        (fun _ _ _ _ _ _ _ _ _ _ => ltac:(reflexivity_no_check))
+        ltac:(reflexivity_no_check)
         ltac:(field_normalization; exact obligation)) ].
 
 Ltac field_reflection := field_reflection_check.
