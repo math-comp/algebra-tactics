@@ -2,7 +2,7 @@
 (* `ring_examples_no_check.v`. To edit this file, uncomment `Require Import`s *)
 (* below: *)
 (* From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint rat. *)
-(* From mathcomp Require Import ring. *)
+(* From mathcomp Require Import ring ssrZ. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -11,6 +11,18 @@ Unset Printing Implicit Defensive.
 Import GRing.Theory.
 
 Local Open Scope ring_scope.
+
+Goal forall a b : nat, (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 2%N * a * b.
+Proof. move=> a b; ring. Qed.
+
+Goal forall a b : int, (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 2 * a * b.
+Proof. move=> a b; ring. Qed.
+
+Goal forall a b : rat, (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 2%:R * a * b.
+Proof. move=> a b; ring. Qed.
+
+Goal forall a b : int * rat, (a + b) ^+ 2 = a ^+ 2 + b ^+ 2 + 2%:R * a * b.
+Proof. move=> a b; ring. Qed.
 
 Section AbstractCommutativeRing.
 
