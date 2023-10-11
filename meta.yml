@@ -123,7 +123,7 @@ documentation: |-
   Z-module homomorphisms).
   For example, suppose `f : S -> T` and `g : R -> S` are ring homomorphisms. The
   preprocessor turns a ring sub-expression of the form `f (x + g (y * z))` into
-  `f x + f (g y) + f (g z)`.
+  `f x + f (g y) * f (g z)`.
   A composition of homomorphisms from the initial objects `nat`, `N`, `int`, and
   `Z` is automatically normalized to the canonical one. For example, if `R` in
   the above example is `int`, the result of the preprocessing should be
@@ -151,7 +151,6 @@ documentation: |-
   - `expn`,[^constant_exponent]
   - `N.pow`,[^constant_exponent]
   - `Z.pow`,[^constant_exponent]
-  - `GRing.inv`,
   - `S`,
   - `Posz`,
   - `Negz`, and
