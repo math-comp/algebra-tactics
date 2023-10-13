@@ -163,15 +163,16 @@ Lemma ring_correct (R : target_comRing) (n : nat) (l : seq R)
                    (lpe : seq (RExpr R * RExpr R * PExpr Z * PExpr Z))
                    (re1 re2 : RExpr R) (pe1 pe2 : PExpr Z) :
   Reval_eqs lpe ->
-  (forall R_of_Z zero opp add sub one mul exp,
-      Ring.Rnorm R_of_Z zero add opp sub one mul exp
+  (* FIXME: workaround for #87 *)
+  (forall R_of_Z zero opp add sub_ one mul exp,
+      Ring.Rnorm R_of_Z zero add opp sub_ one mul exp
         (@target_comRingMorph R) re1 ::
-      Ring.Rnorm R_of_Z zero add opp sub one mul exp
+      Ring.Rnorm R_of_Z zero add opp sub_ one mul exp
         (@target_comRingMorph R) re2 ::
-      Rnorm_list R_of_Z zero add opp sub one mul exp lpe =
-      PEeval zero one add mul sub opp R_of_Z id exp l pe1 ::
-      PEeval zero one add mul sub opp R_of_Z id exp l pe2 ::
-      PEeval_list R_of_Z zero opp add sub one mul exp l lpe) ->
+      Rnorm_list R_of_Z zero add opp sub_ one mul exp lpe =
+      PEeval zero one add mul sub_ opp R_of_Z id exp l pe1 ::
+      PEeval zero one add mul sub_ opp R_of_Z id exp l pe2 ::
+      PEeval_list R_of_Z zero opp add sub_ one mul exp l lpe) ->
   (let norm_subst' :=
      norm_subst 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb (triv_div 0 1 Z.eqb) n
                 (mk_monpol_list
@@ -254,17 +255,18 @@ Lemma field_correct (F : fieldType) (n : nat) (l : seq F)
                     (lpe : seq (RExpr F * RExpr F * PExpr Z * PExpr Z))
                     (re1 re2 : RExpr F) (fe1 fe2 : FExpr Z) :
   Reval_eqs lpe ->
-  (forall R_of_Z zero opp add sub one mul exp div inv,
-      Field.Rnorm R_of_Z zero add opp sub one mul exp inv id re1 ::
-      Field.Rnorm R_of_Z zero add opp sub one mul exp inv id re2 ::
-      Rnorm_list R_of_Z zero add opp sub one mul exp lpe =
-      FEeval zero one add mul sub opp div inv R_of_Z id exp l fe1 ::
-      FEeval zero one add mul sub opp div inv R_of_Z id exp l fe2 ::
-      PEeval_list R_of_Z zero opp add sub one mul exp l lpe) ->
-  (forall is_true_ negb_ andb_ zero one add mul sub opp Feqb F_of_nat exp l',
+  (* FIXME: workaround for #87 *)
+  (forall R_of_Z zero opp add sub_ one mul exp div inv,
+      Field.Rnorm R_of_Z zero add opp sub_ one mul exp inv id re1 ::
+      Field.Rnorm R_of_Z zero add opp sub_ one mul exp inv id re2 ::
+      Rnorm_list R_of_Z zero add opp sub_ one mul exp lpe =
+      FEeval zero one add mul sub_ opp div inv R_of_Z id exp l fe1 ::
+      FEeval zero one add mul sub_ opp div inv R_of_Z id exp l fe2 ::
+      PEeval_list R_of_Z zero opp add sub_ one mul exp l lpe) ->
+  (forall is_true_ negb_ andb_ zero one add mul sub_ opp Feqb F_of_nat exp l',
       is_true_ = is_true -> negb_ = negb -> andb_ = andb ->
       zero = 0 -> one = 1 -> add = +%R -> mul = *%R ->
-      sub = (fun x y => x - y) -> opp = -%R -> Feqb = eq_op ->
+      sub_ = (fun x y => x - y) -> opp = -%R -> Feqb = eq_op ->
       F_of_nat = GRing.natmul 1 -> exp = @GRing.exp F -> l' = l ->
       let F_of_pos p := if p is xH then one else F_of_nat (Pos.to_nat p) in
       let F_of_Z n :=
@@ -283,7 +285,7 @@ Lemma field_correct (F : fieldType) (n : nat) (l : seq F)
       Peq Z.eqb (norm_subst' (PEmul (num nfe1) (denum nfe2)))
                 (norm_subst' (PEmul (num nfe2) (denum nfe1))) /\
       is_true_ (PCond' true negb_ andb_
-                       zero one add mul sub opp Feqb F_of_Z nat_of_N exp l'
+                       zero one add mul sub_ opp Feqb F_of_Z nat_of_N exp l'
                        (Fapp (Fcons00 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
                                       (triv_div 0 1 Z.eqb))
                              (condition nfe1 ++ condition nfe2) [::]))) ->
@@ -308,17 +310,18 @@ Lemma numField_correct (F : numFieldType) (n : nat) (l : seq F)
                        (lpe : seq (RExpr F * RExpr F * PExpr Z * PExpr Z))
                        (re1 re2 : RExpr F) (fe1 fe2 : FExpr Z) :
   Reval_eqs lpe ->
-  (forall R_of_Z zero opp add sub one mul exp div inv,
-      Field.Rnorm R_of_Z zero add opp sub one mul exp inv id re1 ::
-      Field.Rnorm R_of_Z zero add opp sub one mul exp inv id re2 ::
-      Rnorm_list R_of_Z zero add opp sub one mul exp lpe =
-      FEeval zero one add mul sub opp div inv R_of_Z id exp l fe1 ::
-      FEeval zero one add mul sub opp div inv R_of_Z id exp l fe2 ::
-      PEeval_list R_of_Z zero opp add sub one mul exp l lpe) ->
-  (forall is_true_ negb_ andb_ zero one add mul sub opp Feqb F_of_nat exp l',
+  (* FIXME: workaround for #87 *)
+  (forall R_of_Z zero opp add sub_ one mul exp div inv,
+      Field.Rnorm R_of_Z zero add opp sub_ one mul exp inv id re1 ::
+      Field.Rnorm R_of_Z zero add opp sub_ one mul exp inv id re2 ::
+      Rnorm_list R_of_Z zero add opp sub_ one mul exp lpe =
+      FEeval zero one add mul sub_ opp div inv R_of_Z id exp l fe1 ::
+      FEeval zero one add mul sub_ opp div inv R_of_Z id exp l fe2 ::
+      PEeval_list R_of_Z zero opp add sub_ one mul exp l lpe) ->
+  (forall is_true_ negb_ andb_ zero one add mul sub_ opp Feqb F_of_nat exp l',
       is_true_ = is_true -> negb_ = negb -> andb_ = andb ->
       zero = 0 -> one = 1 -> add = +%R -> mul = *%R ->
-      sub = (fun x y => x - y) -> opp = -%R -> Feqb = eq_op ->
+      sub_ = (fun x y => x - y) -> opp = -%R -> Feqb = eq_op ->
       F_of_nat = GRing.natmul 1 -> exp = @GRing.exp F -> l' = l ->
       let F_of_pos p := if p is xH then one else F_of_nat (Pos.to_nat p) in
       let F_of_Z n :=
@@ -337,7 +340,7 @@ Lemma numField_correct (F : numFieldType) (n : nat) (l : seq F)
       Peq Z.eqb (norm_subst' (PEmul (num nfe1) (denum nfe2)))
                 (norm_subst' (PEmul (num nfe2) (denum nfe1))) /\
       is_true_ (PCond' true negb_ andb_
-                       zero one add mul sub opp Feqb F_of_Z nat_of_N exp l'
+                       zero one add mul sub_ opp Feqb F_of_Z nat_of_N exp l'
                        (Fapp (Fcons2 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
                                      (triv_div 0 1 Z.eqb))
                              (condition nfe1 ++ condition nfe2) [::]))) ->
@@ -372,7 +375,7 @@ Ltac field_normalization :=
   let one := fresh "one" in
   let add := fresh "add" in
   let mul := fresh "mul" in
-  let sub := fresh "sub" in
+  let sub := fresh "sub_" in (* FIXME: workaround for #87 *)
   let opp := fresh "opp" in
   let Feqb := fresh "Feqb" in
   let F_of_nat := fresh "F_of_nat" in
