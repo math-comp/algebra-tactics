@@ -13,7 +13,7 @@ description: |-
   the Mathematical Components library. These tactics use the algebraic
   structures defined in the MathComp library and their canonical instances for
   the instance resolution, and do not require any special instance declaration,
-  like the `add Ring` and `Add Field` commands. Therefore, each of these tactics
+  like the `Add Ring` and `Add Field` commands. Therefore, each of these tactics
   works with any instance of the respective structure, including concrete
   instances declared through Hierarchy Builder, abstract instances, and mixed
   concrete and abstract instances, e.g., `int * R` where `R` is an abstract
@@ -51,6 +51,14 @@ tested_coq_opam_versions:
 - version: '2.0.0-coq-8.17'
   repo: 'mathcomp/mathcomp'
 - version: '2.0.0-coq-8.18'
+  repo: 'mathcomp/mathcomp'
+- version: '2.0.0-coq-8.16'
+  repo: 'mathcomp/mathcomp'
+- version: '2.1.0-coq-8.17'
+  repo: 'mathcomp/mathcomp'
+- version: '2.1.0-coq-8.18'
+  repo: 'mathcomp/mathcomp'
+- version: '2.1.0-coq-dev'
   repo: 'mathcomp/mathcomp'
 - version: 'coq-8.16'
   repo: 'mathcomp/mathcomp-dev'
