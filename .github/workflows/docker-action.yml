@@ -20,6 +20,10 @@ jobs:
           - 'mathcomp/mathcomp:2.0.0-coq-8.16'
           - 'mathcomp/mathcomp:2.0.0-coq-8.17'
           - 'mathcomp/mathcomp:2.0.0-coq-8.18'
+          - 'mathcomp/mathcomp:2.0.0-coq-8.16'
+          - 'mathcomp/mathcomp:2.1.0-coq-8.17'
+          - 'mathcomp/mathcomp:2.1.0-coq-8.18'
+          - 'mathcomp/mathcomp:2.1.0-coq-dev'
           - 'mathcomp/mathcomp-dev:coq-8.16'
           - 'mathcomp/mathcomp-dev:coq-8.17'
           - 'mathcomp/mathcomp-dev:coq-8.18'
@@ -39,6 +43,7 @@ jobs:
       - name: Revert permissions
         if: ${{ always() }}
         run: sudo chown -R 1001:116 .
+
 
 # See also:
 # https://github.com/coq-community/docker-coq-action#readme
