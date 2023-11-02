@@ -414,7 +414,7 @@ move: f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
   have ->: (Reval e1 ^ n)%num = Reval e1 ^+ N.to_nat n by lia.
   by rewrite rmorphXn IHe1.
 - move=> p e1 IHe1 f.
-  by rewrite add_pos_natE rmorphD IHe1 -[Pos.to_nat p]natn rmorph_nat.
+  by rewrite add_pos_natE rmorphD IHe1 -[Pos.to_nat p in LHS]natn rmorph_nat.
 - by move=> n f; rewrite -[nat_of_large_nat _]natn rmorph_nat -large_nat_N_nat.
 - by move=> n f; rewrite -[RHS](rmorph_nat f); congr (f _); lia.
 - by move=> R S g e1 IHe1 f; rewrite -/(comp f g _) IHe1.
@@ -594,7 +594,7 @@ move: f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - move=> e1 IHe1 [|p|p] f; rewrite ?(rmorph0, rmorph1) //=.
   by rewrite /Rnorm -/Rnorm -IHe1 -rmorphXn /=; congr (f _); lia.
 - move=> p e1 IHe1 f.
-  by rewrite add_pos_natE rmorphD IHe1 -[Pos.to_nat p]natn rmorph_nat.
+  by rewrite add_pos_natE rmorphD IHe1 -[Pos.to_nat p in LHS]natn rmorph_nat.
 - move=> n f.
   by rewrite -[nat_of_large_nat _]natn rmorph_nat pmulrn -large_nat_Z_int.
 - by move=> e1 IHe1 f; rewrite -[Posz _]intz rmorph_int /intmul IHe1.
@@ -801,7 +801,7 @@ move: f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
   by rewrite /Rnorm -/Rnorm -IHe1 -rmorphXn /=; congr (f _); lia.
 - by move=> R e1 IHe1 f; rewrite fmorphV IHe1.
 - move=> p e1 IHe1 f.
-  by rewrite add_pos_natE rmorphD IHe1 -[Pos.to_nat p]natn rmorph_nat.
+  by rewrite add_pos_natE rmorphD IHe1 -[Pos.to_nat p in LHS]natn rmorph_nat.
 - move=> n f.
   by rewrite -[nat_of_large_nat _]natn rmorph_nat pmulrn -large_nat_Z_int.
 - by move=> e1 IHe1 f; rewrite -[Posz _]intz rmorph_int /intmul IHe1.
@@ -1000,7 +1000,8 @@ pose P0 V e := forall f f' invb (m : V -> F), f =2 f' ->
   Mnorm f zero add opp sub one mul exp inv invb m e =
   Mnorm f' zero add opp sub one mul exp inv invb m e.
 move: f f' invb m ff'.
-elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
+elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 /=.
+- by [].
 - move=> R e1 IHe1 e2 IHe2 f f'.
   by case=> m ff'; [congr inv|]; (congr add; [exact: IHe1|exact: IHe2]).
 - move=> e1 IHe1 e2 IHe2 f f'.
@@ -1017,6 +1018,7 @@ elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
   by case=> m ff'; [congr inv|]; (congr sub; [exact: IHe1|exact: IHe2]).
 - move=> R e1 IHe1 e2 IHe2 f f' invb m ff'.
   by congr mul; [exact: IHe1|exact: IHe2].
+- by [].
 - move=> R e1 IHe1 e2 IHe2 f f' invb m ff'.
   by congr mul; [exact: IHe1|exact: IHe2].
 - move=> e1 IHe1 e2 IHe2 f f' invb m ff'.
@@ -1049,6 +1051,8 @@ elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> R g e IHe f f' invb m ff'; congr mul; exact: IHe.
 - by move=> R g e IHe f f' invb m ff'; congr mul; exact: IHe.
 - by move=> R g e IHe f f' invb m ff'; congr mul; exact: IHe.
+- by [].
+- by [].
 - move=> V e1 IHe1 e2 IHe2 f f'.
   by case=> m ff'; [congr inv|]; (congr add; [exact: IHe1|exact: IHe2]).
 - move=> V e1 IHe1 e2 IHe2 f f' invb m ff'.
@@ -1061,6 +1065,7 @@ elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
 - by move=> V g e IHe f f' invb m ff'; congr mul; exact: IHe.
 - by move=> V g e IHe f f' invb m ff'; congr mul; exact: IHe.
 - by move=> V g e IHe f f' invb m ff'; congr mul; exact: IHe.
+- by [].
 Qed.
 
 Section correct.
@@ -1124,8 +1129,8 @@ move: invb f; elim e using (@RExpr_ind' P P0); rewrite {R e}/P {}/P0 //=.
   rewrite /Rnorm /= -/(Rnorm _) -IHe1 (fun_if (fun x => GRing.exp x _)).
   by rewrite exprVn -rmorphXn; congr (if _ then (f _)^-1 else f _); lia.
 - by move=> R e1 IHe1 invb f; rewrite fmorphV invrK -if_neg IHe1.
-- move=> p e1 IHe1 invb f.
-  by rewrite add_pos_natE rmorphD (IHe1 false) -[Pos.to_nat p]natn rmorph_nat.
+- move=> p e1 IHe1 invb f; rewrite add_pos_natE rmorphD (IHe1 false).
+  by rewrite -[Pos.to_nat p in LHS]natn rmorph_nat.
 - move=> n invb f.
   by rewrite -[nat_of_large_nat _]natn rmorph_nat pmulrn -large_nat_Z_int.
 - move=> e1 IHe1 invb f; rewrite -[Posz _]intz rmorph_int -pmulrn.
