@@ -25,6 +25,7 @@ automatically push down ring morphisms and additive functions to leaves of
 ring/field expressions before applying the proof procedures."""
 
 build: [make "-j%{jobs}%"]
+run-test: [make "-j%{jobs}%" "test-suite"]
 install: [make "install"]
 depends: [
   "coq" {>= "8.16"}
