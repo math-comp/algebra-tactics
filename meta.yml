@@ -96,7 +96,13 @@ dependencies:
   description: |-
     [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.15.0 or later (known not to work with 1.17.0)
 
+test_target: test-suite
 namespace: mathcomp.algebra_tactics
+
+action_appendix: |2-
+            export: 'OPAMWITHTEST'
+          env:
+            OPAMWITHTEST: true
 
 documentation: |-
 

@@ -9,14 +9,6 @@ KNOWNFILES   := Makefile Make Make.test-suite
 
 .DEFAULT_GOAL := invoke-coqmakefile
 
-ifneq "$(TEST_SKIP_BUILD)" ""
-TEST_DEP :=
-LIBRARY_PATH :=
-else
-TEST_DEP := invoke-coqmakefile
-LIBRARY_PATH := -R theories mathcomp.algebra_tactics
-endif
-
 COQMAKEFILE       = $(COQBIN)coq_makefile
 COQMAKE           = $(MAKE) --no-print-directory -f Makefile.coq
 COQMAKE_TESTSUITE = $(MAKE) --no-print-directory -f Makefile.test-suite.coq
@@ -25,12 +17,12 @@ Makefile.coq: Makefile Make
 	$(COQMAKEFILE) -f Make -o Makefile.coq
 
 Makefile.test-suite.coq: Makefile Make.test-suite
-	$(COQMAKEFILE) -f Make.test-suite $(LIBRARY_PATH) -o Makefile.test-suite.coq
+	$(COQMAKEFILE) -f Make.test-suite -o Makefile.test-suite.coq
 
 invoke-coqmakefile: Makefile.coq
 	$(COQMAKE) $(filter-out $(KNOWNTARGETS),$(MAKECMDGOALS))
 
-test-suite: Makefile.test-suite.coq $(TEST_DEP)
+test-suite: Makefile.test-suite.coq invoke-coqmakefile
 	$(COQMAKE_TESTSUITE)
 
 theories/%.vo: Makefile.coq
