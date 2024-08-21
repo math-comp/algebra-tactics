@@ -19,7 +19,7 @@ Local Open Scope ring_scope.
 
 Module Import Internals.
 
-Implicit Types (V : nmodType) (R : semiRingType) (F : fieldType).
+Implicit Types (V : baseAddUMagmaType) (R : semiRingType) (F : fieldType).
 
 (* Pushing down morphisms in ring and field expressions by reflection         *)
 
