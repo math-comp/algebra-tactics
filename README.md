@@ -154,7 +154,7 @@ obligation of the form `c%:~R != 0 :> F` where `c` is a non-zero integer
 constant is automatically resolved.
 
 The `field` tactic has a preprocessor similar to the `ring` tactic.
-In addition ot the constructs supported by the `ring` tactic, the `field`
+In addition to the constructs supported by the `ring` tactic, the `field`
 tactic supports `GRing.inv` and `exprz` with a negative exponent.
 
 ### The `lra`, `nra`, and `psatz` tactics
