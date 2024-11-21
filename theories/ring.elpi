@@ -2,44 +2,44 @@
 % looks for a canonical [comRingType] (or at least [comSemiRingType])
 % on it and returns it in [ComR] as well as packed in a rmorphism
 % [Morph] (with the identity function), the result [Env] lists the
-% appropriate [target-nmodule], [target-zmodule] and [target-semiring]
+% appropriate [target-addumagma], [target-zmodule] and [target-semiring]
 % If [field-mode] attempt to fill the field field, otherwise don't even attempt
 pred mk-ring-morphism i:term, o:rmorphism, o:term, o:term, o:list prop.
 mk-ring-morphism Ty rmorphism-nat {{ semiring_correct }} {{ target_nat }} Env :-
   coq.unify-eq Ty {{ nat }} ok, !,
-  canonical-nat-nmodule NatNmodule,
+  canonical-nat-addumagma NatAddUMagma,
   canonical-nat-semiring NatSemiRing,
   semiring-env SREnv,
-  Env = [target-nmodule (global (const NatNmodule)),
+  Env = [target-addumagma (global (const NatAddUMagma)),
          target-semiring (global (const NatSemiRing)) | SREnv].
 mk-ring-morphism Ty rmorphism-N {{ semiring_correct }} {{ target_N }} Env :-
   coq.unify-eq Ty {{ N }} ok, !,
-  canonical-N-nmodule NNmodule,
+  canonical-N-addumagma NAddUMagma,
   canonical-N-semiring NSemiRing,
   semiring-env SREnv,
-  Env = [target-nmodule (global (const NNmodule)),
+  Env = [target-addumagma (global (const NAddUMagma)),
          target-semiring (global (const NSemiRing)) | SREnv].
 mk-ring-morphism Ty rmorphism-int {{ ring_correct }} {{ target_int }} Env :-
   coq.unify-eq Ty {{ int }} ok, !,
-  canonical-int-nmodule IntNmodule,
+  canonical-int-addumagma IntAddUMagma,
   canonical-int-semiring IntSemiRing,
   canonical-int-zmodule IntZmodule,
   ring-env REnv,
-  Env = [target-nmodule (global (const IntNmodule)),
+  Env = [target-addumagma (global (const IntAddUMagma)),
          target-semiring (global (const IntSemiRing)),
          target-zmodule (global (const IntZmodule)) | REnv].
 mk-ring-morphism Ty rmorphism-Z {{ ring_correct }} {{ target_Z }} Env :-
   coq.unify-eq Ty {{ Z }} ok, !,
-  canonical-Z-nmodule ZNmodule,
+  canonical-Z-addumagma ZAddUMagma,
   canonical-Z-semiring ZSemiRing,
   canonical-Z-zmodule ZZmodule,
   ring-env REnv,
-  Env = [target-nmodule (global (const ZNmodule)),
+  Env = [target-addumagma (global (const ZAddUMagma)),
          target-semiring (global (const ZSemiRing)),
          target-zmodule (global (const ZZmodule)) | REnv].
 mk-ring-morphism Ty (rmorphism U V' SR R' UR' none (x\ x)) Lem CR Env :- !,
-  std.assert-ok! (coq.unify-eq Ty {{ GRing.Nmodule.sort lp:U }})
-                 "Cannot find a declared nmodType",
+  std.assert-ok! (coq.unify-eq Ty {{ GRing.BaseAddUMagma.sort lp:U }})
+                 "Cannot find a declared BaseAddUMagma",
   std.assert-ok! (coq.unify-eq Ty {{ GRing.SemiRing.sort lp:SR }})
                  "Cannot find a declared semiRingType",
   if (coq.unify-eq Ty {{ GRing.Zmodule.sort lp:V }} ok,
@@ -53,7 +53,7 @@ mk-ring-morphism Ty (rmorphism U V' SR R' UR' none (x\ x)) Lem CR Env :- !,
                      "Cannot find a declared comRingType",
       CR = {{ target_other_comRing lp:CR' }},
       ring-env REnv,
-      Env = [target-nmodule U, target-semiring SR, target-zmodule V | REnv])
+      Env = [target-addumagma U, target-semiring SR, target-zmodule V | REnv])
      % if the target is a semiring
      (V' = none, R' = none, UR' = none,
       Lem = {{ semiring_correct }},
@@ -61,17 +61,17 @@ mk-ring-morphism Ty (rmorphism U V' SR R' UR' none (x\ x)) Lem CR Env :- !,
                      "Cannot find a declared comSemiRingType",
       CR = {{ target_other_comSemiRing lp:CR' }},
       semiring-env SREnv,
-      Env = [target-nmodule U, target-semiring SR | SREnv]).
+      Env = [target-addumagma U, target-semiring SR | SREnv]).
 
 pred mk-field-morphism
   i:term, o:rmorphism, o:term, o:term, o:list prop, o:list prop.
 mk-field-morphism
   Ty (rmorphism U (some V) SR (some R) (some UR) (some F) (x\ x)) Lem Field
-  [target-nmodule U, target-semiring SR, target-zmodule V | REnv]
-  [field-mode, target-nmodule U, target-semiring SR, target-zmodule V | FEnv] :-
+  [target-addumagma U, target-semiring SR, target-zmodule V | REnv]
+  [field-mode, target-addumagma U, target-semiring SR, target-zmodule V | FEnv] :-
   std.do! [
-    std.assert-ok! (coq.unify-eq Ty {{ GRing.Nmodule.sort lp:U }})
-                   "Cannot find a declared nmodType",
+    std.assert-ok! (coq.unify-eq Ty {{ GRing.BaseAddUMagma.sort lp:U }})
+                   "Cannot find a declared baseAddUMagma",
     std.assert-ok! (coq.unify-eq Ty {{ GRing.Zmodule.sort lp:V }})
                    "Cannot find a declared zmodType",
     std.assert-ok! (coq.unify-eq Ty {{ GRing.SemiRing.sort lp:SR }})
@@ -179,7 +179,7 @@ ring (goal _ _ P _ Args as G) GS :-
     std.time (
       coq.ltac.call-with-error "ring_reflection"
         [trm Lem, trm ComRing, trm VM', trm Lpe',
-         trm RE1, trm RE2, trm PE1, trm PE2, trm LpeProofs']
+        trm RE1, trm RE2, trm PE1, trm PE2, trm LpeProofs']
         "Not a valid ring equation" G GS
     ) ReflTime,
     if-verbose (coq.say "Reflection:" ReflTime "sec."),

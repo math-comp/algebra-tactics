@@ -12,7 +12,7 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 
-Implicit Types (V : nmodType) (R : semiRingType) (F : fieldType).
+Implicit Types (V : baseAddUMagmaType) (R : semiRingType) (F : fieldType).
 
 (* Some basic facts about `Decimal.uint` and `Hexadecimal.uint`               *)
 
@@ -233,7 +233,7 @@ Inductive RExpr : semiRingType -> Type :=
   | RZAdditive R : {additive Z -> R} -> RExpr Z -> RExpr R
   (* variables *)
   | RX R : R -> RExpr R
-with MExpr : nmodType -> Type :=
+with MExpr : baseAddUMagmaType -> Type :=
   | M0 V : MExpr V
   | MAdd V : MExpr V -> MExpr V -> MExpr V
   | MMuln V : MExpr V -> RExpr nat -> MExpr V
@@ -1375,19 +1375,19 @@ End RealField.
 
 Elpi Db canonicals.db lp:{{
 
-pred canonical-nat-nmodule o:constant.
+pred canonical-nat-addumagma o:constant.
 pred canonical-nat-semiring o:constant.
 pred canonical-nat-comsemiring o:constant.
-pred canonical-N-nmodule o:constant.
+pred canonical-N-addumagma o:constant.
 pred canonical-N-semiring o:constant.
 pred canonical-N-comsemiring o:constant.
-pred canonical-int-nmodule o:constant.
+pred canonical-int-addumagma o:constant.
 pred canonical-int-zmodule o:constant.
 pred canonical-int-semiring o:constant.
 pred canonical-int-ring o:constant.
 pred canonical-int-comring o:constant.
 pred canonical-int-unitring o:constant.
-pred canonical-Z-nmodule o:constant.
+pred canonical-Z-addumagma o:constant.
 pred canonical-Z-zmodule o:constant.
 pred canonical-Z-semiring o:constant.
 pred canonical-Z-ring o:constant.
