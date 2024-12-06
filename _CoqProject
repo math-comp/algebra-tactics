@@ -1,4 +1,3 @@
 -R theories mathcomp.algebra_tactics
 -arg -w -arg -notation-overridden
 -arg -w -arg +elpi.typecheck
--arg -w -arg -elpi.typecheck-syntax
