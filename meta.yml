@@ -70,6 +70,14 @@ tested_coq_opam_versions:
   repo: 'mathcomp/mathcomp'
 - version: '2.2.0-coq-dev'
   repo: 'mathcomp/mathcomp'
+- version: '2.3.0-coq-8.18'
+  repo: 'mathcomp/mathcomp'
+- version: '2.3.0-coq-8.19'
+  repo: 'mathcomp/mathcomp'
+- version: '2.3.0-coq-8.20'
+  repo: 'mathcomp/mathcomp'
+- version: '2.3.0-coq-dev'
+  repo: 'mathcomp/mathcomp'
 - version: 'coq-8.18'
   repo: 'mathcomp/mathcomp-dev'
 - version: 'coq-8.19'
@@ -203,7 +211,7 @@ documentation: |-
   constant is automatically resolved.
 
   The `field` tactic has a preprocessor similar to the `ring` tactic.
-  In addition ot the constructs supported by the `ring` tactic, the `field`
+  In addition to the constructs supported by the `ring` tactic, the `field`
   tactic supports `GRing.inv` and `exprz` with a negative exponent.
 
   ### The `lra`, `nra`, and `psatz` tactics
