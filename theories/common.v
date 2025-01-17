@@ -1,5 +1,5 @@
 From elpi Require Import elpi.
-From Coq Require Import QArith.
+From Coq Require Import PeanoNat BinNat Zbool QArith.
 From Coq.micromega Require Import OrderedRing RingMicromega.
 From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint.
 From mathcomp.zify Require Import ssrZ zify.

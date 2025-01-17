@@ -1,5 +1,5 @@
 From elpi Require Import elpi.
-From Coq Require Import QArith Ring.
+From Coq Require Import BinNat QArith Ring.
 From Coq.micromega Require Import RingMicromega QMicromega EnvRing Tauto Lqa.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 From mathcomp Require Import fintype finfun bigop order ssralg ssrnum ssrint.
