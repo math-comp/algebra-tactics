@@ -178,6 +178,12 @@ type rmorphism-Z   rmorphism. % (int_of_Z _)%:~R
 
 % destructors
 
+pred sring->pzsring i:term, o:term.
+sring->pzsring U V :-
+	if (coq.locate-all "pzSemiRingType" [loc-gref PzSemiRingType| _ ])
+		(coq.elaborate-skeleton U (global PzSemiRingType) V ok)
+	(V = U).
+
 pred rmorphism->nmod i:rmorphism, o:term.
 rmorphism->nmod (rmorphism U _ _ _ _ _ _) U :- !.
 rmorphism->nmod rmorphism-nat (global (const U)) :- !, canonical-nat-nmodule U.
@@ -216,16 +222,20 @@ rmorphism->field (rmorphism _ _ _ _ _ (some F) _) F :- !.
 pred rmorphism->morph i:rmorphism, o:term -> term.
 rmorphism->morph (rmorphism _ _ _ _ _ _ Morph) Morph :- !.
 rmorphism->morph rmorphism-nat Morph :- !,
-  target-nmodule TU, !, target-semiring TR, !,
+  target-nmodule TU, !, target-semiring TR', !,
+	sring->pzsring TR' TR,
   Morph = n\ {{ @GRing.natmul lp:TU (@GRing.one lp:TR) lp:n }}.
 rmorphism->morph rmorphism-N Morph :- !,
-  target-nmodule TU, !, target-semiring TR, !,
+  target-nmodule TU, !, target-semiring TR', !,
+	sring->pzsring TR' TR,
   Morph = n\ {{ @GRing.natmul lp:TU (@GRing.one lp:TR) (N.to_nat lp:n) }}.
 rmorphism->morph rmorphism-int Morph :- !,
-  target-zmodule TU, !, target-semiring TR, !,
+  target-zmodule TU, !, target-semiring TR', !,
+	sring->pzsring TR' TR,
   Morph = n\ {{ @intmul lp:TU (@GRing.one lp:TR) lp:n }}.
 rmorphism->morph rmorphism-Z Morph :- !,
-  target-zmodule TU, !, target-semiring TR, !,
+  target-zmodule TU, !, target-semiring TR', !,
+	sring->pzsring TR' TR,
   Morph = n\ {{ @intmul lp:TU (@GRing.one lp:TR) (int_of_Z lp:n) }}.
 
 pred rmorphism-rm-field i:rmorphism, o:rmorphism.
@@ -458,13 +468,13 @@ ring C {{ @intmul lp:U lp:In1 lp:In2 }}
 % 1%R
 ring C {{ @GRing.one lp:R' }} {{ @R1 lp:R }} Out _ :-
   rmorphism->sring C R,
-  coq.unify-eq R R' ok, !,
+  coq.unify-eq { sring->pzsring R } R' ok, !,
   build.one Out.
 % *%R
 ring C {{ @GRing.mul lp:R' lp:In1 lp:In2 }}
      {{ @RMul lp:R lp:OutM1 lp:OutM2 }} Out VM :-
   rmorphism->sring C R,
-  coq.unify-eq R R' ok, !,
+  coq.unify-eq { sring->pzsring R } R' ok, !,
   ring C In1 OutM1 Out1 VM, !,
   ring C In2 OutM2 Out2 VM, !,
   build.mul Out1 Out2 Out.
@@ -490,7 +500,7 @@ ring rmorphism-Z {{ Z.mul lp:In1 lp:In2 }}
 ring C {{ @GRing.exp lp:R' lp:In1 lp:In2 }}
      {{ @RExpn lp:R lp:OutM1 lp:OutM2 }} Out VM :-
   rmorphism->sring C R,
-  coq.unify-eq R R' ok,
+  coq.unify-eq { sring->pzsring R } R' ok,
   n-const In2 OutM2 Out2, !,
   ring C In1 OutM1 Out1 VM, !,
   build.exp Out1 Out2 Out.
