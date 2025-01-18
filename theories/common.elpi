@@ -7,6 +7,7 @@ list-constant T [X|XS] {{ @cons lp:T lp:X lp:XS' }} :- list-constant T XS XS'.
 
 pred mem o:list term, o:term, o:int.
 mem [X|_] X 0 :- !.
+mem [Y|_] X 0 :- coq.unify-eq X Y ok, !.
 mem [_|XS] X M :- !, mem XS X N, M is N + 1.
 
 % [eucldiv N D M R] N = D * M + R
@@ -178,6 +179,24 @@ type rmorphism-Z   rmorphism. % (int_of_Z _)%:~R
 
 % destructors
 
+pred nmod->addmag i:term, o:term.
+nmod->addmag U V :-
+	if (coq.locate-all "baseAddMagmaType" [loc-gref BaseAddMagmaType| _ ])
+		(coq.elaborate-skeleton U (global BaseAddMagmaType) V ok)
+	(V = U).
+
+pred nmod->addumag i:term, o:term.
+nmod->addumag U V :-
+	if (coq.locate-all "baseAddUMagmaType" [loc-gref BaseAddUMagmaType| _ ])
+		(coq.elaborate-skeleton U (global BaseAddUMagmaType) V ok)
+	(V = U).
+
+pred zmod->base-zmod i:term, o:term.
+zmod->base-zmod U V :-
+	if (coq.locate-all "baseZmodType" [loc-gref BaseZmodType| _ ])
+		(coq.elaborate-skeleton U (global BaseZmodType) V ok)
+	(V = U).
+
 pred rmorphism->nmod i:rmorphism, o:term.
 rmorphism->nmod (rmorphism U _ _ _ _ _ _) U :- !.
 rmorphism->nmod rmorphism-nat (global (const U)) :- !, canonical-nat-nmodule U.
@@ -216,10 +235,12 @@ rmorphism->field (rmorphism _ _ _ _ _ (some F) _) F :- !.
 pred rmorphism->morph i:rmorphism, o:term -> term.
 rmorphism->morph (rmorphism _ _ _ _ _ _ Morph) Morph :- !.
 rmorphism->morph rmorphism-nat Morph :- !,
-  target-nmodule TU, !, target-semiring TR, !,
+  target-nmodule TU', !, target-semiring TR, !,
+  nmod->addumag TU' TU,
   Morph = n\ {{ @GRing.natmul lp:TU (@GRing.one lp:TR) lp:n }}.
 rmorphism->morph rmorphism-N Morph :- !,
-  target-nmodule TU, !, target-semiring TR, !,
+  target-nmodule TU', !, target-semiring TR, !,
+  nmod->addumag TU' TU,
   Morph = n\ {{ @GRing.natmul lp:TU (@GRing.one lp:TR) (N.to_nat lp:n) }}.
 rmorphism->morph rmorphism-int Morph :- !,
   target-zmodule TU, !, target-semiring TR, !,
@@ -301,19 +322,19 @@ nmod C {{ lp:In : _ }} OutM Out VM :- !,
   nmod C In OutM Out VM.
 % 0%R
 nmod (additive U _ _) {{ @GRing.zero lp:U' }} {{ @M0 lp:U }} Out _ :-
-  coq.unify-eq U U' ok, !,
+  coq.unify-eq {nmod->addumag U} U' ok, !,
   build.zero Out.
 % +%R
 nmod (additive U _ _ as C) {{ @GRing.add lp:U' lp:In1 lp:In2 }}
      {{ @MAdd lp:U lp:OutM1 lp:OutM2 }} Out VM :-
-  coq.unify-eq U U' ok, !,
+  coq.unify-eq {nmod->addmag U} U' ok, !,
   nmod C In1 OutM1 Out1 VM, !,
   nmod C In2 OutM2 Out2 VM, !,
   build.add Out1 Out2 Out.
 % (_ *+ _)%R
 nmod (additive U _ _ as C) {{ @GRing.natmul lp:U' lp:In1 lp:In2 }}
      {{ @MMuln lp:U lp:OutM1 lp:OutM2 }} Out VM :-
-  coq.unify-eq U U' ok, !,
+  coq.unify-eq {nmod->addumag U} U' ok, !,
   nmod C In1 OutM1 Out1 VM, !,
   ring rmorphism-nat In2 OutM2 Out2 VM, !,
   build.mul Out1 Out2 Out.
@@ -331,7 +352,8 @@ nmod (additive _ (some U) _ as C) {{ @intmul lp:U' lp:In1 lp:In2 }}
   ring rmorphism-int In2 OutM2 Out2 VM, !,
   build.mul Out1 Out2 Out.
 % additive functions
-nmod (additive U _ _ as C) In OutM Out VM :-
+nmod (additive U' _ _ as C) In OutM Out VM :-
+  nmod->addumag U' U,
   % TODO: for concrete additive functions, should we unpack [NewMorphInst]?
   NewMorph = (x\ {{ @GRing.Additive.sort lp:V lp:U lp:NewMorphInst lp:x }}),
   coq.unify-eq In (NewMorph In1) ok, !,
@@ -394,13 +416,13 @@ ring C {{ lp:In : _ }} OutM Out VM :- !,
   ring C In OutM Out VM.
 % 0%R
 ring C {{ @GRing.zero lp:U }} {{ @R0 lp:R }} Out _ :-
-  coq.unify-eq { rmorphism->nmod C } U ok,
+  coq.unify-eq { nmod->addumag { rmorphism->nmod C } } U ok,
   rmorphism->sring C R, !,
   build.zero Out.
 % +%R
 ring C {{ @GRing.add lp:U lp:In1 lp:In2 }}
      {{ @RAdd lp:R lp:OutM1 lp:OutM2 }} Out VM :-
-  coq.unify-eq { rmorphism->nmod C } U ok,
+  coq.unify-eq { nmod->addmag { rmorphism->nmod C } } U ok,
   rmorphism->sring C R, !,
   ring C In1 OutM1 Out1 VM, !,
   ring C In2 OutM2 Out2 VM, !,
@@ -426,14 +448,14 @@ ring rmorphism-Z {{ Z.add lp:In1 lp:In2 }}
 % (_ *+ _)%R
 ring C {{ @GRing.natmul lp:U lp:In1 lp:In2 }}
      {{ @RMuln lp:R lp:OutM1 lp:OutM2 }} Out VM :-
-  coq.unify-eq { rmorphism->nmod C } U ok,
+  coq.unify-eq {nmod->addumag { rmorphism->nmod C } } U ok,
   rmorphism->sring C R, !,
   ring C In1 OutM1 Out1 VM, !,
   ring rmorphism-nat In2 OutM2 Out2 VM, !,
   build.mul Out1 Out2 Out.
 % -%R
 ring C {{ @GRing.opp lp:U lp:In1 }} {{ @ROpp lp:R lp:OutM1 }} Out VM :-
-  coq.unify-eq { rmorphism->zmod C } U ok,
+  coq.unify-eq {zmod->base-zmod { rmorphism->zmod C } } U ok,
   rmorphism->ring C R, !,
   ring C In1 OutM1 Out1 VM, !,
   build.opp Out1 Out.
@@ -577,7 +599,8 @@ ring C In OutM Out VM :-
   ring.rmorphism S C NewMorph NewMorphInst In1 OutM Out VM.
 % additive functions
 ring C In OutM Out VM :-
-  rmorphism->nmod C U,
+  rmorphism->nmod C U',
+  nmod->addumag U' U,
   % TODO: for concrete additive functions, should we unpack [NewMorphInst]?
   NewMorph = (x\ {{ @GRing.Additive.sort lp:V lp:U lp:NewMorphInst lp:x }}),
   coq.unify-eq In (NewMorph In1) ok, !,
