@@ -403,3 +403,4 @@ Tactic Notation "psatz" integer(n) :=
 Tactic Notation "psatz" := elpi lra "psatz_witness" "tacF" "tacR" (-1).
 
 Elpi Query lp:{{ canonical-init library "canonicals.db" }}.
+Elpi Query lp:{{ coercion-init library "canonicals.db" }}.

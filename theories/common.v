@@ -1393,5 +1393,6 @@ pred canonical-Z-semiring o:constant.
 pred canonical-Z-ring o:constant.
 pred canonical-Z-comring o:constant.
 pred canonical-Z-unitring o:constant.
+pred coercion i:string o:term.
 
 }}.

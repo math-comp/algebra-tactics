@@ -459,3 +459,4 @@ Tactic Notation "#[" attributes(A) "]" "field" ":" ne_constr_list(L) :=
   ltac_attributes:(A) elpi field ltac_term_list:(L).
 
 Elpi Query lp:{{ canonical-init library "canonicals.db" }}.
+Elpi Query lp:{{ coercion-init library "canonicals.db" }}.

@@ -128,6 +128,66 @@ canonical-init Scope DbName :- std.do! [
   register-instance Scope DbName
     {{:gref GRing.UnitRing.sort }} {{:gref Z }} canonical-Z-unitring ].
 
+pred coercion-init i:scope, i:id.
+coercion-init Scope DbName :- std.do! [
+  coq.typecheck {{ @GRing.zero lp:Zero }} _ ok,
+	coq.typecheck Zero TZero ok,
+	coq.elaborate-skeleton {{ id }} {{ nmodType -> lp:TZero }} CZero ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "zero" CZero :- !)),
+
+  coq.typecheck {{ @GRing.opp lp:Opp }} _ ok,
+	coq.typecheck Opp TOpp ok,
+	coq.elaborate-skeleton {{ id }} {{ zmodType -> lp:TOpp }} COpp ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "opp" COpp :- !)),
+
+  coq.typecheck {{ @GRing.add lp:Add }} _ ok,
+	coq.typecheck Add TAdd ok,
+	coq.elaborate-skeleton {{ id }} {{ nmodType -> lp:TAdd }} CAdd ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "add" CAdd :- !)),
+
+  coq.typecheck {{ @GRing.one lp:One }} _ ok,
+	coq.typecheck One TOne ok,
+	coq.elaborate-skeleton {{ id }} {{ semiRingType -> lp:TOne }} COne ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "one" COne :- !)),
+
+  coq.typecheck {{ @GRing.mul lp:Mul }} _ ok,
+	coq.typecheck Mul TMul ok,
+	coq.elaborate-skeleton {{ id }} {{ semiRingType -> lp:TMul }} CMul ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "mul" CMul :- !)),
+
+  coq.typecheck {{ @GRing.exp lp:Exp }} _ ok,
+	coq.typecheck Exp TExp ok,
+	coq.elaborate-skeleton {{ id }} {{ semiRingType -> lp:TExp }} CExp ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "exp" CExp :- !)),
+
+  coq.typecheck {{ @GRing.inv lp:Inv }} _ ok,
+	coq.typecheck Inv TInv ok,
+	coq.elaborate-skeleton {{ id }} {{ unitRingType -> lp:TInv }} CInv ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "inv" CInv :- !)),
+
+	coq.typecheck {{ @GRing.natmul lp:Natmul }} _ ok,
+	coq.typecheck Natmul TNatmul ok,
+	coq.elaborate-skeleton {{ id }} {{ nmodType -> lp:TNatmul }} CNatmul ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "natmul" CNatmul :- !)),
+
+	coq.typecheck {{ @GRing.Additive.sort lp:AdditiveDom lp:AdditiveIm }} _ ok,
+	coq.typecheck AdditiveDom TAdditiveDom ok,
+	coq.elaborate-skeleton {{ id }} {{ nmodType -> lp:TAdditiveDom }} CAdditiveDom ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "additive-dom" CAdditiveDom :- !)),
+	coq.typecheck AdditiveIm TAdditiveIm ok,
+	coq.elaborate-skeleton {{ id }} {{ nmodType -> lp:TAdditiveIm }} CAdditiveIm ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "additive-im" CAdditiveIm :- !)),
+
+  coq.typecheck {{ @GRing.RMorphism.sort lp:RMorphDom lp:RMorphIm }} _ ok,
+	coq.typecheck RMorphDom TRMorphDom ok,
+	coq.elaborate-skeleton {{ id }} {{ semiRingType -> lp:TRMorphDom }} CRMorphDom ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "rmorph-dom" CRMorphDom :- !)),
+	coq.typecheck RMorphIm TRMorphIm ok,
+	coq.elaborate-skeleton {{ id }} {{ semiRingType -> lp:TRMorphIm }} CRMorphIm ok,
+  coq.elpi.accumulate Scope DbName (clause _ _ (coercion "rmorph-im" CRMorphIm :- !)),
+].
+	
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Expression refifier
 
@@ -217,16 +277,22 @@ pred rmorphism->morph i:rmorphism, o:term -> term.
 rmorphism->morph (rmorphism _ _ _ _ _ _ Morph) Morph :- !.
 rmorphism->morph rmorphism-nat Morph :- !,
   target-nmodule TU, !, target-semiring TR, !,
-  Morph = n\ {{ @GRing.natmul lp:TU (@GRing.one lp:TR) lp:n }}.
+	coercion "natmul" CNatmul, !,
+	coercion "one" COne, !,
+  Morph = n\ {{ @GRing.natmul (lp:CNatmul lp:TU) (@GRing.one (lp:COne lp:TR)) lp:n }}.
 rmorphism->morph rmorphism-N Morph :- !,
   target-nmodule TU, !, target-semiring TR, !,
-  Morph = n\ {{ @GRing.natmul lp:TU (@GRing.one lp:TR) (N.to_nat lp:n) }}.
+	coercion "natmul" CNatmul, !,
+	coercion "one" COne, !,
+  Morph = n\ {{ @GRing.natmul (lp:CNatmul lp:TU) (@GRing.one (lp:COne lp:TR)) (N.to_nat lp:n) }}.
 rmorphism->morph rmorphism-int Morph :- !,
   target-zmodule TU, !, target-semiring TR, !,
-  Morph = n\ {{ @intmul lp:TU (@GRing.one lp:TR) lp:n }}.
+	coercion "one" COne, !,
+  Morph = n\ {{ @intmul lp:TU (@GRing.one (lp:COne lp:TR)) lp:n }}.
 rmorphism->morph rmorphism-Z Morph :- !,
   target-zmodule TU, !, target-semiring TR, !,
-  Morph = n\ {{ @intmul lp:TU (@GRing.one lp:TR) (int_of_Z lp:n) }}.
+	coercion "one" COne, !,
+  Morph = n\ {{ @intmul lp:TU (@GRing.one (lp:COne lp:TR)) (int_of_Z lp:n) }}.
 
 pred rmorphism-rm-field i:rmorphism, o:rmorphism.
 rmorphism-rm-field (rmorphism U V SR R UR _ M) (rmorphism U V SR R UR none M).
@@ -301,26 +367,30 @@ nmod C {{ lp:In : _ }} OutM Out VM :- !,
   nmod C In OutM Out VM.
 % 0%R
 nmod (additive U _ _) {{ @GRing.zero lp:U' }} {{ @M0 lp:U }} Out _ :-
-  coq.unify-eq U U' ok, !,
+	coercion "zero" CZero,
+  coq.unify-eq (app [CZero, U]) U' ok, !,
   build.zero Out.
 % +%R
 nmod (additive U _ _ as C) {{ @GRing.add lp:U' lp:In1 lp:In2 }}
      {{ @MAdd lp:U lp:OutM1 lp:OutM2 }} Out VM :-
-  coq.unify-eq U U' ok, !,
+	coercion "add" CAdd,
+  coq.unify-eq (app [CAdd, U]) U' ok, !,
   nmod C In1 OutM1 Out1 VM, !,
   nmod C In2 OutM2 Out2 VM, !,
   build.add Out1 Out2 Out.
 % (_ *+ _)%R
 nmod (additive U _ _ as C) {{ @GRing.natmul lp:U' lp:In1 lp:In2 }}
      {{ @MMuln lp:U lp:OutM1 lp:OutM2 }} Out VM :-
-  coq.unify-eq U U' ok, !,
+	coercion "natmul" CNatmul,
+  coq.unify-eq (app [CNatmul, U]) U' ok, !,
   nmod C In1 OutM1 Out1 VM, !,
   ring rmorphism-nat In2 OutM2 Out2 VM, !,
   build.mul Out1 Out2 Out.
 % -%R
 nmod (additive _ (some U) _ as C) {{ @GRing.opp lp:U' lp:In1 }}
      {{ @MOpp lp:U lp:OutM1 }} Out VM :-
-  coq.unify-eq U U' ok, !,
+	coercion "opp" COpp,
+  coq.unify-eq (app [COpp, U]) U' ok, !,
   nmod C In1 OutM1 Out1 VM, !,
   build.opp Out1 Out.
 % (_ *~ _)%R
@@ -332,8 +402,10 @@ nmod (additive _ (some U) _ as C) {{ @intmul lp:U' lp:In1 lp:In2 }}
   build.mul Out1 Out2 Out.
 % additive functions
 nmod (additive U _ _ as C) In OutM Out VM :-
+	coercion "additive-im" CAdditiveIm,
+	coercion "additive-dom" CAdditiveDom,
   % TODO: for concrete additive functions, should we unpack [NewMorphInst]?
-  NewMorph = (x\ {{ @GRing.Additive.sort lp:V lp:U lp:NewMorphInst lp:x }}),
+  NewMorph = (x\ {{ @GRing.Additive.sort (lp:CAdditiveDom lp:V) (lp:CAdditiveIm lp:U) lp:NewMorphInst lp:x }}),
   coq.unify-eq In (NewMorph In1) ok, !,
   nmod.additive V C NewMorph NewMorphInst In1 OutM Out VM.
 % variables
@@ -394,13 +466,15 @@ ring C {{ lp:In : _ }} OutM Out VM :- !,
   ring C In OutM Out VM.
 % 0%R
 ring C {{ @GRing.zero lp:U }} {{ @R0 lp:R }} Out _ :-
-  coq.unify-eq { rmorphism->nmod C } U ok,
+	coercion "zero" CZero,
+  coq.unify-eq (app [CZero, { rmorphism->nmod C }]) U ok,
   rmorphism->sring C R, !,
   build.zero Out.
 % +%R
 ring C {{ @GRing.add lp:U lp:In1 lp:In2 }}
      {{ @RAdd lp:R lp:OutM1 lp:OutM2 }} Out VM :-
-  coq.unify-eq { rmorphism->nmod C } U ok,
+	coercion "add" CAdd,
+  coq.unify-eq (app [CAdd, { rmorphism->nmod C }]) U ok,
   rmorphism->sring C R, !,
   ring C In1 OutM1 Out1 VM, !,
   ring C In2 OutM2 Out2 VM, !,
@@ -426,14 +500,16 @@ ring rmorphism-Z {{ Z.add lp:In1 lp:In2 }}
 % (_ *+ _)%R
 ring C {{ @GRing.natmul lp:U lp:In1 lp:In2 }}
      {{ @RMuln lp:R lp:OutM1 lp:OutM2 }} Out VM :-
-  coq.unify-eq { rmorphism->nmod C } U ok,
+	coercion "natmul" CNatmul,
+  coq.unify-eq (app [CNatmul, { rmorphism->nmod C }]) U ok,
   rmorphism->sring C R, !,
   ring C In1 OutM1 Out1 VM, !,
   ring rmorphism-nat In2 OutM2 Out2 VM, !,
   build.mul Out1 Out2 Out.
 % -%R
 ring C {{ @GRing.opp lp:U lp:In1 }} {{ @ROpp lp:R lp:OutM1 }} Out VM :-
-  coq.unify-eq { rmorphism->zmod C } U ok,
+	coercion "opp" COpp,
+  coq.unify-eq (app [COpp, { rmorphism->zmod C }]) U ok,
   rmorphism->ring C R, !,
   ring C In1 OutM1 Out1 VM, !,
   build.opp Out1 Out.
@@ -457,14 +533,16 @@ ring C {{ @intmul lp:U lp:In1 lp:In2 }}
   build.mul Out1 Out2 Out.
 % 1%R
 ring C {{ @GRing.one lp:R' }} {{ @R1 lp:R }} Out _ :-
+	coercion "one" COne,
   rmorphism->sring C R,
-  coq.unify-eq R R' ok, !,
+  coq.unify-eq (app [COne, R]) R' ok, !,
   build.one Out.
 % *%R
 ring C {{ @GRing.mul lp:R' lp:In1 lp:In2 }}
      {{ @RMul lp:R lp:OutM1 lp:OutM2 }} Out VM :-
+	coercion "mul" CMul,
   rmorphism->sring C R,
-  coq.unify-eq R R' ok, !,
+  coq.unify-eq (app [CMul, R]) R' ok, !,
   ring C In1 OutM1 Out1 VM, !,
   ring C In2 OutM2 Out2 VM, !,
   build.mul Out1 Out2 Out.
@@ -489,8 +567,9 @@ ring rmorphism-Z {{ Z.mul lp:In1 lp:In2 }}
 % (_ ^+ _)%R
 ring C {{ @GRing.exp lp:R' lp:In1 lp:In2 }}
      {{ @RExpn lp:R lp:OutM1 lp:OutM2 }} Out VM :-
+	coercion "exp" CExp,
   rmorphism->sring C R,
-  coq.unify-eq R R' ok,
+  coq.unify-eq (app [CExp, R]) R' ok,
   n-const In2 OutM2 Out2, !,
   ring C In1 OutM1 Out1 VM, !,
   build.exp Out1 Out2 Out.
@@ -533,8 +612,9 @@ ring rmorphism-Z {{ Z.pow lp:In1 lp:In2 }}
    build.zero Out). % If [In2] is negative
 % _^-1
 ring C {{ @GRing.inv lp:R lp:In1 }} {{ @RInv lp:F lp:OutM1 }} Out VM :-
+	coercion "inv" CInv,
   rmorphism->field C F,
-  coq.unify-eq { rmorphism->uring C } R ok, !,
+  coq.unify-eq (app [CInv, { rmorphism->uring C }]) R ok, !,
   ring C In1 OutM1 Out1 VM,
   build.inv Out1 Out.
 % S (..(S ..)..) and nat constants
@@ -571,15 +651,19 @@ ring rmorphism-Z In {{ @RZC lp:In }} Out _ :-
 % morphisms
 ring C In OutM Out VM :-
   rmorphism->sring C R,
+	coercion "rmorph-dom" CRMorphDom,
+	coercion "rmorph-im" CRMorphIm,
   % TODO: for concrete additive functions, should we unpack [NewMorphInst]?
-  NewMorph = (x\ {{ @GRing.RMorphism.sort lp:S lp:R lp:NewMorphInst lp:x }}),
+  NewMorph = (x\ {{ @GRing.RMorphism.sort (lp:CRMorphDom lp:S) (lp:CRMorphIm lp:R) lp:NewMorphInst lp:x }}),
   coq.unify-eq In (NewMorph In1) ok, !,
   ring.rmorphism S C NewMorph NewMorphInst In1 OutM Out VM.
 % additive functions
 ring C In OutM Out VM :-
   rmorphism->nmod C U,
+	coercion "additive-dom" CAdditiveDom,
+	coercion "additive-im" CAdditiveIm,
   % TODO: for concrete additive functions, should we unpack [NewMorphInst]?
-  NewMorph = (x\ {{ @GRing.Additive.sort lp:V lp:U lp:NewMorphInst lp:x }}),
+  NewMorph = (x\ {{ @GRing.Additive.sort (lp:CAdditiveDom lp:V) (lp:CAdditiveIm lp:U) lp:NewMorphInst lp:x }}),
   coq.unify-eq In (NewMorph In1) ok, !,
   ring.additive V C NewMorph NewMorphInst In1 OutM Out VM.
 % variables
