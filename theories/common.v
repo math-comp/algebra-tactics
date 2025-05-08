@@ -12,7 +12,7 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 
-Implicit Types (V : nmodType) (R : semiRingType) (F : fieldType).
+Implicit Types (V : nmodType) (R : pzSemiRingType) (F : fieldType).
 
 (* Some basic facts about `Decimal.uint` and `Hexadecimal.uint`               *)
 
@@ -181,7 +181,7 @@ Proof. by elim: n => // n; rewrite mulrS => ->. Qed.
 
 (* Type for reified expressions                                               *)
 
-Inductive RExpr : semiRingType -> Type :=
+Inductive RExpr : pzSemiRingType -> Type :=
   (* 0 *)
   | R0 R : RExpr R
   (* addition *)
@@ -192,11 +192,11 @@ Inductive RExpr : semiRingType -> Type :=
   (* natmul *)
   | RMuln R : RExpr R -> RExpr nat -> RExpr R
   (* opposite and subtraction *)
-  | ROpp (R : ringType) : RExpr R -> RExpr R
+  | ROpp (R : pzRingType) : RExpr R -> RExpr R
   | RZOpp : RExpr Z -> RExpr Z
   | RZSub : RExpr Z -> RExpr Z -> RExpr Z
   (* intmul *)
-  | RMulz (R : ringType) : RExpr R -> RExpr int -> RExpr R
+  | RMulz (R : pzRingType) : RExpr R -> RExpr int -> RExpr R
   (* 1 *)
   | R1 R : RExpr R
   (* multiplication *)
@@ -309,7 +309,7 @@ Module SemiRing.
 
 Section norm.
 
-Variables (R' : semiRingType) (R_of_N : N -> R').
+Variables (R' : pzSemiRingType) (R_of_N : N -> R').
 Variables (zero : R') (add : R' -> R' -> R').
 Variables (one : R') (mul : R' -> R' -> R') (exp : R' -> N -> R').
 
@@ -385,7 +385,7 @@ End norm.
 
 Section correct.
 
-Variables (R' : semiRingType).
+Variables (R' : pzSemiRingType).
 
 Notation Rnorm :=
   (Rnorm (fun n => (nat_of_N n)%:R) 0 +%R 1 *%R (fun x n => x ^+ N.to_nat n)).
@@ -448,7 +448,7 @@ Module Ring.
 
 Section norm.
 
-Variables (R' : ringType) (R_of_Z : Z -> R').
+Variables (R' : pzRingType) (R_of_Z : Z -> R').
 Variables (zero : R') (add : R' -> R' -> R').
 Variables (opp : R' -> R') (sub : R' -> R' -> R').
 Variables (one : R') (mul : R' -> R' -> R') (exp : R' -> N -> R').
@@ -555,7 +555,7 @@ End norm.
 
 Section correct.
 
-Variables (R' : ringType).
+Variables (R' : pzRingType).
 
 Notation Rnorm :=
   (Rnorm (fun n : Z => (int_of_Z n)%:~R) 0 +%R -%R (fun x y => x - y)
@@ -650,7 +650,7 @@ Module Field.
 
 Section norm.
 
-Variables (F : ringType) (F_of_Z : Z -> F).
+Variables (F : pzRingType) (F_of_Z : Z -> F).
 Variables (zero : F) (add : F -> F -> F) (opp : F -> F) (sub : F -> F -> F).
 Variables (one : F) (mul : F -> F -> F) (exp : F -> N -> F) (inv : F -> F).
 
@@ -857,7 +857,7 @@ Module Lra.
 
 Section norm.
 
-Variables (F : ringType) (F_of_Z : bool -> Z -> F).
+Variables (F : pzRingType) (F_of_Z : bool -> Z -> F).
 Variables (zero : F) (add : F -> F -> F) (opp : F -> F) (sub : F -> F -> F).
 Variables (one : F) (mul : F -> F -> F) (exp : F -> N -> F) (inv : F -> F).
 
@@ -986,9 +986,9 @@ Qed.
 
 End norm.
 
-Lemma Rnorm_eq invb (F : ringType) (f f' : bool -> Z -> F)
+Lemma Rnorm_eq invb (F : pzRingType) (f f' : bool -> Z -> F)
   zero add opp sub one mul exp inv : f =2 f' ->
-  forall (R : semiRingType) (env : R -> F) e,
+  forall (R : pzSemiRingType) (env : R -> F) e,
     Rnorm f zero add opp sub one mul exp inv invb env e =
     Rnorm f' zero add opp sub one mul exp inv invb env e.
 Proof.
@@ -1235,7 +1235,7 @@ Qed.
 (* Some instances required to adapt `ring`, `field`, and `lra` tactics to     *)
 (* MathComp                                                                   *)
 
-Lemma RN (SR : semiRingType) : semi_morph (0 : SR) 1 +%R *%R eq
+Lemma RN (SR : pzSemiRingType) : semi_morph (0 : SR) 1 +%R *%R eq
                 N.zero N.one N.add N.mul N.eqb (fun n => (nat_of_N n)%:R).
 Proof.
 split=> //= [x y | x y | x y].
@@ -1244,7 +1244,7 @@ split=> //= [x y | x y | x y].
 - by move=> ?; congr _%:R; lia.
 Qed.
 
-Lemma RZ (R : ringType) : ring_morph 0 1 +%R *%R (fun x y : R => x - y) -%R eq
+Lemma RZ (R : pzRingType) : ring_morph 0 1 +%R *%R (fun x y : R => x - y) -%R eq
                0 1 Z.add Z.mul Z.sub Z.opp Z.eqb (fun n => (int_of_Z n)%:~R).
 Proof.
 split=> //= [x y | x y | x y | x | x y /Z.eqb_eq -> //].
@@ -1254,7 +1254,7 @@ split=> //= [x y | x y | x y | x | x y /Z.eqb_eq -> //].
 - by rewrite !rmorphN.
 Qed.
 
-Lemma PN (SR : semiRingType) : @power_theory SR 1 *%R eq
+Lemma PN (SR : pzSemiRingType) : @power_theory SR 1 *%R eq
                                  N id (fun x n => x ^+ nat_of_N n).
 Proof.
 split => r [] //=; elim=> //= p <-.
@@ -1262,10 +1262,10 @@ split => r [] //=; elim=> //= p <-.
 - by rewrite Pos2Nat.inj_xO ?exprS -exprD addnn -mul2n.
 Qed.
 
-Lemma RS (SR : comSemiRingType) : @semi_ring_theory SR 0 1 +%R *%R eq.
+Lemma RS (SR : comPzSemiRingType) : @semi_ring_theory SR 0 1 +%R *%R eq.
 Proof. exact/mk_srt/mulrDl/mulrA/mulrC/mul0r/mul1r/addrA/addrC/add0r. Qed.
 
-Lemma RR (R : comRingType) :
+Lemma RR (R : comPzRingType) :
   @ring_theory R 0 1 +%R *%R (fun x y => x - y) -%R eq.
 Proof.
 exact/mk_rt/subrr/(fun _ _ => erefl)/mulrDl/mulrA/mulrC/mul1r/addrA/addrC/add0r.

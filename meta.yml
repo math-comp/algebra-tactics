@@ -40,57 +40,29 @@ license:
   file: CeCILL-B
 
 supported_coq_versions:
-  text: 8.16 or later
-  opam: '{>= "8.16"}'
+  text: 8.20 or later
+  opam: '{>= "8.20"}'
 
 tested_coq_nix_versions:
 
 tested_coq_opam_versions:
-- version: '2.0.0-coq-8.16'
+- version: '2.4.0-coq-8.20'
   repo: 'mathcomp/mathcomp'
-- version: '2.0.0-coq-8.17'
+- version: '2.4.0-rocq-prover-9.0'
   repo: 'mathcomp/mathcomp'
-- version: '2.0.0-coq-8.18'
+- version: '2.4.0-rocq-prover-dev'
   repo: 'mathcomp/mathcomp'
-- version: '2.1.0-coq-8.16'
-  repo: 'mathcomp/mathcomp'
-- version: '2.1.0-coq-8.17'
-  repo: 'mathcomp/mathcomp'
-- version: '2.1.0-coq-8.18'
-  repo: 'mathcomp/mathcomp'
-- version: '2.2.0-coq-8.16'
-  repo: 'mathcomp/mathcomp'
-- version: '2.2.0-coq-8.17'
-  repo: 'mathcomp/mathcomp'
-- version: '2.2.0-coq-8.18'
-  repo: 'mathcomp/mathcomp'
-- version: '2.2.0-coq-8.19'
-  repo: 'mathcomp/mathcomp'
-- version: '2.2.0-coq-8.20'
-  repo: 'mathcomp/mathcomp'
-- version: '2.2.0-coq-dev'
-  repo: 'mathcomp/mathcomp'
-- version: '2.3.0-coq-8.18'
-  repo: 'mathcomp/mathcomp'
-- version: '2.3.0-coq-8.19'
-  repo: 'mathcomp/mathcomp'
-- version: '2.3.0-coq-8.20'
-  repo: 'mathcomp/mathcomp'
-- version: '2.3.0-coq-dev'
-  repo: 'mathcomp/mathcomp'
-- version: 'coq-8.18'
-  repo: 'mathcomp/mathcomp-dev'
-- version: 'coq-8.19'
-  repo: 'mathcomp/mathcomp-dev'
 - version: 'coq-8.20'
   repo: 'mathcomp/mathcomp-dev'
-- version: 'coq-dev'
+- version: 'rocq-prover-9.0'
+  repo: 'mathcomp/mathcomp-dev'
+- version: 'rocq-prover-dev'
   repo: 'mathcomp/mathcomp-dev'
 
 dependencies:
 - opam:
     name: coq-mathcomp-ssreflect
-    version: '{>= "2.0" & < "2.4~"}'
+    version: '{>= "2.4" & < "2.5~"}'
   description: |-
     [MathComp](https://math-comp.github.io) ssreflect 2.0 or later
 - opam:

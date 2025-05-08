@@ -40,16 +40,16 @@ mk-ring-morphism Ty rmorphism-Z {{ ring_correct }} {{ target_Z }} Env :-
 mk-ring-morphism Ty (rmorphism U V' SR R' UR' none (x\ x)) Lem CR Env :- !,
   std.assert-ok! (coq.unify-eq Ty {{ GRing.Nmodule.sort lp:U }})
                  "Cannot find a declared nmodType",
-  std.assert-ok! (coq.unify-eq Ty {{ GRing.SemiRing.sort lp:SR }})
+  std.assert-ok! (coq.unify-eq Ty {{ GRing.PzSemiRing.sort lp:SR }})
                  "Cannot find a declared semiRingType",
   if (coq.unify-eq Ty {{ GRing.Zmodule.sort lp:V }} ok,
-      coq.unify-eq Ty {{ GRing.Ring.sort lp:R }} ok)
+      coq.unify-eq Ty {{ GRing.PzRing.sort lp:R }} ok)
      % if the target is a ring
      (V' = some V, R' = some R,
       if (coq.unify-eq Ty {{ GRing.UnitRing.sort lp:UR }} ok)
          (UR' = some UR) (UR' = none),
       Lem = {{ ring_correct }},
-      std.assert-ok! (coq.unify-eq Ty {{ GRing.ComRing.sort lp:CR' }})
+      std.assert-ok! (coq.unify-eq Ty {{ GRing.ComPzRing.sort lp:CR' }})
                      "Cannot find a declared comRingType",
       CR = {{ target_other_comRing lp:CR' }},
       ring-env REnv,
@@ -57,7 +57,7 @@ mk-ring-morphism Ty (rmorphism U V' SR R' UR' none (x\ x)) Lem CR Env :- !,
      % if the target is a semiring
      (V' = none, R' = none, UR' = none,
       Lem = {{ semiring_correct }},
-      std.assert-ok! (coq.unify-eq Ty {{ GRing.ComSemiRing.sort lp:CR' }})
+      std.assert-ok! (coq.unify-eq Ty {{ GRing.ComPzSemiRing.sort lp:CR' }})
                      "Cannot find a declared comSemiRingType",
       CR = {{ target_other_comSemiRing lp:CR' }},
       semiring-env SREnv,
@@ -74,9 +74,9 @@ mk-field-morphism
                    "Cannot find a declared nmodType",
     std.assert-ok! (coq.unify-eq Ty {{ GRing.Zmodule.sort lp:V }})
                    "Cannot find a declared zmodType",
-    std.assert-ok! (coq.unify-eq Ty {{ GRing.SemiRing.sort lp:SR }})
+    std.assert-ok! (coq.unify-eq Ty {{ GRing.PzSemiRing.sort lp:SR }})
                    "Cannot find a declared semiRingType",
-    std.assert-ok! (coq.unify-eq Ty {{ GRing.Ring.sort lp:R }})
+    std.assert-ok! (coq.unify-eq Ty {{ GRing.PzRing.sort lp:R }})
                    "Cannot find a declared ringType",
     std.assert-ok! (coq.unify-eq Ty {{ GRing.UnitRing.sort lp:UR }})
                    "Cannot find a declared unitRingType",

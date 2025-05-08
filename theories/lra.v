@@ -18,7 +18,7 @@ Local Open Scope ring_scope.
 
 Module Import Internals.
 
-Implicit Types (k : kind) (R S : ringType) (F : fieldType).
+Implicit Types (k : kind) (R S : pzRingType) (F : fieldType).
 
 (* Define [Reval_formula] the semantics of [BFormula (Formula Z) Tauto.isProp]
    as arithmetic expressions on some [realDomainType].

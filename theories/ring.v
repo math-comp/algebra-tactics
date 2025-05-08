@@ -19,7 +19,7 @@ Local Open Scope ring_scope.
 
 Module Import Internals.
 
-Implicit Types (V : nmodType) (R : semiRingType) (F : fieldType).
+Implicit Types (V : nmodType) (R : pzSemiRingType) (F : fieldType).
 
 (* Pushing down morphisms in ring and field expressions by reflection         *)
 
@@ -31,10 +31,10 @@ Fixpoint Reval_eqs C R (lpe : list (RExpr R * RExpr R * PExpr C * PExpr C)) :
 Variant target_comSemiRing :=
   | target_nat
   | target_N
-  | target_other_comSemiRing of comSemiRingType.
+  | target_other_comSemiRing of comPzSemiRingType.
 
 Local Coercion target_comSemiRingType (R : target_comSemiRing) :
-  comSemiRingType :=
+  comPzSemiRingType :=
   match R with
   | target_nat => nat
   | target_N => N
@@ -51,9 +51,9 @@ Definition target_comSemiRingMorph (R : target_comSemiRing) : R -> R :=
 Variant target_comRing :=
   | target_int
   | target_Z
-  | target_other_comRing of comRingType.
+  | target_other_comRing of comPzRingType.
 
-Local Coercion target_comRingType (R : target_comRing) : comRingType :=
+Local Coercion target_comRingType (R : target_comRing) : comPzRingType :=
   match R with
   | target_int => int
   | target_Z => Z
@@ -69,7 +69,7 @@ Definition target_comRingMorph (R : target_comRing) : R -> R :=
 
 Section Snorm.
 
-Variables (R' : semiRingType) (R_of_N : N -> R').
+Variables (R' : pzSemiRingType) (R_of_N : N -> R').
 Variables (zero : R') (add : R' -> R' -> R').
 Variables (one : R') (mul : R' -> R' -> R') (exp : R' -> N -> R').
 
@@ -86,7 +86,7 @@ End Snorm.
 
 Section Rnorm.
 
-Variables (R' : ringType) (R_of_Z : Z -> R').
+Variables (R' : pzRingType) (R_of_Z : Z -> R').
 Variables (zero : R') (add : R' -> R' -> R').
 Variables (opp : R' -> R') (sub : R' -> R' -> R').
 Variables (one : R') (mul : R' -> R' -> R') (exp : R' -> N -> R').
@@ -114,7 +114,7 @@ Fixpoint PEeval_list
   else
     [::].
 
-Definition Scorrect (R : comSemiRingType) :=
+Definition Scorrect (R : comPzSemiRingType) :=
   let RE := Eq_ext +%R *%R id in
   let RN := SRmorph_Rmorph (Eqsth R) (RN R) in
   ring_correct (Eqsth R) RE (SRth_ARth (Eqsth R) (RS R)) RN (PN R)
@@ -153,7 +153,7 @@ rewrite /= -!SemiRing.Rnorm_correct //.
 by move=> [-> ->] Hlpe [Hpe /(IHlpe Hlpe)] {IHlpe Hlpe} /=; case: lpe.
 Qed.
 
-Definition Rcorrect (R : comRingType) :=
+Definition Rcorrect (R : comPzRingType) :=
   let RE := Eq_ext +%R *%R -%R in
   ring_correct
     (Eqsth R) RE (Rth_ARth (Eqsth R) RE (RR R)) (RZ R) (PN R)

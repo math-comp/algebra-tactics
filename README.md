@@ -30,7 +30,7 @@ ring/field expressions before applying the proof procedures.
   - Kazuhiko Sakaguchi (initial)
   - Pierre Roux
 - License: [CeCILL-B Free Software License Agreement](CeCILL-B)
-- Compatible Coq versions: 8.16 or later
+- Compatible Coq versions: 8.20 or later
 - Additional dependencies:
   - [MathComp](https://math-comp.github.io) ssreflect 2.0 or later
   - [MathComp](https://math-comp.github.io) algebra
