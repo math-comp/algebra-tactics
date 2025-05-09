@@ -95,25 +95,25 @@ canonical-init Scope DbName :- std.do! [
   register-instance Scope DbName
     {{:gref GRing.Nmodule.sort }} {{:gref nat }} canonical-nat-nmodule,
   register-instance Scope DbName
-    {{:gref GRing.SemiRing.sort }} {{:gref nat }} canonical-nat-semiring,
+    {{:gref GRing.PzSemiRing.sort }} {{:gref nat }} canonical-nat-semiring,
   register-instance Scope DbName
-    {{:gref GRing.ComSemiRing.sort }} {{:gref nat }} canonical-nat-comsemiring,
+    {{:gref GRing.ComPzSemiRing.sort }} {{:gref nat }} canonical-nat-comsemiring,
   register-instance Scope DbName
     {{:gref GRing.Nmodule.sort }} {{:gref N }} canonical-N-nmodule,
   register-instance Scope DbName
-    {{:gref GRing.SemiRing.sort }} {{:gref N }} canonical-N-semiring,
+    {{:gref GRing.PzSemiRing.sort }} {{:gref N }} canonical-N-semiring,
   register-instance Scope DbName
-    {{:gref GRing.ComSemiRing.sort }} {{:gref N }} canonical-N-comsemiring,
+    {{:gref GRing.ComPzSemiRing.sort }} {{:gref N }} canonical-N-comsemiring,
   register-instance Scope DbName
     {{:gref GRing.Nmodule.sort }} {{:gref int }} canonical-int-nmodule,
   register-instance Scope DbName
     {{:gref GRing.Zmodule.sort }} {{:gref int }} canonical-int-zmodule,
   register-instance Scope DbName
-    {{:gref GRing.SemiRing.sort }} {{:gref int }} canonical-int-semiring,
+    {{:gref GRing.PzSemiRing.sort }} {{:gref int }} canonical-int-semiring,
   register-instance Scope DbName
-    {{:gref GRing.Ring.sort }} {{:gref int }} canonical-int-ring,
+    {{:gref GRing.PzRing.sort }} {{:gref int }} canonical-int-ring,
   register-instance Scope DbName
-    {{:gref GRing.ComRing.sort }} {{:gref int }} canonical-int-comring,
+    {{:gref GRing.ComPzRing.sort }} {{:gref int }} canonical-int-comring,
   register-instance Scope DbName
     {{:gref GRing.UnitRing.sort }} {{:gref int }} canonical-int-unitring,
   register-instance Scope DbName
@@ -121,11 +121,11 @@ canonical-init Scope DbName :- std.do! [
   register-instance Scope DbName
     {{:gref GRing.Zmodule.sort }} {{:gref Z }} canonical-Z-zmodule,
   register-instance Scope DbName
-    {{:gref GRing.SemiRing.sort }} {{:gref Z }} canonical-Z-semiring,
+    {{:gref GRing.PzSemiRing.sort }} {{:gref Z }} canonical-Z-semiring,
   register-instance Scope DbName
-    {{:gref GRing.Ring.sort }} {{:gref Z }} canonical-Z-ring,
+    {{:gref GRing.PzRing.sort }} {{:gref Z }} canonical-Z-ring,
   register-instance Scope DbName
-    {{:gref GRing.ComRing.sort }} {{:gref Z }} canonical-Z-comring,
+    {{:gref GRing.ComPzRing.sort }} {{:gref Z }} canonical-Z-comring,
   register-instance Scope DbName
     {{:gref GRing.UnitRing.sort }} {{:gref Z }} canonical-Z-unitring ].
 
@@ -148,17 +148,17 @@ coercion-init Scope DbName :- std.do! [
 
   coq.typecheck {{ @GRing.one lp:One }} _ ok,
 	coq.typecheck One TOne ok,
-	coq.elaborate-skeleton {{ id }} {{ semiRingType -> lp:TOne }} COne ok,
+	coq.elaborate-skeleton {{ id }} {{ pzSemiRingType -> lp:TOne }} COne ok,
   coq.elpi.accumulate Scope DbName (clause _ _ (coercion "one" COne :- !)),
 
   coq.typecheck {{ @GRing.mul lp:Mul }} _ ok,
 	coq.typecheck Mul TMul ok,
-	coq.elaborate-skeleton {{ id }} {{ semiRingType -> lp:TMul }} CMul ok,
+	coq.elaborate-skeleton {{ id }} {{ pzSemiRingType -> lp:TMul }} CMul ok,
   coq.elpi.accumulate Scope DbName (clause _ _ (coercion "mul" CMul :- !)),
 
   coq.typecheck {{ @GRing.exp lp:Exp }} _ ok,
 	coq.typecheck Exp TExp ok,
-	coq.elaborate-skeleton {{ id }} {{ semiRingType -> lp:TExp }} CExp ok,
+	coq.elaborate-skeleton {{ id }} {{ pzSemiRingType -> lp:TExp }} CExp ok,
   coq.elpi.accumulate Scope DbName (clause _ _ (coercion "exp" CExp :- !)),
 
   coq.typecheck {{ @GRing.inv lp:Inv }} _ ok,
@@ -181,10 +181,10 @@ coercion-init Scope DbName :- std.do! [
 
   coq.typecheck {{ @GRing.RMorphism.sort lp:RMorphDom lp:RMorphIm }} _ ok,
 	coq.typecheck RMorphDom TRMorphDom ok,
-	coq.elaborate-skeleton {{ id }} {{ semiRingType -> lp:TRMorphDom }} CRMorphDom ok,
+	coq.elaborate-skeleton {{ id }} {{ pzSemiRingType -> lp:TRMorphDom }} CRMorphDom ok,
   coq.elpi.accumulate Scope DbName (clause _ _ (coercion "rmorph-dom" CRMorphDom :- !)),
 	coq.typecheck RMorphIm TRMorphIm ok,
-	coq.elaborate-skeleton {{ id }} {{ semiRingType -> lp:TRMorphIm }} CRMorphIm ok,
+	coq.elaborate-skeleton {{ id }} {{ pzSemiRingType -> lp:TRMorphIm }} CRMorphIm ok,
   coq.elpi.accumulate Scope DbName (clause _ _ (coercion "rmorph-im" CRMorphIm :- !)),
 ].
 	
@@ -677,9 +677,9 @@ ring _ In _ _ _ :- coq.error "Unknown" { coq.term->string In }.
 
 pred ring.rmorphism.aux i:term, i:term -> term, o:rmorphism.
 ring.rmorphism.aux SR Morph (rmorphism U V' SR R' UR' F' Morph) :- !,
-  Sort = {{ GRing.SemiRing.sort lp:SR }},
+  Sort = {{ GRing.PzSemiRing.sort lp:SR }},
   coq.unify-eq Sort {{ GRing.Nmodule.sort lp:U }} ok,
-  if (target-zmodule _, coq.unify-eq Sort {{ GRing.Ring.sort lp:R }} ok,
+  if (target-zmodule _, coq.unify-eq Sort {{ GRing.PzRing.sort lp:R }} ok,
       coq.unify-eq Sort {{ GRing.Zmodule.sort lp:V }} ok)
      (V' = some V, R' = some R,
       if (coq.unify-eq Sort {{ GRing.UnitRing.sort lp:UR }} ok)

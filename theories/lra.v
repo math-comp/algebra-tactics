@@ -18,7 +18,7 @@ Local Open Scope ring_scope.
 
 Module Import Internals.
 
-Implicit Types (k : kind) (R S : ringType) (F : fieldType).
+Implicit Types (k : kind) (R S : pzRingType) (F : fieldType).
 
 (* Define [Reval_formula] the semantics of [BFormula (Formula Z) Tauto.isProp]
    as arithmetic expressions on some [realDomainType].
@@ -394,7 +394,6 @@ Strategy expand [Reval_PFormula Feval_PFormula].
 Elpi Tactic lra.
 Elpi Accumulate Db canonicals.db.
 Elpi Accumulate File common lra.
-Elpi Typecheck.
 
 Tactic Notation "lra" := elpi lra "lra_witness" "tacF" "tacR" 0.
 Tactic Notation "nra" := elpi lra "nra_witness" "tacF" "tacR" 0.

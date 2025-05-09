@@ -51,9 +51,9 @@ mk-carrier Ty (carrier Ty EQ PO U V SR R UR F' RD RF') Env :- std.do! [
                  "Cannot find a declared nmodType",
   std.assert-ok! (coq.unify-eq Ty {{ GRing.Zmodule.sort lp:V }})
                  "Cannot find a declared zmodType",
-  std.assert-ok! (coq.unify-eq Ty {{ GRing.SemiRing.sort lp:SR }})
+  std.assert-ok! (coq.unify-eq Ty {{ GRing.PzSemiRing.sort lp:SR }})
                  "Cannot find a declared semiRingType",
-  std.assert-ok! (coq.unify-eq Ty {{ GRing.Ring.sort lp:R }})
+  std.assert-ok! (coq.unify-eq Ty {{ GRing.PzRing.sort lp:R }})
                  "Cannot find a declared ringType",
   std.assert-ok! (coq.unify-eq Ty {{ GRing.UnitRing.sort lp:UR }})
                  "Cannot find a declared unitRingType",
@@ -520,9 +520,9 @@ ring _ _ In _ _ _ :- coq.error "Unknown" {coq.term->string In}.
 
 pred ring.rmorphism.aux i:term, i:term -> term, o:rmorphism.
 ring.rmorphism.aux SR Morph (rmorphism U V' SR R' UR' F' Morph) :- !,
-  Sort = {{ GRing.SemiRing.sort lp:SR }},
+  Sort = {{ GRing.PzSemiRing.sort lp:SR }},
   coq.unify-eq Sort {{ GRing.Nmodule.sort lp:U }} ok,
-  if (target-zmodule _, coq.unify-eq Sort {{ GRing.Ring.sort lp:R }} ok,
+  if (target-zmodule _, coq.unify-eq Sort {{ GRing.PzRing.sort lp:R }} ok,
       coq.unify-eq Sort {{ GRing.Zmodule.sort lp:V }} ok)
      (V' = some V, R' = some R,
       if (coq.unify-eq Sort {{ GRing.UnitRing.sort lp:UR }} ok)
