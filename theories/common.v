@@ -175,10 +175,6 @@ Definition quote_icstr_helper (n : int) : bool * N :=
   | Negz n => (false, N.of_nat n)
   end.
 
-(* TODO: remove natn below when we drop support for MathComp 2.0 *)
-Lemma natn n : n%:R%R = n :> nat.
-Proof. by elim: n => // n; rewrite mulrS => ->. Qed.
-
 (* Type for reified expressions                                               *)
 
 Inductive RExpr : pzSemiRingType -> Type :=
