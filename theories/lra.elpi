@@ -45,7 +45,7 @@ pred mk-carrier i:term, o:carrier, o:list prop.
 mk-carrier Ty (carrier Ty EQ PO U V SR R UR F' RD RF') Env :- std.do! [
   std.assert-ok! (coq.unify-eq Ty {{ Equality.sort lp:EQ }})
                  "Cannot find a declared eqType",
-  std.assert-ok! (coq.unify-eq Ty {{ @Order.POrder.sort _ lp:PO }})
+  std.assert-ok! (coq.unify-eq Ty (app [{coercion "porder_sort"}, _, PO]))
                  "Cannot find a declared porderType",
   std.assert-ok! (coq.unify-eq Ty {{ GRing.Nmodule.sort lp:U }})
                  "Cannot find a declared nmodType",
@@ -88,10 +88,10 @@ rfstr.bool {{ lp:Ty1 && lp:Ty2 }} C Env :- !,
   (rfstr.bool Ty2 C Env; rfstr.bool Ty1 C Env).
 rfstr.bool {{ lp:Ty1 || lp:Ty2 }} C Env :- !,
   (rfstr.bool Ty2 C Env; rfstr.bool Ty1 C Env).
-rfstr.bool {{ @Order.le _ lp:Ty _ _ }} C Env :- !,
-  mk-carrier {{ @Order.POrder.sort _ lp:Ty }} C Env.
-rfstr.bool {{ @Order.lt _ lp:Ty _ _ }} C Env :- !,
-  mk-carrier {{ @Order.POrder.sort _ lp:Ty }} C Env.
+rfstr.bool {{ @Order.le lp:Disp lp:Ty _ _ }} C Env :- !,
+  mk-carrier (app [{coercion "porder_sort"}, Disp, Ty]) C Env.
+rfstr.bool {{ @Order.lt lp:Disp lp:Ty _ _ }} C Env :- !,
+  mk-carrier (app [{coercion "porder_sort"}, Disp, Ty]) C Env.
 
 % carrier type from a term of type Prop
 pred rfstr.prop i:term, o:carrier, o:list prop.

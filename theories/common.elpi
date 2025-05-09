@@ -131,6 +131,13 @@ canonical-init Scope DbName :- std.do! [
 
 pred coercion-init i:scope, i:id.
 coercion-init Scope DbName :- std.do! [
+  coq.typecheck {{ @Order.le }} (prod _ _ DOrd) ok,
+  (pi d \ DOrd d = prod _ (OrdType d) _),
+  coq.elaborate-skeleton {{ fun d => id }}
+    {{ forall disp, lp:(OrdType disp) -> Type }} COrd ok,
+  coq.elpi.accumulate Scope DbName
+    (clause _ _ (coercion "porder_sort" COrd :- !)),
+
   coq.typecheck {{ @GRing.zero lp:Zero }} _ ok,
 	coq.typecheck Zero TZero ok,
 	coq.elaborate-skeleton {{ id }} {{ nmodType -> lp:TZero }} CZero ok,

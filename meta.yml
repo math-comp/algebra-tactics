@@ -64,7 +64,7 @@ dependencies:
     name: coq-mathcomp-ssreflect
     version: '{>= "2.4" & < "2.5~"}'
   description: |-
-    [MathComp](https://math-comp.github.io) ssreflect 2.0 or later
+    [MathComp](https://math-comp.github.io) ssreflect 2.4 or later
 - opam:
     name: coq-mathcomp-algebra
   description: |-
@@ -76,9 +76,9 @@ dependencies:
     [Mczify](https://github.com/math-comp/mczify) 1.5.0 or later
 - opam:
     name: coq-elpi
-    version: '{>= "1.15.0" & != "1.17.0"}'
+    version: '{>= "2.2.0"}'
   description: |-
-    [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 1.15.0 or later (known not to work with 1.17.0)
+    [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 2.2.0 or later
 
 test_target: test-suite
 namespace: mathcomp.algebra_tactics
