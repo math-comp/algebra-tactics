@@ -195,11 +195,11 @@ field (goal _ _ P _ Args as G) GS :-
       "The goal is not an equation",
     @ltacfail! 0 => mk-field-morphism Ty C Lem Field REnv FEnv,
     std.time (
-      REnv =>
+      (REnv =>
         std.unzip { std.map Args (quote-arg Ty { rmorphism-rm-field C } VM) }
-          Lpe LpeProofs,
-      FEnv => quote.ring C T1 RE1 PE1 VM,
-      FEnv => quote.ring C T2 RE2 PE2 VM
+          Lpe LpeProofs),
+      (FEnv => quote.ring C T1 RE1 PE1 VM),
+      (FEnv => quote.ring C T2 RE2 PE2 VM)
     ) ReifTime,
     if-verbose (coq.say "Reification:" ReifTime "sec."),
     list-constant Ty VM VM',

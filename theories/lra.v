@@ -394,7 +394,6 @@ Strategy expand [Reval_PFormula Feval_PFormula].
 Elpi Tactic lra.
 Elpi Accumulate Db canonicals.db.
 Elpi Accumulate File common lra.
-Elpi Typecheck.
 
 Tactic Notation "lra" := elpi lra "lra_witness" "tacF" "tacR" 0.
 Tactic Notation "nra" := elpi lra "nra_witness" "tacF" "tacR" 0.

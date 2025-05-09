@@ -438,7 +438,6 @@ Strategy expand [Ring.Rnorm Ring.Mnorm Field.Rnorm Field.Mnorm PEeval FEeval].
 Elpi Tactic ring.
 Elpi Accumulate Db canonicals.db.
 Elpi Accumulate File common ring ring_tac.
-Elpi Typecheck.
 
 Tactic Notation "ring" := elpi ring.
 Tactic Notation "ring" ":" ne_constr_list(L) := elpi ring ltac_term_list:(L).
@@ -449,7 +448,6 @@ Tactic Notation "#[" attributes(A) "]" "ring" ":" ne_constr_list(L) :=
 Elpi Tactic field.
 Elpi Accumulate Db canonicals.db.
 Elpi Accumulate File common ring field_tac.
-Elpi Typecheck.
 
 Tactic Notation "field" := elpi field.
 Tactic Notation "field" ":" ne_constr_list(L) := elpi field ltac_term_list:(L).
