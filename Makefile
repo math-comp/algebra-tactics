@@ -1,5 +1,5 @@
 # KNOWNTARGETS will not be passed along to CoqMakefile
-KNOWNTARGETS := Makefile.coq Makefile.test-suite.coq test-suite \
+KNOWNTARGETS := Makefile.coq Makefile.test-suite.coq all build test-suite \
 				clean cleanall distclean
 # KNOWNFILES will not get implicit targets from the final rule, and so
 # depending on them won't invoke the submake
@@ -7,11 +7,15 @@ KNOWNTARGETS := Makefile.coq Makefile.test-suite.coq test-suite \
 # on them always get rebuilt
 KNOWNFILES   := Makefile Make Make.test-suite
 
-.DEFAULT_GOAL := invoke-coqmakefile
-
 COQMAKEFILE       = $(COQBIN)coq_makefile
-COQMAKE           = $(MAKE) --no-print-directory -f Makefile.coq
-COQMAKE_TESTSUITE = $(MAKE) --no-print-directory -f Makefile.test-suite.coq
+COQMAKE           = +$(MAKE) --no-print-directory -f Makefile.coq
+COQMAKE_TESTSUITE = +$(MAKE) --no-print-directory -f Makefile.test-suite.coq
+
+all:
+	+$(MAKE) build
+	+$(MAKE) test-suite
+
+build: invoke-coqmakefile
 
 Makefile.coq: Makefile Make
 	$(COQMAKEFILE) -f Make -o Makefile.coq
@@ -43,7 +47,7 @@ distclean:: cleanall
 	rm -f Makefile.coq Makefile.coq.conf
 	rm -f Makefile.test-suite.coq Makefile.test-suite.coq.conf
 
-.PHONY: invoke-coqmakefile $(KNOWNFILES)
+.PHONY: all build test-suite invoke-coqmakefile $(KNOWNFILES)
 
 ####################################################################
 ##                      Your targets here                         ##
