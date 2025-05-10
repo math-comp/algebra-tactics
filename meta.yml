@@ -80,6 +80,7 @@ dependencies:
   description: |-
     [Coq-Elpi](https://github.com/LPCIC/coq-elpi) 2.2.0 or later
 
+make_target: build
 test_target: test-suite
 namespace: mathcomp.algebra_tactics
 

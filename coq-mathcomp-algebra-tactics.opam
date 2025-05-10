@@ -24,7 +24,7 @@ commutative ring. Another key feature of Algebra Tactics is that they
 automatically push down ring morphisms and additive functions to leaves of
 ring/field expressions before applying the proof procedures."""
 
-build: [make "-j%{jobs}%"]
+build: [make "-j%{jobs}%" "build"]
 run-test: [make "-j%{jobs}%" "test-suite"]
 install: [make "install"]
 depends: [
