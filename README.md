@@ -55,7 +55,7 @@ To instead build and install manually, do:
 ``` shell
 git clone https://github.com/math-comp/algebra-tactics.git
 cd algebra-tactics
-make   # or make -j <number-of-cores-on-your-machine> 
+make build  # or make -j <number-of-cores-on-your-machine> build
 make install
 ```
 
