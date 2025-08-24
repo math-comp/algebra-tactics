@@ -63,10 +63,10 @@ Definition Reval_bop2 (o : Op2) : R -> R -> bool :=
   | OpGt  => fun x y => lt y x
   end.
 
-Definition Reval_op2 k : Op2 -> R -> R -> rtyp k :=
+Definition Reval_op2 k : Op2 -> R -> R -> eKind k :=
   match k with isProp => Reval_pop2 | isBool => Reval_bop2 end.
 
-Definition Reval_formula k (ff : RFormula R) : rtyp k :=
+Definition Reval_formula k (ff : RFormula R) : eKind k :=
   let (lhs,o,rhs) := ff in Reval_op2 k o (Reval lhs) (Reval rhs).
 
 Definition Rnorm_formula k (ff : RFormula R) :=
@@ -93,8 +93,8 @@ elim: ff => // {k}.
 - by move=> ff1 IH1 ff2 IH2; congr eq.
 Qed.
 
-Definition Reval_PFormula (e : PolEnv R) k (ff : Formula Z) : rtyp k :=
-  let eval := PEeval add mul sub opp R_of_Z id exp e in
+Definition Reval_PFormula (e : PolEnv R) k (ff : Formula Z) : eKind k :=
+  let eval := EnvRing.PEeval add mul sub opp R_of_Z id exp e in
   let (lhs,o,rhs) := ff in Reval_op2 k o (eval lhs) (eval rhs).
 
 Lemma pop2_bop2 (op : Op2) (q1 q2 : R) :
@@ -104,7 +104,9 @@ Proof. by case: op => //=; rewrite eqPropE eqBoolE; split => /eqP. Qed.
 Lemma Reval_formula_compat (env : PolEnv R) k (f : Formula Z) :
   hold k (Reval_PFormula env k f) <->
   eval_formula add mul sub opp eqProp le lt R_of_Z id exp env f.
-Proof. by case: f => lhs op rhs; case: k => //=; rewrite pop2_bop2. Qed.
+Proof.
+by case: f => lhs op rhs; case: k => /=; rewrite ?pop2_bop2; case: op.
+Qed.
 
 End Rnorm_formula.
 
@@ -117,7 +119,7 @@ Notation RSORaddon := (RSORaddon R).
 
 Definition ZTautoChecker (f : BFormula (Formula Z) isProp) (w: list (Psatz Z)) :
     bool :=
-  @tauto_checker
+  @Tauto.tauto_checker
     (Formula Z) (NFormula Z) unit
     (check_inconsistent 0 Z.eqb Z.leb)
     (nformula_plus_nformula 0 Z.add Z.eqb)
@@ -208,7 +210,7 @@ elim: ff => // {k}.
 - by move=> ff1 IH1 ff2 IH2; congr eq.
 Qed.
 
-Definition Feval_PFormula (e : PolEnv F) k (ff : Formula Q) : rtyp k :=
+Definition Feval_PFormula (e : PolEnv F) k (ff : Formula Q) : eKind k :=
   let eval := eval_pexpr add mul sub opp F_of_Q id exp e in
   let (lhs,o,rhs) := ff in Feval_op2 k o (eval lhs) (eval rhs).
 
@@ -219,7 +221,9 @@ Proof. by case: op => //=; rewrite eqPropE eqBoolE; split => /eqP. Qed.
 Lemma Feval_formula_compat env b f :
   hold b (Feval_PFormula env b f) <->
   eval_formula add mul sub opp eqProp le lt F_of_Q id exp env f.
-Proof. by case: f => lhs op rhs; case: b => //=; rewrite pop2_bop2'. Qed.
+Proof.
+by case: f => lhs op rhs; case: b => /=; rewrite ?pop2_bop2'; case: op.
+Qed.
 
 End Fnorm_formula.
 
