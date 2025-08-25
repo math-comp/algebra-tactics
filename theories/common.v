@@ -1,3 +1,4 @@
+From mathcomp Require all_algebra. (* Remove this line when requiring Rocq > 9.1 *)
 From elpi Require Import elpi.
 From Coq Require Import PeanoNat BinNat Zbool QArith.
 From Coq.micromega Require Import OrderedRing RingMicromega.
