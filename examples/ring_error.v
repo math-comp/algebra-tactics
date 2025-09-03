@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect ssralg.
-From mathcomp Require Import ring.
+From mathcomp.algebra_tactics Require Import ring.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

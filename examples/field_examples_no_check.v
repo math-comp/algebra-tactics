@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint rat.
-From mathcomp Require Import ring.
+From mathcomp.algebra_tactics Require Import ring.
 
 Ltac field_reflection ::= field_reflection_no_check.
 

@@ -2,7 +2,7 @@
 (* `field_examples_no_check.v`. To edit this file, uncomment `Require         *)
 (* Import`s below: *)
 (* From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint rat. *)
-(* From mathcomp Require Import ring. *)
+(* From mathcomp.algebra_tactics Require Import ring. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
