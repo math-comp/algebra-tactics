@@ -400,6 +400,9 @@ Ltac field_normalization :=
   rewrite ?{zero}zeroE ?{one}oneE ?{add}addE ?{mul}mulE ?{sub}subE ?{opp}oppE;
   rewrite ?{Feqb}FeqbE ?{F_of_nat}F_of_natE ?{exp}expE ?{l}lE.
 
+Ltac field_postprocessing :=
+  do ?[apply/andP; split].
+
 End Internals.
 
 (* Auxiliary Ltac code which will be invoked from Elpi *)
@@ -417,7 +420,7 @@ Ltac ring_reflection := ring_reflection_check.
 
 Ltac field_reflection_check Lem F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   refine (Lem F 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
-              ltac:(reflexivity) ltac:(field_normalization)).
+          ltac:(reflexivity) ltac:(field_normalization; field_postprocessing)).
 
 Ltac field_reflection_no_check Lem F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   let obligation := fresh in
@@ -425,7 +428,8 @@ Ltac field_reflection_no_check Lem F VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs :=
   [ | exact_no_check (Lem
         F 100%N VarMap Lpe RE1 RE2 PE1 PE2 LpeProofs
         ltac:(reflexivity_no_check)
-        ltac:(field_normalization; exact obligation)) ].
+        ltac:(field_normalization; exact obligation)) ];
+  field_postprocessing.
 
 Ltac field_reflection := field_reflection_check.
 
