@@ -49,3 +49,8 @@ Proof. by move=> F n n_neq0; field; rewrite subr_eq0 pnatr_eq1. Qed.
 Goal forall (F : numFieldType) (n : nat),
   n != 1%N -> (2%:R - (2 * n)%:R) / (1 - n%:R) = 2%:R :> F.
 Proof. by move=> F n n_neq0; field; rewrite subr_eq0 eq_sym pnatr_eq1. Qed.
+
+(* https://github.com/math-comp/algebra-tactics/issues/110 *)
+Goal forall (F : fieldType) (x y : F), x != 0 -> y != 0 ->
+  1 / (x * y) = 1 / x * 1 / y.
+Proof. by move=> F x y xNZ yNZ; field. Qed.
