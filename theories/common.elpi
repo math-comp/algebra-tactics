@@ -11,9 +11,10 @@ mem [Y|_] X 0 :- Y = app [H|_], X = app [H|_], coq.unify-eq X Y ok, !.
 mem [_|XS] X M :- !, mem XS X N, M is N + 1.
 
 % [eucldiv N D M R] N = D * M + R
+:functional
 pred eucldiv o:int, i:int, o:int, i:int.
 eucldiv N D M R :- var N, var M, !, declare_constraint (eucldiv N D M R) [N, M].
-eucldiv N D M R :- var N, N is D * M + R.
+eucldiv N D M R :- var N, !, N is D * M + R.
 eucldiv N D M R :- var M, M is N div D, R is N mod D.
 
 pred positive-constant o:int, o:term.
