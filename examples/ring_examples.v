@@ -1,8 +1,8 @@
 (* This file should be tested by loaded from `ring_examples_check.v` and      *)
 (* `ring_examples_no_check.v`. To edit this file, uncomment `Require Import`s *)
 (* below: *)
-(* From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint rat. *)
-(* From mathcomp Require Import ring ssrZ. *)
+(* From mathcomp Require Import all_ssreflect ssralg ssrnum ssrint rat ssrZ. *)
+(* From mathcomp.algebra_tactics Require Import ring. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
