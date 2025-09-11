@@ -251,6 +251,12 @@ Definition Fcorrect F :=
     (Eqsth F) RE (congr1 GRing.inv) (F2AF (Eqsth F) RE (RF F)) (RZ F) (PN F)
     (triv_div_th (Eqsth F) RE (Rth_ARth (Eqsth F) RE (RR F)) (RZ F)).
 
+#[local] Notation nFcons00 :=
+  ltac:(exact (Fcons00 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb)
+        || exact (Fcons00 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
+                    (triv_div 0 1 Z.eqb))) (only parsing).
+  (* Replace by LHS when requiring Rocq >= 9.2 *)
+
 Lemma field_correct (F : fieldType) (n : nat) (l : seq F)
                     (lpe : seq (RExpr F * RExpr F * PExpr Z * PExpr Z))
                     (re1 re2 : RExpr F) (fe1 fe2 : FExpr Z) :
@@ -285,9 +291,8 @@ Lemma field_correct (F : fieldType) (n : nat) (l : seq F)
                 (norm_subst' (PEmul (num nfe2) (denum nfe1))) /\
       is_true_ (PCond' true negb_ andb_
                        zero one add mul sub opp Feqb F_of_Z nat_of_N exp l'
-                       (Fapp (Fcons00 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
-                                      (triv_div 0 1 Z.eqb))
-                             (condition nfe1 ++ condition nfe2) [::]))) ->
+                       (Fapp nFcons00
+                          (condition nfe1 ++ condition nfe2) [::]))) ->
   Reval re1 = Reval re2.
 Proof.
 move=> Hlpe' /(_ (fun n => (int_of_Z n)%:~R) 0%R -%R +%R (fun x y => x - y)).
@@ -304,6 +309,12 @@ by apply: Pcond_simpl_gen;
     exact/triv_div_th/RZ/Rth_ARth/RR/Eq_ext/Eq_ext/Eqsth |
     move=> _ ->; exact/PCondP ].
 Qed.
+
+#[local] Notation nFcons2 :=
+  ltac:(exact (Fcons2 0 1 Z.add Z.mul Z.sub Z.opp (pow_pos Z.mul) Z.eqb)
+        || exact (Fcons2 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
+                    (triv_div 0 1 Z.eqb))) (only parsing).
+  (* Replace by LHS when requiring Rocq >= 9.2 *)
 
 Lemma numField_correct (F : numFieldType) (n : nat) (l : seq F)
                        (lpe : seq (RExpr F * RExpr F * PExpr Z * PExpr Z))
@@ -339,9 +350,8 @@ Lemma numField_correct (F : numFieldType) (n : nat) (l : seq F)
                 (norm_subst' (PEmul (num nfe2) (denum nfe1))) /\
       is_true_ (PCond' true negb_ andb_
                        zero one add mul sub opp Feqb F_of_Z nat_of_N exp l'
-                       (Fapp (Fcons2 0 1 Z.add Z.mul Z.sub Z.opp Z.eqb
-                                     (triv_div 0 1 Z.eqb))
-                             (condition nfe1 ++ condition nfe2) [::]))) ->
+                       (Fapp nFcons2
+                          (condition nfe1 ++ condition nfe2) [::]))) ->
   Reval re1 = Reval re2.
 Proof.
 move=> Hlpe' /(_ (fun n => (int_of_Z n)%:~R) 0%R -%R +%R (fun x y => x - y)).

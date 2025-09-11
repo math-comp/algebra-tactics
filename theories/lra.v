@@ -94,17 +94,29 @@ elim: ff => // {k}.
 - by move=> ff1 IH1 ff2 IH2; congr eq.
 Qed.
 
+#[local] Notation nPEeval :=
+  ltac:(exact (EnvRing.PEeval (R_of_Z Z0) (R_of_Z (Zpos xH)) add mul sub opp
+                 R_of_Z id exp)
+        || exact (EnvRing.PEeval add mul sub opp R_of_Z id exp)) (only parsing).
+  (* Replace by LHS when requiring Rocq >= 9.2 *)
+
 Definition Reval_PFormula (e : PolEnv R) k (ff : Formula Z) : eKind k :=
-  let eval := EnvRing.PEeval add mul sub opp R_of_Z id exp e in
+  let eval := nPEeval e in
   let (lhs,o,rhs) := ff in Reval_op2 k o (eval lhs) (eval rhs).
 
 Lemma pop2_bop2 (op : Op2) (q1 q2 : R) :
   Reval_bop2 op q1 q2 <-> Reval_pop2 op q1 q2.
 Proof. by case: op => //=; rewrite eqPropE eqBoolE; split => /eqP. Qed.
 
+#[local] Notation neval_formula :=
+  ltac:(exact (eval_formula (R_of_Z Z0) (R_of_Z (Zpos xH)) add mul sub opp
+                 eqProp le lt R_of_Z id exp)
+        || exact (eval_formula add mul sub opp eqProp le lt R_of_Z id exp))
+  (only parsing).
+  (* Replace by LHS when requiring Rocq >= 9.2 *)
+
 Lemma Reval_formula_compat (env : PolEnv R) k (f : Formula Z) :
-  hold k (Reval_PFormula env k f) <->
-  eval_formula add mul sub opp eqProp le lt R_of_Z id exp env f.
+  hold k (Reval_PFormula env k f) <-> neval_formula env f.
 Proof.
 by case: f => lhs op rhs; case: k => /=; rewrite ?pop2_bop2; case: op.
 Qed.
@@ -211,17 +223,33 @@ elim: ff => // {k}.
 - by move=> ff1 IH1 ff2 IH2; congr eq.
 Qed.
 
+(* Remove the two lines below when requiring Rocq >= 9.2 *)
+#[local] Notation Q0 := (Qmake Z0 xH) (only parsing).
+#[local] Notation Q1 := (Qmake (Zpos xH) xH) (only parsing).
+
+#[local] Notation neval_pexpr :=
+  ltac:(exact (eval_pexpr (F_of_Q Q0) (F_of_Q Q1) add mul sub opp F_of_Q id exp)
+        || exact (eval_pexpr add mul sub opp F_of_Q id exp))
+  (only parsing).
+  (* Replace by LHS when requiring Rocq >= 9.2 *)
+
 Definition Feval_PFormula (e : PolEnv F) k (ff : Formula Q) : eKind k :=
-  let eval := eval_pexpr add mul sub opp F_of_Q id exp e in
+  let eval := neval_pexpr e in
   let (lhs,o,rhs) := ff in Feval_op2 k o (eval lhs) (eval rhs).
 
 Lemma pop2_bop2' (op : Op2) (q1 q2 : F) :
   Feval_bop2 op q1 q2 <-> Feval_pop2 op q1 q2.
 Proof. by case: op => //=; rewrite eqPropE eqBoolE; split => /eqP. Qed.
 
+#[local] Notation nFeval_formula :=
+  ltac:(exact (eval_formula (F_of_Q Q0) (F_of_Q Q1) add mul sub opp
+                 eqProp le lt F_of_Q id exp)
+        || exact (eval_formula add mul sub opp eqProp le lt F_of_Q id exp))
+  (only parsing).
+  (* Replace by LHS when requiring Rocq >= 9.2 *)
+
 Lemma Feval_formula_compat env b f :
-  hold b (Feval_PFormula env b f) <->
-  eval_formula add mul sub opp eqProp le lt F_of_Q id exp env f.
+  hold b (Feval_PFormula env b f) <-> nFeval_formula env f.
 Proof.
 by case: f => lhs op rhs; case: b => /=; rewrite ?pop2_bop2'; case: op.
 Qed.
@@ -242,6 +270,10 @@ Notation FSORaddon := (FSORaddon F).
 Definition Feval_nformula : PolEnv F -> NFormula Q -> Prop :=
   eval_nformula 0 +%R *%R eq (fun x y => x <= y) (fun x y => x < y) R_of_Q.
 
+(* Remove the two lines below when requiring Rocq >= 9.2 *)
+#[local] Notation Q0 := (Qmake Z0 xH) (only parsing).
+#[local] Notation Q1 := (Qmake (Zpos xH) xH) (only parsing).
+
 Lemma FTautoChecker_sound
     (ff : BFormula (RFormula F) isProp) (f : BFormula (Formula Q) isProp)
     (w : seq (Psatz Q)) (env : PolEnv F) :
@@ -255,14 +287,16 @@ Lemma FTautoChecker_sound
 Proof.
 rewrite (Fnorm_bf_correct erefl erefl erefl erefl erefl erefl).
 move/(_ R_of_Q) => -> Hchecker.
+have RQ0 : R_of_Q Q0 = 0 :> F by rewrite /R_of_Q/= mul0r.
+have RQ1 : R_of_Q Q1 = 1 :> F by rewrite /R_of_Q/= divr1.
 move: Hchecker env; apply: (tauto_checker_sound _ _ _ _ Feval_nformula).
 - exact: (eval_nformula_dec Rsor).
 - by move=> [? ?] ? ?; apply: (check_inconsistent_sound Rsor FSORaddon).
 - move=> t t' u deducett'u env evalt evalt'.
   exact: (nformula_plus_nformula_correct Rsor FSORaddon env t t').
-- move=> env k t tg cnfff; rewrite Feval_formula_compat //.
+- move=> env k t tg cnfff; rewrite Feval_formula_compat // ?RQ0 ?RQ1.
   exact: (cnf_normalise_correct Rsor FSORaddon env t tg).1.
-- move=> env k t tg cnfff; rewrite hold_eNOT Feval_formula_compat //.
+- move=> env k t tg cnfff; rewrite hold_eNOT Feval_formula_compat // ?RQ0 ?RQ1.
   exact: (cnf_negate_correct Rsor FSORaddon env t tg).1.
 - move=> t w0 checkw0 env; rewrite (Refl.make_impl_map (Feval_nformula env)) //.
   exact: (checker_nf_sound Rsor FSORaddon) checkw0 env.
@@ -284,14 +318,28 @@ Definition vm_of_list T (l : list T) : VarMap.t T :=
 Definition omap2 {aT1 aT2 rT} (f : aT1 -> aT2 -> rT) o1 o2 :=
   obind (fun a1 => omap (f a1) o2) o1.
 
-Fixpoint PExpr_Q2Z (e : PExpr Q) : option (PExpr Z) := match e with
-  | PEc (Qmake z 1) => Some (PEc z) | PEc _ => None
-  | PEX n => Some (PEX n)
-  | PEadd e1 e2 => omap2 PEadd (PExpr_Q2Z e1) (PExpr_Q2Z e2)
-  | PEsub e1 e2 => omap2 PEsub (PExpr_Q2Z e1) (PExpr_Q2Z e2)
-  | PEmul e1 e2 => omap2 PEmul (PExpr_Q2Z e1) (PExpr_Q2Z e2)
-  | PEopp e1 => omap PEopp (PExpr_Q2Z e1)
-  | PEpow e1 n => omap (PEpow ^~ n) (PExpr_Q2Z e1) end.
+Definition PExpr_Q2Z := ltac:(exact
+  (fix PExpr_Q2Z (e : PExpr Q) : option (PExpr Z) :=
+     match e with
+     | PEO => Some PEO | PEI => Some PEI
+     | PEc (Qmake z 1) => Some (PEc z) | PEc _ => None
+     | PEX n => Some (PEX _ n)
+     | PEadd e1 e2 => omap2 PEadd (PExpr_Q2Z e1) (PExpr_Q2Z e2)
+     | PEsub e1 e2 => omap2 PEsub (PExpr_Q2Z e1) (PExpr_Q2Z e2)
+     | PEmul e1 e2 => omap2 PEmul (PExpr_Q2Z e1) (PExpr_Q2Z e2)
+     | PEopp e1 => omap PEopp (PExpr_Q2Z e1)
+     | PEpow e1 n => omap (PEpow ^~ n) (PExpr_Q2Z e1) end)
+|| exact
+  (fix PExpr_Q2Z (e : PExpr Q) : option (PExpr Z) :=
+     match e with
+     | PEc (Qmake z 1) => Some (PEc z) | PEc _ => None
+     | PEX n => Some (PEX n)
+     | PEadd e1 e2 => omap2 PEadd (PExpr_Q2Z e1) (PExpr_Q2Z e2)
+     | PEsub e1 e2 => omap2 PEsub (PExpr_Q2Z e1) (PExpr_Q2Z e2)
+     | PEmul e1 e2 => omap2 PEmul (PExpr_Q2Z e1) (PExpr_Q2Z e2)
+     | PEopp e1 => omap PEopp (PExpr_Q2Z e1)
+     | PEpow e1 n => omap (PEpow ^~ n) (PExpr_Q2Z e1) end)).
+  (* Replace by LHS when requiring Rocq >= 9.2 *)
 
 Definition Formula_Q2Z (ff : Formula Q) : option (Formula Z) :=
   omap2
