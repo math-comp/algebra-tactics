@@ -401,10 +401,10 @@ Definition seq_Psatz_Q2Z : seq (Psatz Q) -> seq (Psatz Z) :=
 
 (* Main tactics, called from the elpi parser (c.f., lra.elpi) *)
 
-Ltac lra_witness n f := let w := fresh "__wit" in wlra_Q w f.
-Ltac nra_witness n f := let w := fresh "__wit" in wnra_Q w f.
+Ltac lra_witness n f := let w := fresh "__wit" in mp_wlra_Q w f.
+Ltac nra_witness n f := let w := fresh "__wit" in mp_wnra_Q w f.
 Ltac psatz_witness n f :=
-  let w := fresh "__wit" in wsos_Q w f || wpsatz_Q n w f.
+  let w := fresh "__wit" in mp_wsos_Q w f || mp_wpsatz_Q n w f.
 
 Ltac tacF F hyps rff ff varmap wit :=
   let irff := fresh "__rff" in
